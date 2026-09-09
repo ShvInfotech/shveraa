@@ -1,0 +1,1072 @@
+/* ==========================================================================
+   SHVERAA MODERN MINIMAL ADMIN PANEL (MODULIX INSPIRED DESIGN SYSTEM)
+   ========================================================================== */
+
+:root {
+  --admin-bg: #F8FAFC;
+  --admin-card-bg: #FFFFFF;
+  --admin-sidebar-bg: #FFFFFF;
+  --admin-border: #EAECEF;
+  --admin-border-subtle: #F1F3F5;
+  --admin-text-main: #1E2229;
+  --admin-text-muted: #64748B;
+  --admin-text-light: #94A3B8;
+  --admin-primary: #1E2229;
+  --admin-gold: #A07E52;
+  --admin-green: #10B981;
+  --admin-green-bg: #ECFDF5;
+  --admin-blue: #3B82F6;
+  --admin-blue-bg: #EFF6FF;
+  --admin-amber: #F59E0B;
+  --admin-amber-bg: #FFFBEB;
+  --admin-red: #EF4444;
+  --admin-red-bg: #FEF2F2;
+  --admin-radius-lg: 18px;
+  --admin-radius-md: 12px;
+  --admin-radius-sm: 8px;
+  --admin-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.04);
+  --admin-shadow-card: 0 4px 16px rgba(15, 23, 42, 0.03);
+}
+
+.shv-admin-wrapper {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--admin-bg);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: var(--admin-text-main);
+  overflow-x: hidden;
+}
+
+/* --------------------------------------------------------------------------
+   1. SIDEBAR NAVIGATION
+   -------------------------------------------------------------------------- */
+.shv-admin-sidebar {
+  width: 260px;
+  background: var(--admin-sidebar-bg);
+  border-right: 1px solid var(--admin-border);
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem 1.25rem;
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), padding 0.3s ease;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  z-index: 50;
+  box-sizing: border-box;
+}
+
+.shv-admin-sidebar.collapsed {
+  width: 84px;
+  padding: 1.5rem 0.75rem;
+}
+
+/* Brand Header */
+.shv-sidebar-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  padding-bottom: 0.5rem;
+}
+
+.shv-sidebar-logo-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  color: var(--admin-text-main);
+}
+
+.shv-sidebar-logo-badge {
+  width: 38px;
+  height: 38px;
+  background: #111418;
+  color: #FFFFFF;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: -0.02em;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+  flex-shrink: 0;
+}
+
+.shv-sidebar-brand-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #111418;
+}
+
+.shv-sidebar-collapse-btn {
+  background: #F8FAFC;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--admin-text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.shv-sidebar-collapse-btn:hover {
+  background: #FFFFFF;
+  color: var(--admin-text-main);
+  border-color: #CBD5E1;
+}
+
+/* Menu Group */
+.shv-sidebar-nav-container {
+  flex: 1;
+  overflow-y: auto;
+  margin-right: -0.5rem;
+  padding-right: 0.5rem;
+}
+
+.shv-sidebar-nav-container::-webkit-scrollbar {
+  width: 4px;
+}
+
+.shv-sidebar-nav-container::-webkit-scrollbar-thumb {
+  background: #E2E8F0;
+  border-radius: 4px;
+}
+
+.shv-sidebar-section {
+  margin-bottom: 1.75rem;
+}
+
+.shv-sidebar-section-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--admin-text-light);
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+  padding-left: 0.75rem;
+}
+
+.shv-sidebar-menu {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.shv-sidebar-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 0.85rem;
+  border-radius: 12px;
+  color: var(--admin-text-muted);
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.shv-sidebar-link-left {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.shv-sidebar-link:hover {
+  color: var(--admin-text-main);
+  background: #F8FAFC;
+}
+
+.shv-sidebar-link.active {
+  background: #FFFFFF;
+  color: var(--admin-text-main);
+  font-weight: 600;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.shv-sidebar-badge {
+  background: var(--admin-blue-bg);
+  color: var(--admin-blue);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+
+/* Submenu Tree for Track Deliveries */
+.shv-sidebar-submenu {
+  list-style: none;
+  padding: 0.25rem 0 0.5rem 2.2rem;
+  margin: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.shv-sidebar-submenu::before {
+  content: '';
+  position: absolute;
+  left: 1.45rem;
+  top: 0.5rem;
+  bottom: 0.8rem;
+  width: 1px;
+  background: #E2E8F0;
+}
+
+.shv-sidebar-sublink {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.82rem;
+  color: var(--admin-text-muted);
+  text-decoration: none;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.shv-sidebar-sublink::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #CBD5E1;
+  transition: all 0.2s ease;
+}
+
+.shv-sidebar-sublink:hover {
+  color: var(--admin-text-main);
+}
+
+.shv-sidebar-sublink.active {
+  color: var(--admin-text-main);
+  font-weight: 600;
+}
+
+.shv-sidebar-sublink.active::before {
+  background: #111418;
+  box-shadow: 0 0 0 2px rgba(17, 20, 24, 0.2);
+}
+
+/* Profile Card at bottom */
+.shv-sidebar-profile {
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid var(--admin-border);
+}
+
+.shv-admin-user-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 0.75rem;
+  border-radius: 12px;
+  background: #F8FAFC;
+  border: 1px solid var(--admin-border);
+}
+
+.shv-user-card-left {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.shv-admin-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #1E2229;
+  color: #FAF7F2;
+  font-size: 0.84rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.shv-admin-info {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.shv-admin-name {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--admin-text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shv-admin-email {
+  font-size: 0.72rem;
+  color: var(--admin-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shv-admin-exit-btn {
+  background: transparent;
+  border: none;
+  color: var(--admin-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.shv-admin-exit-btn:hover {
+  background: #FFFFFF;
+  color: var(--admin-red);
+}
+
+/* --------------------------------------------------------------------------
+   2. MAIN CONTENT AREA & TOP BAR
+   -------------------------------------------------------------------------- */
+.shv-admin-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Header */
+.shv-admin-header {
+  height: 72px;
+  background: #FFFFFF;
+  border-bottom: 1px solid var(--admin-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+.shv-admin-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.86rem;
+  color: var(--admin-text-muted);
+}
+
+.shv-admin-breadcrumb-active {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+  color: var(--admin-text-main);
+}
+
+.shv-admin-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.shv-admin-search-wrap {
+  position: relative;
+  width: 280px;
+}
+
+.shv-admin-search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--admin-text-light);
+  pointer-events: none;
+}
+
+.shv-admin-search-input {
+  width: 100%;
+  padding: 0.6rem 1rem 0.6rem 2.5rem;
+  border: 1px solid var(--admin-border);
+  border-radius: 999px;
+  background: #FFFFFF;
+  font-size: 0.84rem;
+  color: var(--admin-text-main);
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.shv-admin-search-input:focus {
+  outline: none;
+  border-color: #CBD5E1;
+  box-shadow: 0 0 0 3px rgba(30, 34, 41, 0.05);
+}
+
+.shv-admin-calendar-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: #FFFFFF;
+  border: 1px solid var(--admin-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--admin-text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.shv-admin-calendar-btn:hover {
+  background: #F8FAFC;
+  color: var(--admin-text-main);
+  border-color: #CBD5E1;
+}
+
+/* Page Container */
+.shv-admin-content-body {
+  padding: 2rem;
+  flex: 1;
+}
+
+/* --------------------------------------------------------------------------
+   3. DASHBOARD VIEW (MODULIX 1:1 REPLICA)
+   -------------------------------------------------------------------------- */
+
+/* Welcome Banner */
+.shv-admin-welcome-banner {
+  margin-bottom: 2rem;
+}
+
+.shv-admin-welcome-title {
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: var(--admin-text-main);
+  letter-spacing: -0.02em;
+  margin-bottom: 0.35rem;
+}
+
+.shv-admin-welcome-sub {
+  font-size: 0.92rem;
+  color: var(--admin-text-muted);
+}
+
+/* Stat Cards Row */
+.shv-admin-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 1024px) {
+  .shv-admin-stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+}
+
+.shv-admin-stat-card {
+  background: var(--admin-card-bg);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-lg);
+  padding: 1.4rem 1.5rem;
+  box-shadow: var(--admin-shadow-card);
+  display: flex;
+  flex-direction: column;
+}
+
+.shv-stat-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 1.25rem;
+  color: var(--admin-text-main);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.shv-stat-card-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #F8FAFC;
+  border: 1px solid var(--admin-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--admin-text-main);
+}
+
+.shv-stat-card-body {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.shv-stat-card-number {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--admin-text-main);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  margin-bottom: 0.5rem;
+}
+
+.shv-stat-trend {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--admin-text-muted);
+}
+
+.shv-stat-trend.positive {
+  color: var(--admin-green);
+}
+
+.shv-stat-trend.negative {
+  color: var(--admin-red);
+}
+
+.shv-stat-sparkline {
+  width: 80px;
+  height: 32px;
+}
+
+/* Middle Section: Overview Bar Chart (65%) + Buying History (35%) */
+.shv-admin-middle-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 1200px) {
+  .shv-admin-middle-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Overview Card */
+.shv-admin-overview-card {
+  background: var(--admin-card-bg);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--admin-shadow-card);
+}
+
+.shv-overview-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.shv-overview-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--admin-text-main);
+}
+
+.shv-overview-select {
+  border: 1px solid var(--admin-border);
+  background: #FFFFFF;
+  border-radius: 8px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.82rem;
+  color: var(--admin-text-muted);
+  cursor: pointer;
+}
+
+.shv-overview-avg-row {
+  margin-bottom: 1.5rem;
+}
+
+.shv-overview-avg-label {
+  font-size: 0.78rem;
+  color: var(--admin-text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.shv-overview-avg-val-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.shv-overview-avg-number {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--admin-text-main);
+  letter-spacing: -0.02em;
+}
+
+.shv-overview-avg-badge {
+  background: var(--admin-green-bg);
+  color: var(--admin-green);
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+/* Bar Chart Container */
+.shv-chart-bars-wrap {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 200px;
+  padding-top: 2rem;
+  border-bottom: 1px dashed #E2E8F0;
+  position: relative;
+}
+
+.shv-chart-bar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  position: relative;
+}
+
+.shv-chart-bar-track {
+  width: 36px;
+  height: 160px;
+  background: #F1F5F9;
+  border-radius: 8px 8px 0 0;
+  display: flex;
+  align-items: flex-end;
+  position: relative;
+  overflow: visible;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.shv-chart-bar-track:hover {
+  background: #E2E8F0;
+}
+
+.shv-chart-bar-fill {
+  width: 100%;
+  border-radius: 8px 8px 0 0;
+  background: repeating-linear-gradient(
+    45deg,
+    #E2E8F0,
+    #E2E8F0 4px,
+    #CBD5E1 4px,
+    #CBD5E1 8px
+  );
+  transition: height 0.4s ease;
+}
+
+.shv-chart-bar-col.highlighted .shv-chart-bar-fill {
+  background: repeating-linear-gradient(
+    45deg,
+    #334155,
+    #334155 4px,
+    #1E293B 4px,
+    #1E293B 8px
+  );
+}
+
+.shv-chart-bar-dot {
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 2px solid #1E293B;
+  z-index: 2;
+}
+
+/* Floating Modulix Tooltip */
+.shv-chart-tooltip {
+  position: absolute;
+  top: -46px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1E293B;
+  color: #FFFFFF;
+  padding: 0.35rem 0.65rem;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  z-index: 10;
+  text-align: center;
+}
+
+.shv-chart-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 4px 4px 0;
+  border-style: solid;
+  border-color: #1E293B transparent transparent;
+}
+
+.shv-chart-month-label {
+  font-size: 0.78rem;
+  color: var(--admin-text-muted);
+  margin-top: 0.75rem;
+}
+
+/* Buying History Side Panel */
+.shv-admin-history-card {
+  background: var(--admin-card-bg);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--admin-shadow-card);
+  display: flex;
+  flex-direction: column;
+}
+
+.shv-history-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--admin-text-main);
+  margin-bottom: 1.25rem;
+}
+
+.shv-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.shv-history-item {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--admin-border-subtle);
+}
+
+.shv-history-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.shv-history-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: #F1F5F9;
+  border: 1px solid var(--admin-border);
+  flex-shrink: 0;
+}
+
+.shv-history-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.shv-history-name {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--admin-text-main);
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shv-history-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.74rem;
+  color: var(--admin-text-muted);
+}
+
+/* --------------------------------------------------------------------------
+   4. UPCOMING DELIVERIES TABLE (LOWER SECTION)
+   -------------------------------------------------------------------------- */
+.shv-admin-table-card {
+  background: var(--admin-card-bg);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--admin-shadow-card);
+}
+
+.shv-table-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.shv-table-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--admin-text-main);
+}
+
+.shv-table-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.85rem;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  background: #FFFFFF;
+  color: var(--admin-text-main);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.shv-table-filter-btn:hover {
+  background: #F8FAFC;
+  border-color: #CBD5E1;
+}
+
+.shv-admin-table-wrap {
+  overflow-x: auto;
+}
+
+.shv-admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.shv-admin-table th {
+  padding: 0.85rem 1rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--admin-text-muted);
+  border-bottom: 1px solid var(--admin-border);
+  white-space: nowrap;
+}
+
+.shv-admin-table td {
+  padding: 1rem;
+  font-size: 0.86rem;
+  color: var(--admin-text-main);
+  border-bottom: 1px solid var(--admin-border-subtle);
+  vertical-align: middle;
+}
+
+.shv-admin-table tr:hover td {
+  background: #FAFAFB;
+}
+
+.shv-table-order-id {
+  font-weight: 700;
+  color: var(--admin-text-main);
+}
+
+.shv-table-item-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.shv-table-item-thumb {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: #F1F5F9;
+}
+
+/* Status Pills */
+.shv-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.shv-status-pill.scheduled {
+  background: #ECFDF5;
+  color: #059669;
+}
+
+.shv-status-pill.ontheway {
+  background: #EFF6FF;
+  color: #2563EB;
+}
+
+.shv-status-pill.delivered {
+  background: #ECFDF5;
+  color: #059669;
+}
+
+.shv-status-pill.onhold {
+  background: #FFFBEB;
+  color: #D97706;
+}
+
+.shv-status-pill.cancelled {
+  background: #FEF2F2;
+  color: #DC2626;
+}
+
+/* --------------------------------------------------------------------------
+   5. ORDER DETAILS & MODAL
+   -------------------------------------------------------------------------- */
+.shv-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1.5rem;
+}
+
+.shv-modal-card {
+  background: #FFFFFF;
+  border-radius: var(--admin-radius-lg);
+  border: 1px solid var(--admin-border);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15);
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 2rem;
+}
+
+.shv-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.shv-modal-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--admin-text-main);
+}
+
+.shv-modal-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--admin-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shv-modal-close-btn:hover {
+  background: #F1F5F9;
+  color: var(--admin-text-main);
+}
+
+/* Form fields */
+.shv-form-group {
+  margin-bottom: 1.25rem;
+}
+
+.shv-form-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--admin-text-main);
+  margin-bottom: 0.4rem;
+}
+
+.shv-form-input,
+.shv-form-select,
+.shv-form-textarea {
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  background: #FFFFFF;
+  font-size: 0.86rem;
+  color: var(--admin-text-main);
+  box-sizing: border-box;
+}
+
+.shv-form-input:focus,
+.shv-form-select:focus,
+.shv-form-textarea:focus {
+  outline: none;
+  border-color: #94A3B8;
+  box-shadow: 0 0 0 3px rgba(30, 34, 41, 0.06);
+}
+
+.shv-form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.75rem;
+}
+
+.shv-btn-secondary {
+  padding: 0.65rem 1.25rem;
+  background: #F8FAFC;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--admin-text-main);
+  cursor: pointer;
+}
+
+.shv-btn-primary {
+  padding: 0.65rem 1.4rem;
+  background: #1E2229;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #FFFFFF;
+  cursor: pointer;
+}
+
+.shv-btn-primary:hover {
+  background: #0F172A;
+}

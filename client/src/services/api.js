@@ -356,13 +356,16 @@ export const fetchProducts = async (params = {}) => {
     const query = new URLSearchParams(params).toString();
     const url = `${API_BASE_URL}/products${query ? `?${query}` : ''}`;
     const res = await fetch(url);
+  
     if (!res.ok) {
       throw new Error(`API error: ${res.status}`);
     }
     const data = await res.json();
+    
     if (data && data.success && Array.isArray(data.data) && data.data.length > 0) {
       return data.data;
     }
+
     return filterLocalProducts(params);
   } catch (err) {
     console.info('Using local fallback silver products dataset.');

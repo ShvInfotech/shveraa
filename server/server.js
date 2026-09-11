@@ -1,41 +1,52 @@
+import 'dotenv/config'
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
-import { connectDB } from './config/db.js';
+import path from 'path'
 import productRoutes from './routes/productRoutes.js';
 import contactRoutes from './routes/contactRoutes.js';
-
-dotenv.config();
+import morgan from 'morgan';
+import dbconnection from './config/db.js'
+import indexRoutes from './routes/index.routes.js'
+import { GlobelErrorHandaling } from './middleware/globelError.js';
+import { ResetPasswordpage } from './controllers/user/v1/user.controller.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const HOST = process.env.HOST || 'localhost'
 
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({extended:true}))
+app.use(morgan('dev'))
 
-// Database connection
-connectDB();
+app.set("view engine", "ejs");
+app.set("views", path.join(process.cwd(), "views"));
+
 
 // API Routes
 app.use('/api/products', productRoutes);
 app.use('/api/contact', contactRoutes);
 
+
 // Health check route
 app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    brand: 'Shveraa',
-    timestamp: new Date().toISOString(),
-  });
+  res.json({status: 'ok',brand: 'Shveraa',timestamp: new Date().toISOString()});
 });
 
 // Root route
-app.get('/', (req, res) => {
-  res.send('Shveraa Jewellery E-commerce API is running.');
-});
+app.get('/reset-password/:token',ResetPasswordpage)
+app.use('/api/v1', indexRoutes)
+app.get('/', (req, res) => {res.send('Shveraa Jewellery E-commerce API is running.');});
+app.use(GlobelErrorHandaling)
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`[Shveraa Server] Running on port ${PORT} (http://localhost:${PORT})`);
+app.listen(PORT, (error) => {
+  if (!error) {
+    console.log(`[Shveraa Server] Running on port ${PORT} (http://${HOST}:${PORT})`);
+    dbconnection();
+  } else {
+    console.log("Server starting probleme", error)
+  }
+
 });

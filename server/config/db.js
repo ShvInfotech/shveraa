@@ -1,20 +1,16 @@
 import mongoose from 'mongoose';
 
-let isConnected = false;
-
-export const connectDB = async () => {
+ const dbconnection= async()=>{
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/shveraa', {
-      serverSelectionTimeoutMS: 2500,
-    });
-    isConnected = true;
-    console.log(`[MongoDB] Connected: ${conn.connection.host}`);
-    return true;
+      await mongoose.connect(process.env.MONGO_URI)
+       console.log("db connected!!!!")
   } catch (error) {
-    isConnected = false;
-    console.warn(`[MongoDB Warning] Could not connect to MongoDB (${error.message}). Running with mock/fallback in-memory store.`);
-    return false;
+    console.log(error)
   }
-};
+}
 
-export const getIsConnected = () => isConnected;
+
+export default dbconnection
+
+
+

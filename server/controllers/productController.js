@@ -1,47 +1,50 @@
 import Product from '../models/Product.js';
 import { initialProducts } from '../data/productsData.js';
-import { getIsConnected } from '../config/db.js';
+// import { getIsConnected } from '../config/db.js';
 
 // In-memory products store fallback
 let memoryProducts = [...initialProducts];
 
 export const getProducts = async (req, res) => {
   try {
+
+
     const { category, sort, search, featured, bestseller } = req.query;
 
-    if (getIsConnected()) {
-      const query = {};
+    // if (getIsConnected()) {
+    const query = {};
 
-      if (category && category !== 'all') {
-        query.category = category.toLowerCase();
-      }
-
-      if (featured === 'true') {
-        query.featured = true;
-      }
-
-      if (bestseller === 'true') {
-        query.bestseller = true;
-      }
-
-      if (search) {
-        query.$or = [
-          { name: { $regex: search, $options: 'i' } },
-          { description: { $regex: search, $options: 'i' } },
-        ];
-      }
-
-      let sortOption = { createdAt: -1 };
-      if (sort === 'price-asc') sortOption = { price: 1 };
-      if (sort === 'price-desc') sortOption = { price: -1 };
-      if (sort === 'rating') sortOption = { rating: -1 };
-      if (sort === 'name-asc') sortOption = { name: 1 };
-
-      const products = await Product.find(query).sort(sortOption);
-      if (products && products.length > 0) {
-        return res.json({ success: true, count: products.length, data: products });
-      }
+    if (category && category !== 'all') {
+      query.category = category.toLowerCase();
     }
+
+    if (featured === 'true') {
+      query.featured = true;
+    }
+
+    if (bestseller === 'true') {
+      query.bestseller = true;
+    }
+
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    let sortOption = { createdAt: -1 };
+    if (sort === 'price-asc') sortOption = { price: 1 };
+    if (sort === 'price-desc') sortOption = { price: -1 };
+    if (sort === 'rating') sortOption = { rating: -1 };
+    if (sort === 'name-asc') sortOption = { name: 1 };
+
+
+    const products = await Product.find(query).sort(sortOption);
+    if (products && products.length > 0) {
+      return res.json({ success: true, count: products.length, data: products });
+    }
+    // }
 
     // Fallback to in-memory filter
     let results = [...memoryProducts];
@@ -111,6 +114,8 @@ export const getBestsellers = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+
 
 export const getProductById = async (req, res) => {
   try {

@@ -1,5 +1,5 @@
 import Contact from '../models/Contact.js';
-import { getIsConnected } from '../config/db.js';
+// import { getIsConnected } from '../config/db.js';
 
 const memoryContacts = [];
 

@@ -26,7 +26,7 @@ const productSchema = new mongoose.Schema(
     category: {
       type: String,
       required: true,
-      enum: ['rings', 'earrings', 'necklaces', 'bracelets', 'anklets', 'pendants'],
+      // enum: ['rings', 'earrings', 'necklaces', 'bracelets', 'anklets', 'pendants'],
       lowercase: true,
     },
     images: {
@@ -68,6 +68,7 @@ const productSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    versionKey:false
   }
 );
 

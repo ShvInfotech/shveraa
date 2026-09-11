@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Clock, Send, CheckCircle2, ChevronDown, ChevronUp, MessageCircle, Sparkles, ShieldCheck } from 'lucide-react';
 import { sendContactMessage } from '../services/api';
+import { useDynamicStore } from '../services/storeService';
 
 const Contact = () => {
+  const { settings } = useDynamicStore();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -14,6 +16,12 @@ const Contact = () => {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [activeFaq, setActiveFaq] = useState(0);
+
+  const phone = settings?.conciergePhone || '+91 98765 43210';
+  const whatsapp = settings?.conciergeWhatsApp || '+91 98765 43210';
+  const email = settings?.conciergeEmail || 'concierge@shveraa.luxury';
+  const address = settings?.atelierAddress || 'Shveraa Heritage Atelier, Luxury Arcade, Mumbai 400001';
+  const cleanWaNumber = whatsapp.replace(/[^0-9]/g, '');
 
   const faqs = [
     {
@@ -88,13 +96,13 @@ const Contact = () => {
                 <h3>Direct WhatsApp Concierge</h3>
                 <p>Chat with our styling team in real-time for sizing assistance, live videos of pieces, and urgent dispatch requests.</p>
                 <a
-                  href="https://wa.me/919876543210?text=Hello%20Shveraa%20Concierge,%20I%20would%20like%20assistance%20with%20a%20silver%20curation."
+                  href={`https://wa.me/${cleanWaNumber}?text=Hello%20Shveraa%20Concierge,%20I%20would%20like%20assistance%20with%20a%20silver%20curation.`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn btn-primary btn-sm"
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginTop: '12px' }}
                 >
-                  <MessageCircle size={15} /> Chat on WhatsApp Now
+                  <MessageCircle size={15} /> Chat on WhatsApp ({whatsapp})
                 </a>
               </div>
             </div>
@@ -106,16 +114,16 @@ const Contact = () => {
               <div className="shv-coord-row">
                 <MapPin size={18} className="shv-coord-icon" />
                 <div>
-                  <strong>Jaipur Silversmith Atelier</strong>
-                  <p>12, Silversmith District, MI Road, Jaipur, Rajasthan — 302001</p>
+                  <strong>Heritage Flagship Atelier</strong>
+                  <p>{address}</p>
                 </div>
               </div>
 
               <div className="shv-coord-row">
-                <MapPin size={18} className="shv-coord-icon" />
+                <Phone size={18} className="shv-coord-icon" />
                 <div>
-                  <strong>Mumbai Design &amp; Styling Studio</strong>
-                  <p>402, Lotus Heritage, Linking Road, Bandra West, Mumbai — 400050</p>
+                  <strong>Concierge Hotline</strong>
+                  <p>{phone}</p>
                 </div>
               </div>
 
@@ -132,8 +140,8 @@ const Contact = () => {
                 <div>
                   <strong>Direct Inquiries</strong>
                   <p>
-                    General: <a href="mailto:concierge@shveraa.luxury">concierge@shveraa.luxury</a><br />
-                    Orders: <a href="mailto:orders@shveraa.luxury">orders@shveraa.luxury</a>
+                    General: <a href={`mailto:${email}`}>{email}</a><br />
+                    Orders: <a href={`mailto:${email}`}>{email}</a>
                   </p>
                 </div>
               </div>

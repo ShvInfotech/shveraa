@@ -20,6 +20,8 @@ const CartItem = ({ item }) => {
         </Link>
 
         <div className="cart-page-item-meta">
+          <span className="cart-page-color-badge">{item.color || 'Pure 925 Silver'}</span>
+          <span className="cart-page-meta-divider">•</span>
           <span>Size: {item.size}</span>
           {item.customText && (
             <span className="cart-page-item-engraved">

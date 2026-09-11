@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, ShoppingBag, Star } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { getProductColors } from '../services/storeService';
 
 const ProductCard = ({ product }) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -10,14 +11,19 @@ const ProductCard = ({ product }) => {
   if (!product) return null;
 
   const id = product._id || product.slug;
-  const primaryImage = (product.images && product.images[0]) || '';
-  const secondaryImage = (product.images && product.images[1]) || primaryImage;
+  const availableColors = getProductColors(product);
+  const [selectedColor, setSelectedColor] = useState(availableColors[0]?.name || 'Pure 925 Silver');
+
+  const primaryImage = (product.images && product.images[0]) || product.image || '';
+  const secondaryImage = (product.images && product.images[1]) || product.secondaryImage || primaryImage;
   const isWishlisted = isInWishlist(id);
 
   const handleQuickAdd = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    addToCart(product, product.sizes ? product.sizes[0] : 'Standard', 1);
+    addToCart(product, product.sizes ? product.sizes[0] : 'Standard', 1, {
+      color: selectedColor,
+    });
   };
 
   const handleWishlistClick = (e) => {
@@ -32,15 +38,29 @@ const ProductCard = ({ product }) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <Link to={`/product/${id}`} className="product-card-link">
-        {/* Image Container with Second Image Hover Toggle */}
+      <Link
+        to={`/product/${id}?color=${encodeURIComponent(selectedColor)}`}
+        state={{ selectedColor }}
+        className="product-card-link"
+      >
+        {/* Image Container with Second Image Hover Crossfade */}
         <div className="product-image-container">
-          <img
-            src={isHovered && secondaryImage ? secondaryImage : primaryImage}
-            alt={product.name}
-            loading="lazy"
-            className="product-main-img"
-          />
+          <div className="product-image-stack">
+            <img
+              src={primaryImage}
+              alt={product.name}
+              loading="lazy"
+              className="product-main-img product-img-primary"
+            />
+            {secondaryImage && secondaryImage !== primaryImage && (
+              <img
+                src={secondaryImage}
+                alt={`${product.name} Alternate View`}
+                loading="lazy"
+                className="product-main-img product-img-secondary"
+              />
+            )}
+          </div>
 
           {/* Badge */}
           <div className="product-badges-stack">
@@ -92,6 +112,44 @@ const ProductCard = ({ product }) => {
           </div>
 
           <h3 className="product-title">{product.name}</h3>
+
+          {/* Color Variation Swatches */}
+          <div
+            className="product-card-colors-row"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+          >
+            <div className="product-card-swatches-wrap">
+              {availableColors.map((color) => {
+                const isActive = selectedColor === color.name;
+                return (
+                  <button
+                    key={color.id || color.name}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setSelectedColor(color.name);
+                    }}
+                    className={`product-color-swatch-dot ${isActive ? 'active' : ''}`}
+                    style={{
+                      background: color.gradient || color.hex,
+                      borderColor: color.border || '#CBD5E1',
+                    }}
+                    title={`${color.name} (${color.badge || '925 Silver'})`}
+                    aria-label={`Select ${color.name}`}
+                  >
+                    {isActive && <span className="product-color-swatch-center-dot" />}
+                  </button>
+                );
+              })}
+            </div>
+            <span className="product-color-active-label">
+              {availableColors.find((c) => c.name === selectedColor)?.shortName || selectedColor}
+            </span>
+          </div>
 
           <div className="product-price-row">
             <span className="product-price">₹{product.price}</span>

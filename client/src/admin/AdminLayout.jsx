@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import './admin.css';
+import AdminLogin from './AdminLogin';
 import AdminSidebar from './AdminSidebar';
 import AdminHeader from './AdminHeader';
 import AdminDashboard from './AdminDashboard';
 import AdminCategories from './AdminCategories';
 import AdminProducts from './AdminProducts';
+import AdminProductEditor from './AdminProductEditor';
+import AdminCMS from './AdminCMS';
 import AdminOrders from './AdminOrders';
 import AdminDeliveries from './AdminDeliveries';
 import AdminCoupons from './AdminCoupons';
@@ -14,11 +17,13 @@ import {
   getAdminOrders,
   updateAdminOrderStatus,
 } from './adminData';
-import { useDynamicStore } from '../services/storeService';
+import { useDynamicStore, getAdminAuth, logoutAdmin } from '../services/storeService';
 import { HelpCircle, Mail, Phone, MessageSquare } from 'lucide-react';
 
 const AdminLayout = () => {
+  const [adminUser, setAdminUser] = useState(() => getAdminAuth());
   const [currentTab, setCurrentTab] = useState('dashboard');
+  const [editingProduct, setEditingProduct] = useState(null);
   const [deliveryFilter, setDeliveryFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -27,9 +32,12 @@ const AdminLayout = () => {
   const { categories, products, coupons, settings, refreshStore } = useDynamicStore();
   const [orders, setOrders] = useState([]);
 
-  // Load initial orders
+  // Load initial orders and listen for live updates
   useEffect(() => {
     setOrders(getAdminOrders());
+    const handleOrderUpdate = () => setOrders(getAdminOrders());
+    window.addEventListener('shveraa_store_updated', handleOrderUpdate);
+    return () => window.removeEventListener('shveraa_store_updated', handleOrderUpdate);
   }, []);
 
   // Update order status handler
@@ -37,6 +45,22 @@ const AdminLayout = () => {
     const updated = updateAdminOrderStatus(orderId, newStatus);
     setOrders([...updated]);
   };
+
+  // Dedicated Product Studio Opener
+  const handleOpenProductEditor = (productToEdit = null) => {
+    setEditingProduct(productToEdit);
+    setCurrentTab('product-editor');
+  };
+
+  const handleSignOut = () => {
+    logoutAdmin();
+    setAdminUser(null);
+  };
+
+  // If not authenticated as administrator, show the luxury login portal
+  if (!adminUser) {
+    return <AdminLogin onLoginSuccess={(user) => setAdminUser(user)} />;
+  }
 
   return (
     <div className="shv-admin-wrapper">
@@ -49,15 +73,17 @@ const AdminLayout = () => {
         orderCount={orders.length}
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
+        onSignOut={handleSignOut}
       />
 
       {/* 2. Main Work Area */}
-      <div className="shv-admin-main">
+      <div className={`shv-admin-main ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
         {/* Top Header */}
         <AdminHeader
           currentTab={currentTab}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
+          onSignOut={handleSignOut}
         />
 
         {/* Content Body */}
@@ -86,6 +112,31 @@ const AdminLayout = () => {
               products={products}
               categories={categories}
               searchQuery={searchQuery}
+              onRefresh={refreshStore}
+              onOpenEditor={handleOpenProductEditor}
+            />
+          )}
+
+          {/* DEDICATED FULL-PAGE JEWELLERY PRODUCT STUDIO */}
+          {currentTab === 'product-editor' && (
+            <AdminProductEditor
+              product={editingProduct}
+              categories={categories}
+              onBack={() => {
+                setEditingProduct(null);
+                setCurrentTab('products');
+              }}
+              onSaveSuccess={(savedProd) => {
+                refreshStore();
+                setEditingProduct(null);
+                setCurrentTab('products');
+              }}
+            />
+          )}
+
+          {/* DEDICATED STOREFRONT CMS MANAGER */}
+          {currentTab === 'cms' && (
+            <AdminCMS
               onRefresh={refreshStore}
             />
           )}

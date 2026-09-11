@@ -15,6 +15,7 @@ import {
   Package,
   Layers,
   Tag,
+  Sparkles,
   PanelLeftClose,
   PanelLeftOpen,
 } from 'lucide-react';
@@ -39,9 +40,12 @@ const AdminSidebar = ({
     <aside className={`shv-admin-sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       {/* Brand Header */}
       <div className="shv-sidebar-brand">
-        <Link to="/admin" className="shv-sidebar-logo-group">
-          <div className="shv-sidebar-logo-badge">M</div>
-          {!isCollapsed && <span className="shv-sidebar-brand-name">Modulix</span>}
+        <Link to="/admin" className="shv-sidebar-logo-group" aria-label="Shveraa Admin">
+          {isCollapsed ? (
+            <div className="shv-sidebar-logo-badge" title="Shveraa Atelier">S</div>
+          ) : (
+            <img src="/logo.png" alt="SHVÈRAA Jewellery" className="shv-admin-sidebar-logo" />
+          )}
         </Link>
         <button
           type="button"
@@ -187,12 +191,27 @@ const AdminSidebar = ({
               <button
                 type="button"
                 onClick={() => setCurrentTab('products')}
-                className={`shv-sidebar-link ${currentTab === 'products' ? 'active' : ''}`}
+                className={`shv-sidebar-link ${currentTab === 'products' || currentTab === 'product-editor' ? 'active' : ''}`}
                 title="925 Silver Inventory"
               >
                 <div className="shv-sidebar-link-left">
                   <Package size={18} />
                   {!isCollapsed && <span>Products</span>}
+                </div>
+              </button>
+            </li>
+
+            {/* Storefront CMS */}
+            <li>
+              <button
+                type="button"
+                onClick={() => setCurrentTab('cms')}
+                className={`shv-sidebar-link ${currentTab === 'cms' ? 'active' : ''}`}
+                title="Website CMS & Announcements"
+              >
+                <div className="shv-sidebar-link-left">
+                  <Sparkles size={18} />
+                  {!isCollapsed && <span>Storefront CMS</span>}
                 </div>
               </button>
             </li>
@@ -262,10 +281,10 @@ const AdminSidebar = ({
             </li>
 
             <li>
-              <Link to="/" className="shv-sidebar-link" title="Visit Live Storefront">
+              <Link to="/" className="shv-sidebar-link" title="Visit Live Storefront" target="_blank">
                 <div className="shv-sidebar-link-left">
                   <Store size={18} />
-                  {!isCollapsed && <span>Live Store</span>}
+                  {!isCollapsed && <span>Live Storefront</span>}
                 </div>
               </Link>
             </li>
@@ -277,18 +296,27 @@ const AdminSidebar = ({
       <div className="shv-sidebar-profile">
         <div className="shv-admin-user-card">
           <div className="shv-user-card-left">
-            <div className="shv-admin-avatar">DC</div>
+            <div className="shv-admin-avatar">SH</div>
             {!isCollapsed && (
               <div className="shv-admin-info">
-                <span className="shv-admin-name">Danang Calvin</span>
-                <span className="shv-admin-email">Calvin12@gmail.com</span>
+                <span className="shv-admin-name">Atelier Master</span>
+                <span className="shv-admin-email">admin@shveraa.luxury</span>
               </div>
             )}
           </div>
           {!isCollapsed && (
-            <Link to="/" className="shv-admin-exit-btn" title="Exit to Storefront">
+            <button
+              type="button"
+              onClick={() => {
+                localStorage.removeItem('shveraa_admin_session');
+                window.location.reload();
+              }}
+              className="shv-admin-exit-btn"
+              title="Sign Out of Admin"
+              style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+            >
               <LogOut size={16} />
-            </Link>
+            </button>
           )}
         </div>
       </div>

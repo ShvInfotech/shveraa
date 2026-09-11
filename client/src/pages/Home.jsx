@@ -16,7 +16,10 @@ import CategoryCard from '../components/CategoryCard';
 import ProductCard from '../components/ProductCard';
 import Newsletter from '../components/Newsletter';
 import Loader from '../components/Loader';
-import { CATEGORIES, fetchProducts } from '../services/api';
+import PromoPopup from '../components/PromoPopup';
+import TieredOfferSection from '../components/TieredOfferSection';
+import { fetchProducts } from '../services/api';
+import { useDynamicStore } from '../services/storeService';
 
 const InstagramIcon = ({ size = 18, className = '' }) => (
   <svg
@@ -115,9 +118,43 @@ const REVIEWS = [
 ];
 
 const Home = () => {
+  const { categories, settings } = useDynamicStore();
   const [bestsellers, setBestsellers] = useState([]);
   const [activeTab, setActiveTab] = useState('bestsellers'); // 'bestsellers' | 'new' | 'all'
   const [loading, setLoading] = useState(true);
+  const [reloadTrigger, setReloadTrigger] = useState(0);
+
+  // Hero Section Dynamic Background Image (Managed in JS for direct API integration)
+  const [heroBgImage, setHeroBgImage] = useState(
+    settings?.heroBanner?.image || '/hero-ring-banner.jpg'
+  );
+
+  // Dynamic API call hook for Hero Section background image
+  useEffect(() => {
+    const fetchHeroBannerImage = async () => {
+      try {
+        // [API INTEGRATION POINT]: Call your custom API endpoint here
+        // Example:
+        // const res = await fetch('/api/hero-banner');
+        // const data = await res.json();
+        // if (data?.image) setHeroBgImage(data.image);
+
+        if (settings?.heroBanner?.image) {
+          setHeroBgImage(settings.heroBanner.image);
+        }
+      } catch (err) {
+        console.error('Error fetching hero background image from API:', err);
+      }
+    };
+
+    fetchHeroBannerImage();
+  }, [settings?.heroBanner?.image]);
+
+  useEffect(() => {
+    const handleStoreUpdate = () => setReloadTrigger((prev) => prev + 1);
+    window.addEventListener('shveraa_store_updated', handleStoreUpdate);
+    return () => window.removeEventListener('shveraa_store_updated', handleStoreUpdate);
+  }, []);
 
   useEffect(() => {
     const loadHomeData = async () => {
@@ -133,20 +170,48 @@ const Home = () => {
     };
 
     loadHomeData();
+  }, [reloadTrigger]);
+
+  // Display 8 pieces (2 rows of 4)
+  const filteredProducts = bestsellers.filter((p) => {
+    if (activeTab === 'bestsellers') return p.bestseller;
+    if (activeTab === 'new') return p.featured || p.badge === 'New';
+    return true;
+  });
+
+  let displayedProducts = filteredProducts.slice(0, 8);
+  if (displayedProducts.length < 8 && bestsellers.length >= 8) {
+    const remaining = bestsellers.filter(
+      (p) => !displayedProducts.some((d) => (d._id || d.slug) === (p._id || p.slug))
+    );
+    displayedProducts = [...displayedProducts, ...remaining.slice(0, 8 - displayedProducts.length)];
+  }
+
+  const [showPromoPopup, setShowPromoPopup] = useState(false);
+
+  // Trigger luxury promotional welcome popup on landing if not dismissed
+  useEffect(() => {
+    const seen = sessionStorage.getItem('shveraa_welcome_popup_seen');
+    if (!seen) {
+      const timer = setTimeout(() => {
+        setShowPromoPopup(true);
+      }, 1800);
+      return () => clearTimeout(timer);
+    }
   }, []);
 
-  const displayedProducts = bestsellers
-    .filter((p) => {
-      if (activeTab === 'bestsellers') return p.bestseller;
-      if (activeTab === 'new') return p.featured || p.badge === 'New';
-      return true;
-    })
-    .slice(0, 4);
+  const handleClosePromoPopup = () => {
+    setShowPromoPopup(false);
+    sessionStorage.setItem('shveraa_welcome_popup_seen', 'true');
+  };
 
   return (
     <div className="home-page shv-home-editorial">
-      {/* 1. Hero Section with Cinematic Ring Arch & Editorial Layout */}
-      <HeroSection />
+      {/* Promotional Welcome Popup (Before You Go / First Order Privilege) */}
+      <PromoPopup isOpen={showPromoPopup} onClose={handleClosePromoPopup} />
+
+      {/* 1. Hero Section with Cinematic Ring Arch & Dynamic JS Background Image */}
+      <HeroSection heroImage={heroBgImage} />
 
       {/* 2. Brand Trust Strip — Warm Editorial Ribbon */}
       <section className="shv-editorial-trust-strip">
@@ -230,14 +295,17 @@ const Home = () => {
           </div>
 
           <div className="categories-tile-grid shv-editorial-category-grid">
-            {CATEGORIES.map((category) => (
+            {categories.map((category) => (
               <CategoryCard key={category.id} category={category} />
             ))}
           </div>
         </div>
       </section>
 
-      {/* 4. Featured / Bestseller Products with Warm Tab Filtering */}
+      {/* 4. Tiered Spend & Save Privilege Offer Cards (Sparkle More, Spend Less) */}
+      <TieredOfferSection />
+
+      {/* 5. Featured / Bestseller Products with Warm Tab Filtering */}
       <section className="section-products shv-products-section">
         <div className="container">
           <div className="shv-products-header-wrap">
@@ -278,7 +346,7 @@ const Home = () => {
           {loading ? (
             <Loader text="Loading 925 silver collection..." />
           ) : (
-            <div className="products-grid shv-products-editorial-grid">
+            <div className="shv-shop-products-grid col-4">
               {displayedProducts.map((product) => (
                 <ProductCard key={product._id || product.slug} product={product} />
               ))}

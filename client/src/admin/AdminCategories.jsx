@@ -1,16 +1,35 @@
-import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, Layers, Sparkles, Image, Check, AlertCircle } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Plus, Edit2, Trash2, Layers, Sparkles, Image, Check, AlertCircle, Upload } from 'lucide-react';
 import { saveCategory, deleteCategory } from '../services/storeService';
+import { compressImageFile } from '../utils/imageUpload';
 
 const AdminCategories = ({ categories, products, onRefresh }) => {
+  const catFileInputRef = useRef(null);
   const [showModal, setShowModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
     subtitle: '',
     image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=900&q=85',
   });
+
+  const handleCategoryFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploadingImage(true);
+      const dataUrl = await compressImageFile(file, { maxWidth: 1200, maxHeight: 1200, quality: 0.85 });
+      setFormData((prev) => ({ ...prev, image: dataUrl }));
+    } catch (err) {
+      console.error('Category image upload error:', err);
+      alert('Failed to process image. Please choose another photo.');
+    } finally {
+      setUploadingImage(false);
+      if (catFileInputRef.current) catFileInputRef.current.value = '';
+    }
+  };
 
   const openAddModal = () => {
     setEditingCategory(null);
@@ -257,21 +276,55 @@ const AdminCategories = ({ categories, products, onRefresh }) => {
               </div>
 
               <div className="shv-form-group">
-                <label className="shv-form-label">Banner Image URL</label>
-                <input
-                  type="url"
-                  placeholder="https://images.unsplash.com/..."
-                  value={formData.image}
-                  onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                  className="shv-form-input"
-                />
+                <label className="shv-form-label">Category Banner Photo (Upload from Device)</label>
+                <div
+                  style={{
+                    border: '2px dashed #CBD5E1',
+                    borderRadius: '10px',
+                    padding: '1.25rem',
+                    textAlign: 'center',
+                    background: '#F8FAFC',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onClick={() => catFileInputRef.current?.click()}
+                >
+                  <input
+                    ref={catFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCategoryFileUpload}
+                    style={{ display: 'none' }}
+                  />
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+                    <Upload size={24} color="#1E2229" />
+                    <span style={{ fontSize: '0.86rem', fontWeight: 600, color: '#1E2229' }}>
+                      {uploadingImage ? 'Optimizing photo...' : 'Click to select photo from device'}
+                    </span>
+                    <span style={{ fontSize: '0.74rem', color: '#64748B' }}>
+                      Supports JPG, PNG, WEBP from your computer or phone
+                    </span>
+                  </div>
+                </div>
+
                 {formData.image && (
-                  <div style={{ marginTop: '0.75rem', textAlign: 'center' }}>
+                  <div style={{ marginTop: '0.85rem', display: 'flex', alignItems: 'center', gap: '1rem', background: '#F8FAFC', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--admin-border)' }}>
                     <img
                       src={formData.image}
-                      alt="Preview"
-                      style={{ height: '100px', borderRadius: '8px', objectFit: 'cover' }}
+                      alt="Category Preview"
+                      style={{ height: '70px', width: '100px', borderRadius: '6px', objectFit: 'cover' }}
                     />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#1E2229' }}>Photo Selected</div>
+                      <button
+                        type="button"
+                        onClick={() => catFileInputRef.current?.click()}
+                        className="shv-table-filter-btn"
+                        style={{ padding: '0.25rem 0.6rem', fontSize: '0.76rem', marginTop: '0.3rem' }}
+                      >
+                        Change Photo
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

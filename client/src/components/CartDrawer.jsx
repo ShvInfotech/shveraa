@@ -177,6 +177,8 @@ const CartDrawer = () => {
                     </div>
 
                     <div className="cart-drawer-item-meta">
+                      <span className="cart-drawer-color-badge">{item.color || 'Pure 925 Silver'}</span>
+                      <span className="cart-drawer-meta-divider">•</span>
                       <span>Size: {item.size}</span>
                       {item.customText && (
                         <span className="cart-drawer-engraving-tag">

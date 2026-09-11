@@ -1,9 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Sparkles, ShieldCheck, Truck, RotateCcw, Heart } from 'lucide-react';
-import { CATEGORIES } from '../services/api';
+import { useDynamicStore } from '../services/storeService';
 
 const Footer = () => {
+  const { categories } = useDynamicStore();
+
   return (
     <footer className="site-footer">
       <div className="container">
@@ -46,8 +48,12 @@ const Footer = () => {
         <div className="footer-grid">
           {/* Brand Col */}
           <div className="footer-brand-col">
-            <Link to="/" className="footer-brand-title">
-              SHVERAA <span className="brand-logo-gem">✦</span>
+            <Link to="/" className="footer-brand-logo-wrap" aria-label="Shveraa Jewellery Home">
+              <img
+                src="/logo.png"
+                alt="SHVÈRAA Jewellery"
+                className="footer-brand-logo-img"
+              />
             </Link>
             <p className="footer-desc">
               Modern fine silver jewellery meticulously sculpted from solid 925 sterling silver and high-fire rhodium. Designed for daily rituals and permanent milestones.
@@ -62,35 +68,25 @@ const Footer = () => {
           <div>
             <h4 className="footer-col-title">925 Silver Collections</h4>
             <ul className="footer-links">
-              {CATEGORIES.map((cat) => (
+              {categories.map((cat) => (
                 <li key={cat.id}>
                   <Link to={`/shop?category=${cat.slug}`} className="footer-link">
                     {cat.name}
                   </Link>
                 </li>
               ))}
-              <li>
-                <Link to="/shop?category=personalised" className="footer-link">
-                  Personalised &amp; Engraved
-                </Link>
-              </li>
-              <li>
-                <Link to="/shop?category=anklets" className="footer-link">
-                  Liquid Silver Anklets
-                </Link>
-              </li>
             </ul>
           </div>
 
           {/* Navigation & Services Col */}
           <div>
-            <h4 className="footer-col-title">Client Care &amp; Concierge</h4>
+            <h4 className="footer-col-title">About &amp; Concierge</h4>
             <ul className="footer-links">
               <li>
-                <Link to="/about" className="footer-link">Our Atelier Story</Link>
+                <Link to="/about" className="footer-link">About Us (Our Story)</Link>
               </li>
               <li>
-                <Link to="/contact" className="footer-link">Jewellery Concierge &amp; WhatsApp</Link>
+                <Link to="/contact" className="footer-link">Contact Us &amp; WhatsApp</Link>
               </li>
               <li>
                 <Link to="/shop?bestseller=true" className="footer-link">Bestsellers Edit</Link>

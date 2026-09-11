@@ -26,7 +26,10 @@ const DEFAULT_ANNOUNCEMENTS = [
 ];
 
 const Navbar = () => {
+  const navigate = useNavigate();
   const { categories, settings } = useDynamicStore();
+  const { user, isAuthenticated, logout } = useAuth();
+  const { cartCount, openCart, wishlistCount } = useCart();
   const [announcementIdx, setAnnouncementIdx] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -34,11 +37,14 @@ const Navbar = () => {
   const [megaMenuOpen, setMegaMenuOpen] = useState(null); // 'shop' | 'collections' | 'personalised' | null
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
-  const announcements = [
-    settings?.announcementText || DEFAULT_ANNOUNCEMENTS[0],
-    DEFAULT_ANNOUNCEMENTS[1],
-    DEFAULT_ANNOUNCEMENTS[2],
-  ];
+  const announcements =
+    settings?.announcements && settings.announcements.length > 0
+      ? settings.announcements
+      : [
+          settings?.announcementText || DEFAULT_ANNOUNCEMENTS[0],
+          DEFAULT_ANNOUNCEMENTS[1],
+          DEFAULT_ANNOUNCEMENTS[2],
+        ];
 
   // Auto rotate announcement bar every 4 seconds
   useEffect(() => {
@@ -51,7 +57,7 @@ const Navbar = () => {
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/shop?search=${encodeURIComponent(searchQuery.trim())}`);
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
       setSearchOpen(false);
       setSearchQuery('');
       setMobileMenuOpen(false);
@@ -65,6 +71,8 @@ const Navbar = () => {
 
   const location = useLocation();
   const isHomePage = location.pathname === '/';
+  const isShopRoute = location.pathname === '/shop';
+  const currentCategory = new URLSearchParams(location.search).get('category');
   const [isScrolled, setIsScrolled] = useState(false);
 
   // Detect scroll to transition from transparent floating to frosted glass
@@ -84,9 +92,9 @@ const Navbar = () => {
     <>
       {/* 1. Top Rotating Announcement Bar (Hidden on editorial Home page to match reference design) */}
       {!isHomePage && (
-        <div className="announcement-bar">
-          <div className="announcement-text-container">
-            <span className="announcement-text">{ANNOUNCEMENTS[announcementIdx]}</span>
+        <div className="announcement-bar" role="region" aria-label="Offers and Announcements">
+          <div key={announcementIdx} className="announcement-text-container shv-announcement-animate">
+            <span className="announcement-text">{announcements[announcementIdx]}</span>
           </div>
         </div>
       )}
@@ -97,145 +105,64 @@ const Navbar = () => {
           isScrolled ? 'shv-header-scrolled' : 'shv-header-transparent'
         }`}
       >
-        <div className="header-inner">
-          {/* Mobile Menu Hamburger Button */}
-          <button
-            className="menu-toggle-btn"
-            onClick={() => setMobileMenuOpen(true)}
-            aria-label="Open Navigation Menu"
-          >
-            <Menu size={22} />
-          </button>
-
-          {/* Brand Logo with Pure 925 Silver Centered Star Aesthetic */}
-          <Link to="/" className="shv-nav-brand-wrap" onClick={closeAllMenus}>
-            <div className="shv-nav-brand-emblem" aria-hidden="true">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 0L14.2 9.8L24 12L14.2 14.2L12 24L9.8 14.2L0 12L9.8 9.8L12 0Z" />
-              </svg>
-            </div>
-            <span className="shv-nav-brand-title">SHVERAA</span>
-            <span className="shv-nav-brand-subtitle">PURE 925 SILVER</span>
-          </Link>
-
-          {/* Desktop Navigation Links matching Reference Design */}
-          <nav className="desktop-nav">
-            <NavLink to="/" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-              Home
-            </NavLink>
-
-            {/* Mega-menu: Collections */}
-            <div
-              className="nav-dropdown-trigger"
-              onMouseEnter={() => setMegaMenuOpen('shop')}
-              onMouseLeave={() => setMegaMenuOpen(null)}
-            >
-              <NavLink
-                to="/shop"
-                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-              >
-                <span>Collections</span>
-              </NavLink>
-
-              {megaMenuOpen === 'shop' && (
-                <div className="mega-menu">
-                  <div className="mega-menu-inner">
-                    <div className="mega-col">
-                      <span className="mega-col-title">Shop by Silhouette</span>
-                      <ul className="mega-links">
-                        {categories.map((cat) => (
-                          <li key={cat.slug || cat.id}>
-                            <Link
-                              to={`/shop?category=${cat.slug}`}
-                              onClick={closeAllMenus}
-                              className="mega-link"
-                            >
-                              <span>{cat.name}</span>
-                              <span className="mega-link-sub">{cat.subtitle || '925 Silver'}</span>
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="mega-col">
-                      <span className="mega-col-title">925 Silver Finishes</span>
-                      <ul className="mega-links">
-                        <li>
-                          <Link to="/shop?finish=rhodium" onClick={closeAllMenus} className="mega-link">
-                            <span>Mirror Rhodium Finish</span>
-                            <span className="mega-link-sub">Platinum Luster, Anti-Tarnish</span>
-                          </Link>
-                        </li>
-                        <li>
-                          <Link to="/shop?finish=moissanite" onClick={closeAllMenus} className="mega-link">
-                            <span>Lab Moissanite Solitaires</span>
-                            <span className="mega-link-sub">VVS Diamond Fire</span>
-                          </Link>
-                        </li>
-                        <li>
-                          <Link to="/shop?finish=oxidised" onClick={closeAllMenus} className="mega-link">
-                            <span>Vintage Oxidised Silver</span>
-                            <span className="mega-link-sub">Textured Architectural Details</span>
-                          </Link>
-                        </li>
-                      </ul>
-                    </div>
-
-                    {/* Editorial Feature Image */}
-                    <div className="mega-col mega-featured-card">
-                      <img
-                        src="/hero-ring-banner.jpg"
-                        alt="Liquid Silver Collection"
-                      />
-                      <div className="mega-card-content">
-                        <span className="mega-card-tag">NEW DROP</span>
-                        <h4>The Solitaire Leaf Edit</h4>
-                        <Link to="/shop" onClick={closeAllMenus} className="mega-card-link">
-                          Explore Edit <ArrowRight size={13} />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <NavLink to="/about" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-              About
-            </NavLink>
-
-            {/* Custom Jewellery link */}
-            <NavLink
-              to="/shop?category=personalised"
-              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-            >
-              Custom Jewellery
-            </NavLink>
-
-            <NavLink to="/contact" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-              Contact
-            </NavLink>
-          </nav>
-
-          {/* Right Action Icons & Let's Shine CTA */}
-          <div className="header-actions">
-            {/* Search Toggle */}
+        {/* Tier 1: Primary Header Row (Left: Let's Shine CTA | Center: Brand Logo | Right: Actions) */}
+        <div className="header-primary-row">
+          {/* Left Area: Mobile Hamburger (<992px) & "LET'S SHINE" Button (>=992px) */}
+          <div className="shv-header-left">
             <button
-              className="action-btn"
-              onClick={() => setSearchOpen(!searchOpen)}
-              aria-label="Search Collection"
+              className="menu-toggle-btn"
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label="Open Navigation Menu"
             >
-              <Search size={18} strokeWidth={1.3} />
+              <Menu size={22} />
             </button>
 
-            {/* Wishlist Link */}
-            <Link to="/wishlist" className="action-btn" aria-label="Saved Items">
-              <Heart size={18} strokeWidth={1.3} />
+            <Link
+              to="/shop"
+              className="shv-nav-shine-btn"
+              title="Explore 925 Sterling Silver Atelier Creations"
+            >
+              <Sparkles size={14} className="shv-shine-sparkle" />
+              <span>LET'S SHINE</span>
+              <ArrowRight size={13} strokeWidth={1.8} className="shv-shine-arrow" />
+            </Link>
+          </div>
+
+          {/* Center Area: Officially Centered Brand Logo */}
+          <div className="shv-header-center">
+            <Link
+              to="/"
+              className="shv-nav-brand-wrap"
+              onClick={closeAllMenus}
+              aria-label="Shveraa Jewellery Home"
+            >
+              <img
+                src="/shveraa.png"
+                alt="SHVÈRAA Jewellery"
+                className="shv-brand-logo-img"
+              />
+            </Link>
+          </div>
+
+          {/* Right Area: Utility Icons (Search, Wishlist, Account, Shopping Bag) */}
+          <div className="shv-header-right">
+            {/* Search Link directly to /search */}
+            <Link
+              to="/search"
+              className="action-btn"
+              aria-label="Search Collection"
+              title="Search 925 Silver Treasury"
+            >
+              <Search size={19} strokeWidth={1.9} />
+            </Link>
+
+            {/* Wishlist Link with Badge */}
+            <Link to="/wishlist" className="action-btn" aria-label="Saved Items" title="My Wishlist">
+              <Heart size={19} strokeWidth={1.9} />
               {wishlistCount > 0 && <span className="cart-badge">{wishlistCount}</span>}
             </Link>
 
-            {/* User Account / Profile */}
+            {/* User Account / Profile Dropdown */}
             {isAuthenticated ? (
               <div
                 className="shv-nav-user-wrap"
@@ -315,27 +242,123 @@ const Navbar = () => {
               </div>
             ) : (
               <Link to="/login" className="action-btn" aria-label="Sign In to Atelier" title="Sign In to Atelier">
-                <User size={18} strokeWidth={1.3} />
+                <User size={19} strokeWidth={1.9} />
               </Link>
             )}
 
-            {/* Slide-in Cart Trigger Button */}
+            {/* Slide-in Cart Trigger Button with Badge */}
             <button
               type="button"
               className="action-btn action-btn-cart"
               onClick={openCart}
               aria-label="Shopping Bag"
+              title="Shopping Bag"
             >
-              <ShoppingBag size={18} strokeWidth={1.3} />
+              <ShoppingBag size={19} strokeWidth={1.9} />
               <span className="cart-badge">{cartCount}</span>
             </button>
-
-            {/* Reference "LET'S SHINE →" Button */}
-            <Link to="/shop" className="shv-nav-shine-btn">
-              <span>LET'S SHINE</span>
-              <ArrowRight size={13} strokeWidth={1.5} />
-            </Link>
           </div>
+        </div>
+
+        {/* Tier 2: Dedicated Centered Menu Row Underneath Logo */}
+        <div className="header-menu-row">
+          <nav className="desktop-nav" aria-label="Main Store Navigation">
+            <Link
+              to="/"
+              className={`nav-link ${isHomePage ? 'active' : ''}`}
+            >
+              Home
+            </Link>
+
+            {/* Mega-menu: Collections */}
+            <div
+              className="nav-dropdown-trigger"
+              onMouseEnter={() => setMegaMenuOpen('shop')}
+              onMouseLeave={() => setMegaMenuOpen(null)}
+            >
+              <Link
+                to="/shop"
+                className={`nav-link ${isShopRoute && !currentCategory ? 'active' : ''}`}
+              >
+                <span>Collections</span>
+                <ChevronDown size={13} className="nav-chevron" />
+              </Link>
+
+              {megaMenuOpen === 'shop' && (
+                <div className="mega-menu">
+                  <div className="mega-menu-inner">
+                    <div className="mega-col">
+                      <span className="mega-col-title">Shop by Silhouette</span>
+                      <ul className="mega-links">
+                        {categories.map((cat) => (
+                          <li key={cat.slug || cat.id}>
+                            <Link
+                              to={`/shop?category=${cat.slug}`}
+                              onClick={closeAllMenus}
+                              className="mega-link"
+                            >
+                              <span>{cat.name}</span>
+                              <span className="mega-link-sub">{cat.subtitle || '925 Silver'}</span>
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Editorial Feature Image */}
+                    <div className="mega-col mega-featured-card">
+                      <img
+                        src="/hero-ring-banner.jpg"
+                        alt="Liquid Silver Collection"
+                      />
+                      <div className="mega-card-content">
+                        <span className="mega-card-tag">NEW DROP</span>
+                        <h4>The Solitaire Leaf Edit</h4>
+                        <Link to="/shop" onClick={closeAllMenus} className="mega-card-link">
+                          Explore Edit <ArrowRight size={13} />
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <Link
+              to="/shop?category=rings"
+              className={`nav-link ${isShopRoute && currentCategory === 'rings' ? 'active' : ''}`}
+            >
+              Rings
+            </Link>
+
+            <Link
+              to="/shop?category=necklaces"
+              className={`nav-link ${isShopRoute && currentCategory === 'necklaces' ? 'active' : ''}`}
+            >
+              Necklaces
+            </Link>
+
+            <Link
+              to="/shop?category=earrings"
+              className={`nav-link ${isShopRoute && currentCategory === 'earrings' ? 'active' : ''}`}
+            >
+              Earrings
+            </Link>
+
+            <Link
+              to="/shop?category=bracelets"
+              className={`nav-link ${isShopRoute && currentCategory === 'bracelets' ? 'active' : ''}`}
+            >
+              Bracelets
+            </Link>
+
+            <Link
+              to="/shop?category=personalised"
+              className={`nav-link ${isShopRoute && currentCategory === 'personalised' ? 'active' : ''}`}
+            >
+              Custom Jewellery
+            </Link>
+          </nav>
         </div>
 
         {/* Expandable Search Drawer */}
@@ -376,12 +399,25 @@ const Navbar = () => {
       {/* Mobile Drawer Menu */}
       <div className={`mobile-drawer ${mobileMenuOpen ? 'open' : ''}`}>
         <div className="drawer-header">
-          <Link to="/" className="brand-logo" onClick={closeAllMenus}>
-            SHVERAA <span className="brand-logo-gem">✦</span>
+          <Link to="/" className="shv-drawer-brand-wrap" onClick={closeAllMenus} aria-label="Shveraa Jewellery Home">
+            <img
+              src="/shveraa.png"
+              alt="SHVÈRAA Jewellery"
+              className="shv-brand-logo-img-drawer"
+            />
           </Link>
           <button onClick={closeAllMenus} className="action-btn" aria-label="Close menu">
             <X size={22} />
           </button>
+        </div>
+
+        {/* Let's Shine CTA Button inside Drawer */}
+        <div className="drawer-shine-cta-wrap">
+          <Link to="/shop" onClick={closeAllMenus} className="drawer-shine-btn">
+            <Sparkles size={15} />
+            <span>LET'S SHINE</span>
+            <ArrowRight size={14} />
+          </Link>
         </div>
 
         {/* Offer banner inside drawer */}
@@ -389,6 +425,17 @@ const Navbar = () => {
           <Sparkles size={14} />
           <span>Code SHVERAA20 for 20% off your first piece</span>
         </div>
+
+        {/* Quick Search inside Drawer */}
+        <form onSubmit={handleSearchSubmit} className="shv-drawer-search-form">
+          <Search size={16} color="#72685C" />
+          <input
+            type="text"
+            placeholder="Search silver rings, chains..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </form>
 
         <div className="drawer-links">
           <NavLink to="/" onClick={closeAllMenus} className="drawer-link">

@@ -115,10 +115,19 @@ const TRUST_FEATURES = [
   },
 ];
 
-const HeroSection = () => {
+const HeroSection = ({ heroImage, slides: propSlides }) => {
   const [activeIdx, setActiveIdx] = useState(0);
   const [videoOpen, setVideoOpen] = useState(false);
   const [isFading, setIsFading] = useState(false);
+
+  // Dynamic slides supporting heroImage or custom slides passed via JS state / API
+  const slides = React.useMemo(() => {
+    const base = propSlides && propSlides.length > 0 ? propSlides : HERO_SLIDES;
+    if (heroImage) {
+      return base.map((s, idx) => (idx === 0 ? { ...s, image: heroImage } : s));
+    }
+    return base;
+  }, [propSlides, heroImage]);
 
   const goToSlide = useCallback((index) => {
     if (index === activeIdx) return;
@@ -130,14 +139,14 @@ const HeroSection = () => {
   }, [activeIdx]);
 
   const handleNext = useCallback(() => {
-    const next = (activeIdx + 1) % HERO_SLIDES.length;
+    const next = (activeIdx + 1) % slides.length;
     goToSlide(next);
-  }, [activeIdx, goToSlide]);
+  }, [activeIdx, goToSlide, slides.length]);
 
   const handlePrev = useCallback(() => {
-    const prev = (activeIdx - 1 + HERO_SLIDES.length) % HERO_SLIDES.length;
+    const prev = (activeIdx - 1 + slides.length) % slides.length;
     goToSlide(prev);
-  }, [activeIdx, goToSlide]);
+  }, [activeIdx, goToSlide, slides.length]);
 
   // Auto rotate slide every 7 seconds
   useEffect(() => {
@@ -145,15 +154,15 @@ const HeroSection = () => {
     return () => clearInterval(interval);
   }, [handleNext]);
 
-  const slide = HERO_SLIDES[activeIdx];
+  const slide = slides[activeIdx] || slides[0];
 
   return (
     <section className="shveraa-exact-hero">
-      {/* 1. Background image layers for smooth cross-fading */}
+      {/* 1. Background image layers for smooth cross-fading - driven by JS state / API */}
       <div className="shv-hero-bg-wrapper">
-        {HERO_SLIDES.map((s, i) => (
+        {slides.map((s, i) => (
           <div
-            key={s.id}
+            key={s.id || i}
             className={`shv-hero-bg-slide ${i === activeIdx ? 'active' : ''}`}
             style={{ backgroundImage: `url(${s.image})` }}
           />
@@ -320,12 +329,12 @@ const HeroSection = () => {
           <div className="shv-slider-bar-track">
             <div
               className="shv-slider-bar-fill"
-              style={{ width: `${((activeIdx + 1) / HERO_SLIDES.length) * 100}%` }}
+              style={{ width: `${((activeIdx + 1) / slides.length) * 100}%` }}
             />
           </div>
 
           <div className="shv-slider-indexes">
-            {HERO_SLIDES.map((s, i) => (
+            {slides.map((s, i) => (
               <button
                 key={s.id}
                 type="button"

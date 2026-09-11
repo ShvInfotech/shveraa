@@ -1,8 +1,13 @@
 import React, { useState } from 'react';
 import { Save, Check, ShieldCheck, Sparkles, Truck, Store } from 'lucide-react';
+import { updateAdminPassword } from '../services/storeService';
 
 const AdminSettings = () => {
   const [saved, setSaved] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passError, setPassError] = useState('');
+
   const [settings, setSettings] = useState({
     storeName: 'Shveraa Fine Jewellery Atelier',
     tagline: 'Pure 925 Sterling Silver & Contemporary Adornments',
@@ -17,6 +22,22 @@ const AdminSettings = () => {
 
   const handleSave = (e) => {
     e.preventDefault();
+    setPassError('');
+
+    if (newPassword) {
+      if (newPassword !== confirmPassword) {
+        setPassError('Passphrases do not match.');
+        return;
+      }
+      const passResult = updateAdminPassword(newPassword);
+      if (!passResult.success) {
+        setPassError(passResult.message);
+        return;
+      }
+      setNewPassword('');
+      setConfirmPassword('');
+    }
+
     localStorage.setItem('shveraa_admin_settings', JSON.stringify(settings));
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
@@ -107,6 +128,38 @@ const AdminSettings = () => {
             />
           </div>
         </div>
+
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginTop: '2rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--admin-border-subtle)', paddingBottom: '0.75rem' }}>
+          Atelier Master Passphrase &amp; Security
+        </h3>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <div className="shv-form-group">
+            <label className="shv-form-label">New Admin Master Passphrase</label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Leave blank to keep unchanged"
+              className="shv-form-input"
+            />
+          </div>
+          <div className="shv-form-group">
+            <label className="shv-form-label">Confirm Master Passphrase</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Re-type new passphrase"
+              className="shv-form-input"
+            />
+          </div>
+        </div>
+        {passError && (
+          <div style={{ color: 'var(--admin-red)', fontSize: '0.8rem', marginTop: '0.25rem' }}>
+            {passError}
+          </div>
+        )}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginTop: '1rem', background: '#F8FAFC', padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--admin-border)' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer', fontSize: '0.88rem', fontWeight: 500 }}>

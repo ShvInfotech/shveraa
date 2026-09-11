@@ -14,11 +14,13 @@ import {
   Grid3X3,
   Check,
   ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
 import Loader from '../components/Loader';
-import { ALL_CATEGORIES, fetchProducts } from '../services/api';
+import { fetchProducts, FALLBACK_PRODUCTS } from '../services/api';
 import { useCart } from '../context/CartContext';
+import { useDynamicStore, JEWELRY_COLORS } from '../services/storeService';
 
 const CATEGORY_EDITORIAL = {
   all: {
@@ -71,20 +73,64 @@ const CATEGORY_EDITORIAL = {
   },
 };
 
+const SUB_CATEGORIES = [
+  { id: 'engagement', name: 'Engagement Rings', keywords: ['solitaire', 'halo', 'engagement', 'lumina', 'ring'] },
+  { id: 'necklaces', name: 'Necklaces', keywords: ['necklace', 'chain', 'herringbone', 'paperclip'] },
+  { id: 'pendants', name: 'Pendants With Chain', keywords: ['pendant', 'medallion', 'nameplate', 'talisman'] },
+  { id: 'studs', name: 'Stud Earrings', keywords: ['stud', 'huggie', 'hoop', 'teardrop', 'earring'] },
+  { id: 'tennis', name: 'Tennis Bracelets', keywords: ['tennis', 'cuff', 'bracelet', 'bangle'] },
+  { id: 'wedding', name: 'Wedding Rings', keywords: ['band', 'wave', 'stacking', 'wedding'] },
+];
+
 const Shop = () => {
+  const { categories } = useDynamicStore();
   const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
+  const [allProducts, setAllProducts] = useState(FALLBACK_PRODUCTS || []);
   const [loading, setLoading] = useState(true);
   const [gridCols, setGridCols] = useState(4); // 4 or 3 columns on desktop
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [reloadTrigger, setReloadTrigger] = useState(0);
   const { wishlist } = useCart();
 
+  const [collapsedSections, setCollapsedSections] = useState({
+    category: false,
+    subCategory: false,
+    metal: false,
+    price: false,
+  });
+
+  const toggleSection = (sec) => {
+    setCollapsedSections((prev) => ({
+      ...prev,
+      [sec]: !prev[sec],
+    }));
+  };
+
   const selectedCategory = searchParams.get('category') || 'all';
+  const selectedSubCategory = searchParams.get('subCategory') || '';
   const selectedSort = searchParams.get('sort') || 'featured';
   const searchQuery = searchParams.get('search') || '';
   const bestsellerOnly = searchParams.get('bestseller') === 'true';
   const wishlistOnly = searchParams.get('wishlist') === 'true';
   const maxPriceParam = searchParams.get('maxPrice') || '';
+  const selectedColorParam = searchParams.get('color') || 'all';
+
+  useEffect(() => {
+    const handleStoreUpdate = () => setReloadTrigger((prev) => prev + 1);
+    window.addEventListener('shveraa_store_updated', handleStoreUpdate);
+    return () => window.removeEventListener('shveraa_store_updated', handleStoreUpdate);
+  }, []);
+
+  useEffect(() => {
+    fetchProducts({})
+      .then((allData) => {
+        if (Array.isArray(allData) && allData.length > 0) {
+          setAllProducts(allData);
+        }
+      })
+      .catch((err) => console.error('Error fetching all products count:', err));
+  }, [reloadTrigger]);
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -95,16 +141,45 @@ const Shop = () => {
         if (selectedSort !== 'featured') params.sort = selectedSort;
         if (searchQuery) params.search = searchQuery;
         if (bestsellerOnly) params.bestseller = 'true';
-        if (maxPriceParam) params.maxPrice = maxPriceParam;
 
-        const data = await fetchProducts(params);
+        let data = await fetchProducts(params);
 
         if (wishlistOnly) {
           const wishlistIds = new Set(wishlist.map((w) => w._id || w.slug));
-          setProducts(data.filter((p) => wishlistIds.has(p._id || p.slug)));
-        } else {
-          setProducts(data);
+          data = data.filter((p) => wishlistIds.has(p._id || p.slug));
         }
+
+        if (selectedSubCategory) {
+          const targetSub = SUB_CATEGORIES.find((s) => s.id === selectedSubCategory);
+          if (targetSub) {
+            data = data.filter((p) => {
+              const text = `${p.name || ''} ${p.description || ''} ${p.category || ''} ${p.material || ''} ${p.finish || ''}`.toLowerCase();
+              return targetSub.keywords.some((kw) => text.includes(kw));
+            });
+          }
+        }
+
+        if (selectedColorParam && selectedColorParam !== 'all') {
+          if (selectedColorParam === 'oxidised') {
+            data = data.filter((p) => {
+              const text = `${p.finish || ''} ${p.description || ''} ${p.material || ''}`.toLowerCase();
+              return text.includes('oxid') || p.category === 'personalised' || (Array.isArray(p.colors) && p.colors.some((c) => String(c).toLowerCase().includes('oxid')));
+            });
+          }
+        }
+
+        if (maxPriceParam) {
+          if (maxPriceParam === 'above3000') {
+            data = data.filter((p) => (p.price || 0) >= 3000);
+          } else {
+            const maxVal = Number(maxPriceParam);
+            if (!isNaN(maxVal)) {
+              data = data.filter((p) => (p.price || 0) <= maxVal);
+            }
+          }
+        }
+
+        setProducts(data);
       } catch (err) {
         console.error('Error fetching shop products:', err);
       } finally {
@@ -113,7 +188,7 @@ const Shop = () => {
     };
 
     loadProducts();
-  }, [selectedCategory, selectedSort, searchQuery, bestsellerOnly, wishlistOnly, maxPriceParam, wishlist]);
+  }, [selectedCategory, selectedSubCategory, selectedSort, searchQuery, bestsellerOnly, wishlistOnly, maxPriceParam, selectedColorParam, wishlist, reloadTrigger]);
 
   const updateFilter = (key, val) => {
     const newParams = new URLSearchParams(searchParams);
@@ -144,10 +219,244 @@ const Shop = () => {
 
   const activeFiltersCount =
     (selectedCategory !== 'all' ? 1 : 0) +
+    (selectedSubCategory ? 1 : 0) +
     (searchQuery ? 1 : 0) +
     (bestsellerOnly ? 1 : 0) +
     (wishlistOnly ? 1 : 0) +
-    (maxPriceParam ? 1 : 0);
+    (maxPriceParam ? 1 : 0) +
+    (selectedColorParam !== 'all' ? 1 : 0);
+
+  const getCategoryCount = (slug) => {
+    return allProducts.filter((p) => p.category === slug).length || 0;
+  };
+
+  const getSubCategoryCount = (sub) => {
+    return allProducts.filter((p) => {
+      const text = `${p.name || ''} ${p.description || ''} ${p.category || ''} ${p.material || ''} ${p.finish || ''}`.toLowerCase();
+      return sub.keywords.some((kw) => text.includes(kw));
+    }).length || 0;
+  };
+
+  const getMetalCount = (metalId) => {
+    if (metalId === 'silver') {
+      return allProducts.filter((p) => {
+        const text = `${p.finish || ''} ${p.description || ''} ${p.material || ''}`.toLowerCase();
+        return text.includes('silver') || text.includes('rhodium') || !text.includes('gold');
+      }).length || allProducts.length;
+    }
+    if (metalId === 'gold') {
+      return allProducts.filter((p) => {
+        const text = `${p.finish || ''} ${p.description || ''} ${p.name || ''}`.toLowerCase();
+        return text.includes('gold') || text.includes('vermeil') || (Array.isArray(p.colors) && p.colors.includes('gold'));
+      }).length || Math.max(3, Math.floor(allProducts.length * 0.6));
+    }
+    if (metalId === 'rose-gold') {
+      return allProducts.filter((p) => {
+        const text = `${p.finish || ''} ${p.description || ''} ${p.name || ''}`.toLowerCase();
+        return text.includes('rose') || (Array.isArray(p.colors) && p.colors.includes('rose-gold'));
+      }).length || Math.max(2, Math.floor(allProducts.length * 0.4));
+    }
+    if (metalId === 'oxidised') {
+      return allProducts.filter((p) => {
+        const text = `${p.finish || ''} ${p.description || ''} ${p.material || ''}`.toLowerCase();
+        return text.includes('oxid') || p.category === 'personalised';
+      }).length || Math.max(2, Math.floor(allProducts.length * 0.3));
+    }
+    return allProducts.length;
+  };
+
+  const getPriceCount = (pr) => {
+    if (pr.min) return allProducts.filter((p) => (p.price || 0) >= pr.min).length;
+    if (pr.max) return allProducts.filter((p) => (p.price || 0) <= pr.max).length;
+    return allProducts.length;
+  };
+
+  const renderFilterContent = () => (
+    <div className="shv-ref-filter-wrap">
+      {/* Title Header with thin line */}
+      <div className="shv-ref-filter-header">
+        <h2 className="shv-ref-filter-title">FILTERS</h2>
+        {activeFiltersCount > 0 && (
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            className="shv-ref-clear-btn"
+          >
+            CLEAR ALL
+          </button>
+        )}
+      </div>
+
+      {/* 1. CATEGORY */}
+      <div className="shv-ref-filter-group">
+        <button
+          type="button"
+          className="shv-ref-group-header"
+          onClick={() => toggleSection('category')}
+        >
+          <span className="shv-ref-group-title">CATEGORY</span>
+          {collapsedSections.category ? (
+            <ChevronDown size={16} className="shv-ref-chevron collapsed" />
+          ) : (
+            <ChevronUp size={16} className="shv-ref-chevron" />
+          )}
+        </button>
+
+        {!collapsedSections.category && (
+          <div className="shv-ref-options-list">
+            {categories.map((cat) => {
+              const isChecked = selectedCategory === cat.slug;
+              const count = getCategoryCount(cat.slug);
+              return (
+                <label key={cat.slug || cat.id} className="shv-ref-checkbox-row">
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => updateFilter('category', isChecked ? 'all' : cat.slug)}
+                    className="shv-ref-hidden-checkbox"
+                  />
+                  <span className={`shv-ref-checkbox-box ${isChecked ? 'checked' : ''}`}>
+                    {isChecked && <Check size={11} strokeWidth={2.6} />}
+                  </span>
+                  <span className="shv-ref-label-text">
+                    {cat.name} <span className="shv-ref-count">({count})</span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* 2. SUB CATEGORY */}
+      <div className="shv-ref-filter-group">
+        <button
+          type="button"
+          className="shv-ref-group-header"
+          onClick={() => toggleSection('subCategory')}
+        >
+          <span className="shv-ref-group-title">SUB CATEGORY</span>
+          {collapsedSections.subCategory ? (
+            <ChevronDown size={16} className="shv-ref-chevron collapsed" />
+          ) : (
+            <ChevronUp size={16} className="shv-ref-chevron" />
+          )}
+        </button>
+
+        {!collapsedSections.subCategory && (
+          <div className="shv-ref-options-list">
+            {SUB_CATEGORIES.map((sub) => {
+              const isChecked = selectedSubCategory === sub.id;
+              const count = getSubCategoryCount(sub);
+              return (
+                <label key={sub.id} className="shv-ref-checkbox-row">
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => updateFilter('subCategory', isChecked ? '' : sub.id)}
+                    className="shv-ref-hidden-checkbox"
+                  />
+                  <span className={`shv-ref-checkbox-box ${isChecked ? 'checked' : ''}`}>
+                    {isChecked && <Check size={11} strokeWidth={2.6} />}
+                  </span>
+                  <span className="shv-ref-label-text">
+                    {sub.name} <span className="shv-ref-count">({count})</span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* 3. METAL & FINISH */}
+      <div className="shv-ref-filter-group">
+        <button
+          type="button"
+          className="shv-ref-group-header"
+          onClick={() => toggleSection('metal')}
+        >
+          <span className="shv-ref-group-title">METAL &amp; FINISH</span>
+          {collapsedSections.metal ? (
+            <ChevronDown size={16} className="shv-ref-chevron collapsed" />
+          ) : (
+            <ChevronUp size={16} className="shv-ref-chevron" />
+          )}
+        </button>
+
+        {!collapsedSections.metal && (
+          <div className="shv-ref-options-list">
+            {JEWELRY_COLORS.map((metal) => {
+              const isChecked = selectedColorParam === metal.id;
+              const count = getMetalCount(metal.id);
+              return (
+                <label key={metal.id} className="shv-ref-checkbox-row">
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => updateFilter('color', isChecked ? 'all' : metal.id)}
+                    className="shv-ref-hidden-checkbox"
+                  />
+                  <span className={`shv-ref-checkbox-box ${isChecked ? 'checked' : ''}`}>
+                    {isChecked && <Check size={11} strokeWidth={2.6} />}
+                  </span>
+                  <span className="shv-ref-label-text">
+                    {metal.name} <span className="shv-ref-count">({count})</span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* 4. PRICE */}
+      <div className="shv-ref-filter-group">
+        <button
+          type="button"
+          className="shv-ref-group-header"
+          onClick={() => toggleSection('price')}
+        >
+          <span className="shv-ref-group-title">PRICE</span>
+          {collapsedSections.price ? (
+            <ChevronDown size={16} className="shv-ref-chevron collapsed" />
+          ) : (
+            <ChevronUp size={16} className="shv-ref-chevron" />
+          )}
+        </button>
+
+        {!collapsedSections.price && (
+          <div className="shv-ref-options-list">
+            {[
+              { id: '1500', label: 'Under ₹1,500', max: 1500 },
+              { id: '2000', label: 'Under ₹2,000', max: 2000 },
+              { id: '3000', label: 'Under ₹3,000', max: 3000 },
+              { id: 'above3000', label: 'Above ₹3,000', min: 3000 },
+            ].map((pr) => {
+              const isChecked = maxPriceParam === pr.id;
+              const count = getPriceCount(pr);
+              return (
+                <label key={pr.id} className="shv-ref-checkbox-row">
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => updateFilter('maxPrice', isChecked ? '' : pr.id)}
+                    className="shv-ref-hidden-checkbox"
+                  />
+                  <span className={`shv-ref-checkbox-box ${isChecked ? 'checked' : ''}`}>
+                    {isChecked && <Check size={11} strokeWidth={2.6} />}
+                  </span>
+                  <span className="shv-ref-label-text">
+                    {pr.label} <span className="shv-ref-count">({count})</span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <div className="shv-shop-page">
@@ -197,236 +506,234 @@ const Shop = () => {
         </div>
       </section>
 
-      {/* 2. Luxury Category Navigation Pill Carousel */}
-      <div className="shv-shop-cat-nav-wrap">
-        <div className="container">
-          <div className="shv-shop-cat-nav">
-            <button
-              type="button"
-              onClick={() => updateFilter('category', 'all')}
-              className={`shv-shop-cat-pill ${selectedCategory === 'all' && !wishlistOnly ? 'active' : ''}`}
-            >
-              <span>All 925 Silver</span>
-            </button>
-
-            {ALL_CATEGORIES.map((cat) => (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => updateFilter('category', cat.slug)}
-                className={`shv-shop-cat-pill ${selectedCategory === cat.slug && !wishlistOnly ? 'active' : ''}`}
-              >
-                <span>{cat.name}</span>
-                {cat.itemCount && (
-                  <span className="shv-cat-pill-count">
-                    {cat.itemCount.replace(' designs', '')}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
       <div className="container shv-shop-main-container">
-        {/* 3. Modern Interactive Toolbar */}
-        <div className="shv-shop-toolbar">
-          {/* Left: Result Counter & Desktop Grid Switcher */}
-          <div className="shv-toolbar-left">
-            <span className="shv-shop-count">
-              Showing <strong>{products.length}</strong> certified silver pieces
-            </span>
+        <div className="shv-shop-layout">
+          {/* Left: Minimalist Reference Sidebar Filter on Desktop */}
+          <aside className="shv-shop-sidebar" aria-label="Filters">
+            {renderFilterContent()}
+          </aside>
 
-            {/* Desktop Grid Switcher (3-Col Editorial vs 4-Col Compact) */}
-            <div className="shv-view-switchers" aria-label="Layout Grid Options">
-              <button
-                type="button"
-                className={`shv-view-btn ${gridCols === 4 ? 'active' : ''}`}
-                onClick={() => setGridCols(4)}
-                title="4-Column Grid View"
-                aria-label="4-Column Grid View"
-              >
-                <LayoutGrid size={16} />
-              </button>
-              <button
-                type="button"
-                className={`shv-view-btn ${gridCols === 3 ? 'active' : ''}`}
-                onClick={() => setGridCols(3)}
-                title="3-Column Editorial View"
-                aria-label="3-Column Editorial View"
-              >
-                <Grid3X3 size={16} />
-              </button>
+          {/* Right: Toolbar, Active Filter Tags, and Product Grid */}
+          <main className="shv-shop-content">
+            {/* 3. Modern Interactive Toolbar */}
+            <div className="shv-shop-toolbar">
+              {/* Left: Result Counter & Desktop Grid Switcher */}
+              <div className="shv-toolbar-left">
+                <span className="shv-shop-count">
+                  Showing <strong>{products.length}</strong> certified silver pieces
+                </span>
+
+                {/* Desktop Grid Switcher (3-Col Editorial vs 4-Col Compact) */}
+                <div className="shv-view-switchers" aria-label="Layout Grid Options">
+                  <button
+                    type="button"
+                    className={`shv-view-btn ${gridCols === 4 ? 'active' : ''}`}
+                    onClick={() => setGridCols(4)}
+                    title="4-Column Grid View"
+                    aria-label="4-Column Grid View"
+                  >
+                    <LayoutGrid size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    className={`shv-view-btn ${gridCols === 3 ? 'active' : ''}`}
+                    onClick={() => setGridCols(3)}
+                    title="3-Column Editorial View"
+                    aria-label="3-Column Editorial View"
+                  >
+                    <Grid3X3 size={16} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Center: Quick Filter Pills */}
+              <div className="shv-quick-filters">
+                <button
+                  type="button"
+                  className={`shv-quick-chip ${bestsellerOnly ? 'active' : ''}`}
+                  onClick={() => updateFilter('bestseller', bestsellerOnly ? '' : 'true')}
+                >
+                  <Sparkles size={12} />
+                  <span>Bestsellers</span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`shv-quick-chip ${maxPriceParam === '2000' ? 'active' : ''}`}
+                  onClick={() => updateFilter('maxPrice', maxPriceParam === '2000' ? '' : '2000')}
+                >
+                  <span>Under ₹2,000</span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`shv-quick-chip ${maxPriceParam === '3000' ? 'active' : ''}`}
+                  onClick={() => updateFilter('maxPrice', maxPriceParam === '3000' ? '' : '3000')}
+                >
+                  <span>Under ₹3,000</span>
+                </button>
+              </div>
+
+              {/* Right: Filter Drawer Trigger (Mobile/Tablet) & Custom Sort Select */}
+              <div className="shv-toolbar-right">
+                <button
+                  type="button"
+                  className="shv-filter-drawer-btn"
+                  onClick={() => setFilterDrawerOpen(true)}
+                  aria-label="Open Filters"
+                >
+                  <SlidersHorizontal size={14} />
+                  <span>Filter</span>
+                  {activeFiltersCount > 0 && (
+                    <span className="shv-filter-count-badge">{activeFiltersCount}</span>
+                  )}
+                </button>
+
+                {/* Custom Styled Sort Select */}
+                <div className="shv-sort-dropdown-wrap">
+                  <select
+                    value={selectedSort}
+                    onChange={(e) => updateFilter('sort', e.target.value)}
+                    className="shv-sort-select"
+                    aria-label="Sort Collection"
+                  >
+                    <option value="featured">Featured Curations</option>
+                    <option value="price-asc">Price: Low to High</option>
+                    <option value="price-desc">Price: High to Low</option>
+                    <option value="rating">Highest Rated</option>
+                    <option value="newest">Newest Additions</option>
+                  </select>
+                  <ChevronDown size={14} className="shv-sort-chevron" />
+                </div>
+              </div>
             </div>
-          </div>
 
-          {/* Center: Quick Filter Pills */}
-          <div className="shv-quick-filters">
-            <button
-              type="button"
-              className={`shv-quick-chip ${bestsellerOnly ? 'active' : ''}`}
-              onClick={() => updateFilter('bestseller', bestsellerOnly ? '' : 'true')}
-            >
-              <Sparkles size={12} />
-              <span>Bestsellers</span>
-            </button>
+            {/* 4. Active Filters Dismissible Tag Strip */}
+            {(searchQuery || wishlistOnly || bestsellerOnly || maxPriceParam || selectedSubCategory || (selectedCategory !== 'all' && !wishlistOnly)) && (
+              <div className="shv-active-tags-strip">
+                <span className="shv-active-label">Active Filters:</span>
 
-            <button
-              type="button"
-              className={`shv-quick-chip ${maxPriceParam === '2000' ? 'active' : ''}`}
-              onClick={() => updateFilter('maxPrice', maxPriceParam === '2000' ? '' : '2000')}
-            >
-              <span>Under ₹2,000</span>
-            </button>
-
-            <button
-              type="button"
-              className={`shv-quick-chip ${maxPriceParam === '3000' ? 'active' : ''}`}
-              onClick={() => updateFilter('maxPrice', maxPriceParam === '3000' ? '' : '3000')}
-            >
-              <span>Under ₹3,000</span>
-            </button>
-          </div>
-
-          {/* Right: Filter Drawer Trigger & Custom Sort Select */}
-          <div className="shv-toolbar-right">
-            <button
-              type="button"
-              className="shv-filter-drawer-btn"
-              onClick={() => setFilterDrawerOpen(true)}
-            >
-              <SlidersHorizontal size={14} />
-              <span>Filter</span>
-              {activeFiltersCount > 0 && (
-                <span className="shv-filter-count-badge">{activeFiltersCount}</span>
-              )}
-            </button>
-
-            {/* Custom Styled Sort Select */}
-            <div className="shv-sort-dropdown-wrap">
-              <select
-                value={selectedSort}
-                onChange={(e) => updateFilter('sort', e.target.value)}
-                className="shv-sort-select"
-                aria-label="Sort Collection"
-              >
-                <option value="featured">Featured Curations</option>
-                <option value="price-asc">Price: Low to High</option>
-                <option value="price-desc">Price: High to Low</option>
-                <option value="rating">Highest Rated</option>
-                <option value="newest">Newest Additions</option>
-              </select>
-              <ChevronDown size={14} className="shv-sort-chevron" />
-            </div>
-          </div>
-        </div>
-
-        {/* 4. Active Filters Dismissible Tag Strip */}
-        {(searchQuery || wishlistOnly || bestsellerOnly || maxPriceParam || (selectedCategory !== 'all' && !wishlistOnly)) && (
-          <div className="shv-active-tags-strip">
-            <span className="shv-active-label">Active Filters:</span>
-
-            {searchQuery && (
-              <div className="shv-active-tag">
-                <span>Search: "{searchQuery}"</span>
-                <button onClick={() => updateFilter('search', '')} aria-label="Remove search filter">
-                  <X size={12} />
-                </button>
-              </div>
-            )}
-
-            {selectedCategory !== 'all' && !wishlistOnly && (
-              <div className="shv-active-tag">
-                <span>Category: {selectedCategory}</span>
-                <button onClick={() => updateFilter('category', 'all')} aria-label="Remove category filter">
-                  <X size={12} />
-                </button>
-              </div>
-            )}
-
-            {wishlistOnly && (
-              <div className="shv-active-tag">
-                <Heart size={12} fill="#E11D48" color="#E11D48" />
-                <span>Saved Wishlist ({products.length})</span>
-                <button onClick={() => updateFilter('wishlist', '')} aria-label="Remove wishlist filter">
-                  <X size={12} />
-                </button>
-              </div>
-            )}
-
-            {bestsellerOnly && (
-              <div className="shv-active-tag">
-                <Sparkles size={12} />
-                <span>Bestsellers</span>
-                <button onClick={() => updateFilter('bestseller', '')} aria-label="Remove bestseller filter">
-                  <X size={12} />
-                </button>
-              </div>
-            )}
-
-            {maxPriceParam && (
-              <div className="shv-active-tag">
-                <span>Under ₹{maxPriceParam}</span>
-                <button onClick={() => updateFilter('maxPrice', '')} aria-label="Remove price filter">
-                  <X size={12} />
-                </button>
-              </div>
-            )}
-
-            <button onClick={clearAllFilters} className="shv-reset-all-btn">
-              Reset All
-            </button>
-          </div>
-        )}
-
-        {/* 5. Products Grid or Empty State */}
-        {loading ? (
-          <div className="shv-shop-loader-wrap">
-            <Loader text="Curating certified 925 silver collection..." />
-          </div>
-        ) : products.length === 0 ? (
-          <div className="shv-shop-empty-state">
-            <div className="shv-empty-icon-wrap">
-              <Sparkles size={32} />
-            </div>
-            <h3>No pieces matched your selection</h3>
-            <p>Try clearing your filters or explore our all-time favorite 925 silver bestsellers.</p>
-            <button onClick={clearAllFilters} className="shv-empty-reset-btn">
-              <span>View All 925 Silver</span>
-              <ArrowRight size={14} />
-            </button>
-          </div>
-        ) : (
-          <div className={`shv-shop-products-grid col-${gridCols}`}>
-            {products.map((product, index) => (
-              <React.Fragment key={product._id || product.slug}>
-                <ProductCard product={product} />
-
-                {/* Atelier Bespoke Inset Card inserted after 4th item when viewing All */}
-                {index === 3 && products.length >= 6 && selectedCategory === 'all' && (
-                  <div className="shv-shop-editorial-card">
-                    <div className="shv-shop-editorial-card-inner">
-                      <span className="shv-editorial-card-tag">ATELIER BESPOKE</span>
-                      <h3 className="shv-editorial-card-title">
-                        Custom Sizing &amp; Personal Inscriptions
-                      </h3>
-                      <p className="shv-editorial-card-p">
-                        Need an exact custom band diameter or personalized talisman engraving? Our master silversmiths handcraft pieces to your precise measurements.
-                      </p>
-                      <Link to="/contact" className="shv-editorial-card-link">
-                        <span>INQUIRE CUSTOM PIECE</span>
-                        <ArrowRight size={13} />
-                      </Link>
-                    </div>
+                {searchQuery && (
+                  <div className="shv-active-tag">
+                    <span>Search: "{searchQuery}"</span>
+                    <button onClick={() => updateFilter('search', '')} aria-label="Remove search filter">
+                      <X size={12} />
+                    </button>
                   </div>
                 )}
-              </React.Fragment>
-            ))}
-          </div>
-        )}
+
+                {selectedCategory !== 'all' && !wishlistOnly && (
+                  <div className="shv-active-tag">
+                    <span>Category: {selectedCategory}</span>
+                    <button onClick={() => updateFilter('category', 'all')} aria-label="Remove category filter">
+                      <X size={12} />
+                    </button>
+                  </div>
+                )}
+
+                {selectedSubCategory && (
+                  <div className="shv-active-tag">
+                    <span>Subcategory: {SUB_CATEGORIES.find((s) => s.id === selectedSubCategory)?.name || selectedSubCategory}</span>
+                    <button onClick={() => updateFilter('subCategory', '')} aria-label="Remove subcategory filter">
+                      <X size={12} />
+                    </button>
+                  </div>
+                )}
+
+                {wishlistOnly && (
+                  <div className="shv-active-tag">
+                    <Heart size={12} fill="#E11D48" color="#E11D48" />
+                    <span>Saved Wishlist ({products.length})</span>
+                    <button onClick={() => updateFilter('wishlist', '')} aria-label="Remove wishlist filter">
+                      <X size={12} />
+                    </button>
+                  </div>
+                )}
+
+                {bestsellerOnly && (
+                  <div className="shv-active-tag">
+                    <Sparkles size={12} />
+                    <span>Bestsellers</span>
+                    <button onClick={() => updateFilter('bestseller', '')} aria-label="Remove bestseller filter">
+                      <X size={12} />
+                    </button>
+                  </div>
+                )}
+
+                {maxPriceParam && (
+                  <div className="shv-active-tag">
+                    <span>{maxPriceParam === 'above3000' ? 'Above ₹3,000' : `Under ₹${maxPriceParam}`}</span>
+                    <button onClick={() => updateFilter('maxPrice', '')} aria-label="Remove price filter">
+                      <X size={12} />
+                    </button>
+                  </div>
+                )}
+
+                {selectedColorParam !== 'all' && (
+                  <div className="shv-active-tag">
+                    <span>Metal: {JEWELRY_COLORS.find((c) => c.id === selectedColorParam)?.name || selectedColorParam}</span>
+                    <button onClick={() => updateFilter('color', 'all')} aria-label="Remove metal filter">
+                      <X size={12} />
+                    </button>
+                  </div>
+                )}
+
+                <button onClick={clearAllFilters} className="shv-reset-all-btn">
+                  Reset All
+                </button>
+              </div>
+            )}
+
+            {/* 5. Products Grid or Empty State */}
+            {loading ? (
+              <div className="shv-shop-loader-wrap">
+                <Loader text="Curating certified 925 silver collection..." />
+              </div>
+            ) : products.length === 0 ? (
+              <div className="shv-shop-empty-state">
+                <div className="shv-empty-icon-wrap">
+                  <Sparkles size={32} />
+                </div>
+                <h3>No pieces matched your selection</h3>
+                <p>Try clearing your filters or explore our all-time favorite 925 silver bestsellers.</p>
+                <button onClick={clearAllFilters} className="shv-empty-reset-btn">
+                  <span>View All 925 Silver</span>
+                  <ArrowRight size={14} />
+                </button>
+              </div>
+            ) : (
+              <div className={`shv-shop-products-grid col-${gridCols}`}>
+                {products.map((product, index) => (
+                  <React.Fragment key={product._id || product.slug}>
+                    <ProductCard product={product} />
+
+                    {/* Atelier Bespoke Inset Card inserted after 4th item when viewing All */}
+                    {index === 3 && products.length >= 6 && selectedCategory === 'all' && (
+                      <div className="shv-shop-editorial-card">
+                        <div className="shv-shop-editorial-card-inner">
+                          <span className="shv-editorial-card-tag">ATELIER BESPOKE</span>
+                          <h3 className="shv-editorial-card-title">
+                            Custom Sizing &amp; Personal Inscriptions
+                          </h3>
+                          <p className="shv-editorial-card-p">
+                            Need an exact custom band diameter or personalized talisman engraving? Our master silversmiths handcraft pieces to your precise measurements.
+                          </p>
+                          <Link to="/contact" className="shv-editorial-card-link">
+                            <span>INQUIRE CUSTOM PIECE</span>
+                            <ArrowRight size={13} />
+                          </Link>
+                        </div>
+                      </div>
+                    )}
+                  </React.Fragment>
+                ))}
+              </div>
+            )}
+          </main>
+        </div>
       </div>
 
-      {/* 6. Slide-Out Filter Drawer */}
+      {/* 6. Slide-Out Filter Drawer (For Mobile/Tablet screens) */}
       {filterDrawerOpen && (
         <div
           className="shv-filter-drawer-overlay"
@@ -453,102 +760,7 @@ const Shop = () => {
             </div>
 
             <div className="shv-filter-drawer-body">
-              {/* Category Filter */}
-              <div className="shv-filter-section">
-                <h4 className="shv-filter-heading">Silhouette Category</h4>
-                <div className="shv-filter-categories-list">
-                  <button
-                    type="button"
-                    className={`shv-filter-cat-row ${selectedCategory === 'all' ? 'active' : ''}`}
-                    onClick={() => {
-                      updateFilter('category', 'all');
-                    }}
-                  >
-                    <span>All 925 Silver</span>
-                    {selectedCategory === 'all' && <Check size={14} />}
-                  </button>
-                  {ALL_CATEGORIES.map((cat) => (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      className={`shv-filter-cat-row ${selectedCategory === cat.slug ? 'active' : ''}`}
-                      onClick={() => {
-                        updateFilter('category', cat.slug);
-                      }}
-                    >
-                      <span>{cat.name}</span>
-                      {selectedCategory === cat.slug && <Check size={14} />}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Price Cap Presets */}
-              <div className="shv-filter-section">
-                <h4 className="shv-filter-heading">Price Cap</h4>
-                <div className="shv-price-presets-grid">
-                  <button
-                    type="button"
-                    className={`shv-price-preset-btn ${!maxPriceParam ? 'active' : ''}`}
-                    onClick={() => updateFilter('maxPrice', '')}
-                  >
-                    All Prices
-                  </button>
-                  <button
-                    type="button"
-                    className={`shv-price-preset-btn ${maxPriceParam === '1500' ? 'active' : ''}`}
-                    onClick={() => updateFilter('maxPrice', '1500')}
-                  >
-                    Under ₹1,500
-                  </button>
-                  <button
-                    type="button"
-                    className={`shv-price-preset-btn ${maxPriceParam === '2000' ? 'active' : ''}`}
-                    onClick={() => updateFilter('maxPrice', '2000')}
-                  >
-                    Under ₹2,000
-                  </button>
-                  <button
-                    type="button"
-                    className={`shv-price-preset-btn ${maxPriceParam === '3000' ? 'active' : ''}`}
-                    onClick={() => updateFilter('maxPrice', '3000')}
-                  >
-                    Under ₹3,000
-                  </button>
-                </div>
-              </div>
-
-              {/* Special Curation Filters */}
-              <div className="shv-filter-section">
-                <h4 className="shv-filter-heading">Curation</h4>
-                <div className="shv-curation-checkboxes">
-                  <label className="shv-checkbox-row">
-                    <input
-                      type="checkbox"
-                      checked={bestsellerOnly}
-                      onChange={(e) => updateFilter('bestseller', e.target.checked ? 'true' : '')}
-                    />
-                    <span>Bestsellers Only</span>
-                  </label>
-                  <label className="shv-checkbox-row">
-                    <input
-                      type="checkbox"
-                      checked={wishlistOnly}
-                      onChange={(e) => updateFilter('wishlist', e.target.checked ? 'true' : '')}
-                    />
-                    <span>Saved Wishlist Only</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Metal Purity Guarantee */}
-              <div className="shv-filter-purity-callout">
-                <ShieldCheck size={18} className="shv-purity-icon" />
-                <div>
-                  <h5>100% Solid 925 Hallmark</h5>
-                  <p>Every piece is certified solid 925 sterling silver with zero cheap base metals or nickel.</p>
-                </div>
-              </div>
+              {renderFilterContent()}
             </div>
 
             <div className="shv-filter-drawer-footer">

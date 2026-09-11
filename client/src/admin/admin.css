@@ -48,11 +48,24 @@
   flex-direction: column;
   padding: 1.5rem 1.25rem;
   transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), padding 0.3s ease;
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  bottom: 0;
   height: 100vh;
-  z-index: 50;
+  z-index: 100;
   box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.shv-admin-sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.shv-admin-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 4px;
 }
 
 .shv-admin-sidebar.collapsed {
@@ -91,6 +104,15 @@
   letter-spacing: -0.02em;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
   flex-shrink: 0;
+}
+
+.shv-admin-sidebar-logo {
+  height: 34px;
+  width: auto;
+  max-width: 140px;
+  object-fit: contain;
+  display: block;
+  filter: brightness(0);
 }
 
 .shv-sidebar-brand-name {
@@ -354,6 +376,15 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  margin-left: 260px;
+  width: calc(100% - 260px);
+  min-height: 100vh;
+  transition: margin-left 0.3s cubic-bezier(0.16, 1, 0.3, 1), width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.shv-admin-main.sidebar-collapsed {
+  margin-left: 84px;
+  width: calc(100% - 84px);
 }
 
 /* Header */
@@ -1070,3 +1101,1264 @@
 .shv-btn-primary:hover {
   background: #0F172A;
 }
+
+/* ==========================================================================
+   HEADER ACTION ENHANCEMENTS
+   ========================================================================== */
+.shv-admin-live-store-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  background: #F8FAFC;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--admin-text-main);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.shv-admin-live-store-btn:hover {
+  background: #1E2229;
+  color: #FFFFFF;
+  border-color: #1E2229;
+}
+
+.shv-admin-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  background: rgba(160, 126, 82, 0.1);
+  border: 1px solid rgba(160, 126, 82, 0.25);
+  color: var(--admin-gold);
+  border-radius: 8px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ==========================================================================
+   2. ATELIER LUXURY ADMIN LOGIN PORTAL
+   ========================================================================== */
+.shv-admin-login-screen {
+  min-height: 100vh;
+  width: 100vw;
+  background: radial-gradient(circle at top, #1A1F26 0%, #0D0F12 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.shv-login-bg-glow {
+  position: absolute;
+  top: -150px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 650px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(197, 168, 128, 0.12) 0%, rgba(0, 0, 0, 0) 70%);
+  pointer-events: none;
+}
+
+.shv-login-card {
+  width: 100%;
+  max-width: 440px;
+  background: rgba(22, 26, 33, 0.85);
+  border: 1px solid rgba(197, 168, 128, 0.22);
+  border-radius: 20px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px);
+  padding: 2.75rem 2.25rem;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 10;
+  animation: loginCardFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes loginCardFadeUp {
+  from { opacity: 0; transform: translateY(24px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.shv-login-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.shv-login-brand-icon {
+  width: 46px;
+  height: 46px;
+  margin: 0 auto 1.25rem;
+  background: rgba(197, 168, 128, 0.12);
+  border: 1px solid rgba(197, 168, 128, 0.35);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #C5A880;
+}
+
+.shv-login-brand-logo {
+  height: 38px;
+  width: auto;
+  max-width: 170px;
+  object-fit: contain;
+  margin-bottom: 0.85rem;
+  filter: brightness(0) invert(1);
+}
+
+.shv-login-title {
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: #FFFFFF;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.4rem 0;
+}
+
+.shv-login-subtitle {
+  font-size: 0.82rem;
+  color: #8E9CAE;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.shv-login-error-alert {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #FCA5A5;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.shv-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.shv-login-field label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #CBD5E1;
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.01em;
+}
+
+.shv-login-field-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.shv-login-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.shv-login-input-icon {
+  position: absolute;
+  left: 1rem;
+  color: #64748B;
+  pointer-events: none;
+}
+
+.shv-login-input-wrap input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.6rem;
+  background: rgba(13, 15, 18, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: #FFFFFF;
+  font-size: 0.88rem;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.shv-login-input-wrap input:focus {
+  outline: none;
+  border-color: #C5A880;
+  box-shadow: 0 0 0 3px rgba(197, 168, 128, 0.15);
+  background: rgba(13, 15, 18, 0.95);
+}
+
+.shv-login-toggle-pw {
+  position: absolute;
+  right: 0.85rem;
+  background: none;
+  border: none;
+  color: #64748B;
+  cursor: pointer;
+  padding: 0.25rem;
+}
+
+.shv-login-toggle-pw:hover {
+  color: #C5A880;
+}
+
+.shv-login-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+}
+
+.shv-login-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #94A3B8;
+  cursor: pointer;
+}
+
+.shv-login-demofill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(197, 168, 128, 0.1);
+  border: 1px solid rgba(197, 168, 128, 0.25);
+  color: #C5A880;
+  padding: 0.3rem 0.65rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.shv-login-demofill-btn:hover {
+  background: rgba(197, 168, 128, 0.2);
+}
+
+.shv-login-submit-btn {
+  width: 100%;
+  padding: 0.85rem;
+  background: linear-gradient(135deg, #C5A880 0%, #A3845C 100%);
+  border: none;
+  border-radius: 10px;
+  color: #0D0F12;
+  font-weight: 700;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(197, 168, 128, 0.25);
+  transition: all 0.2s ease;
+  margin-top: 0.5rem;
+}
+
+.shv-login-submit-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(197, 168, 128, 0.35);
+  background: linear-gradient(135deg, #D4BA93 0%, #B09066 100%);
+}
+
+.shv-login-submit-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.shv-login-footer {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.shv-login-hallmark {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.74rem;
+  color: #64748B;
+}
+
+.shv-login-backlink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #94A3B8;
+  font-size: 0.8rem;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.shv-login-backlink:hover {
+  color: #C5A880;
+}
+
+/* ==========================================================================
+   3. DEDICATED FULL-PAGE JEWELLERY PRODUCT STUDIO
+   ========================================================================== */
+.shv-product-editor-page {
+  animation: fadeIn 0.3s ease;
+}
+
+.shv-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.shv-editor-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.shv-editor-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.9rem;
+  background: #FFFFFF;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--admin-text-main);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.shv-editor-back-btn:hover {
+  background: #F1F5F9;
+}
+
+.shv-editor-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.shv-editor-main-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--admin-text-main);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.shv-editor-badge-mode {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--admin-gold);
+  background: rgba(160, 126, 82, 0.1);
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+
+.shv-editor-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.shv-editor-discard-btn {
+  padding: 0.6rem 1.2rem;
+  background: #FFFFFF;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--admin-text-muted);
+  cursor: pointer;
+}
+
+.shv-editor-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1rem;
+  background: #FEF2F2;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--admin-red);
+  cursor: pointer;
+}
+
+.shv-editor-save-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.4rem;
+  background: #1E2229;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(30, 34, 41, 0.2);
+  transition: all 0.2s ease;
+}
+
+.shv-editor-save-btn:hover:not(:disabled) {
+  background: #000000;
+  transform: translateY(-1px);
+}
+
+.shv-editor-layout-grid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 2rem;
+  align-items: start;
+}
+
+@media (max-width: 1180px) {
+  .shv-editor-layout-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.shv-editor-form-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.shv-editor-card {
+  background: #FFFFFF;
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-md);
+  padding: 1.75rem;
+  box-shadow: var(--admin-shadow-sm);
+}
+
+.shv-editor-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--admin-border-subtle);
+}
+
+.shv-editor-card-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #F1F5F9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1E2229;
+  flex-shrink: 0;
+}
+
+.shv-editor-card-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--admin-text-main);
+  margin: 0 0 0.2rem 0;
+}
+
+.shv-editor-card-subtitle {
+  font-size: 0.82rem;
+  color: var(--admin-text-muted);
+  margin: 0;
+}
+
+.shv-editor-fields-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+}
+
+.shv-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.shv-field.full-width {
+  width: 100%;
+}
+
+.shv-field.half-width {
+  width: calc(50% - 0.65rem);
+}
+
+@media (max-width: 640px) {
+  .shv-field.half-width {
+    width: 100%;
+  }
+}
+
+.shv-field label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--admin-text-main);
+}
+
+.shv-field input,
+.shv-field select,
+.shv-field textarea {
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  background: #FFFFFF;
+  font-size: 0.86rem;
+  color: var(--admin-text-main);
+  box-sizing: border-box;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.shv-field input:focus,
+.shv-field select:focus,
+.shv-field textarea:focus {
+  outline: none;
+  border-color: #1E2229;
+  box-shadow: 0 0 0 3px rgba(30, 34, 41, 0.08);
+}
+
+.shv-field-helper {
+  font-size: 0.75rem;
+  color: var(--admin-text-muted);
+}
+
+.shv-field-helper.success {
+  color: var(--admin-green);
+  font-weight: 600;
+}
+
+.shv-editor-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.84rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.shv-editor-checkbox-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  cursor: pointer;
+  background: #F8FAFC;
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--admin-border);
+}
+
+.shv-editor-checkbox-toggle input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+}
+
+.toggle-title {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--admin-text-main);
+}
+
+.toggle-desc {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--admin-text-muted);
+  margin-top: 0.2rem;
+}
+
+/* Drag & Drop Device Dropzone */
+.shv-editor-dropzone {
+  border: 2px dashed #CBD5E1;
+  border-radius: 14px;
+  padding: 2.25rem 1.5rem;
+  text-align: center;
+  background: #F8FAFC;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.shv-editor-dropzone:hover,
+.shv-editor-dropzone.drag-active {
+  border-color: #1E2229;
+  background: #F1F5F9;
+}
+
+.shv-dropzone-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.shv-dropzone-icon-wrap {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 1px solid var(--admin-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1E2229;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.shv-dropzone-text {
+  font-size: 0.92rem;
+  color: var(--admin-text-main);
+}
+
+.shv-dropzone-hint {
+  font-size: 0.78rem;
+  color: var(--admin-text-muted);
+  margin: 0;
+  max-width: 440px;
+}
+
+.shv-editor-upload-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #ECFDF5;
+  border: 1px solid #A7F3D0;
+  color: #065F46;
+  padding: 0.65rem 1rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  margin-top: 1rem;
+}
+
+.shv-editor-url-accordion {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--admin-border-subtle);
+}
+
+.shv-editor-url-hint {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--admin-text-muted);
+  margin-bottom: 0.4rem;
+}
+
+.shv-editor-url-input-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.shv-editor-url-input-group input {
+  flex: 1;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  font-size: 0.84rem;
+}
+
+.shv-editor-url-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.55rem 1rem;
+  background: #1E2229;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Gallery Manager Grid */
+.shv-editor-gallery-wrap {
+  margin-top: 1.75rem;
+}
+
+.shv-gallery-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.85rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.shv-gallery-count {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--admin-text-main);
+}
+
+.shv-gallery-tip {
+  font-size: 0.75rem;
+  color: var(--admin-gold);
+  font-weight: 600;
+}
+
+.shv-gallery-empty {
+  padding: 2rem;
+  text-align: center;
+  background: #F8FAFC;
+  border-radius: 10px;
+  color: var(--admin-text-muted);
+  font-size: 0.82rem;
+}
+
+.shv-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 1rem;
+}
+
+.shv-gallery-item {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--admin-border);
+  background: #FFFFFF;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.shv-gallery-item.is-primary {
+  border: 2px solid var(--admin-gold);
+  box-shadow: 0 0 0 2px rgba(160, 126, 82, 0.15);
+}
+
+.shv-gallery-item.is-hover {
+  border: 2px solid #3B82F6;
+}
+
+.shv-gallery-thumb-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+.shv-gallery-thumb-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.shv-img-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.shv-img-badge.primary {
+  background: #A07E52;
+  color: #FFFFFF;
+}
+
+.shv-img-badge.hover {
+  background: #3B82F6;
+  color: #FFFFFF;
+}
+
+.shv-img-badge.gallery {
+  background: rgba(15, 23, 42, 0.75);
+  color: #FFFFFF;
+}
+
+.shv-gallery-actions {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(15, 23, 42, 0.88);
+  padding: 0.35rem;
+  display: flex;
+  gap: 0.25rem;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+
+.shv-action-pill {
+  padding: 0.2rem 0.4rem;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 4px;
+  color: #FFFFFF;
+  font-size: 0.65rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.shv-action-pill:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.shv-action-pill.delete {
+  background: rgba(239, 68, 68, 0.8);
+}
+
+.shv-action-pill.delete:hover {
+  background: #DC2626;
+}
+
+/* Size Chips */
+.shv-editor-chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.3rem;
+}
+
+.shv-size-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  background: #F8FAFC;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--admin-text-main);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.shv-size-chip.active {
+  background: #1E2229;
+  color: #FFFFFF;
+  border-color: #1E2229;
+}
+
+.shv-editor-custom-size-group {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.shv-editor-custom-size-group input {
+  max-width: 280px;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.82rem;
+}
+
+.shv-size-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.85rem;
+  background: #F1F5F9;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* 4. REAL-TIME LIVE PRODUCT CARD PREVIEW COLUMN */
+.shv-editor-preview-col {
+  position: sticky;
+  top: 1.5rem;
+}
+
+.shv-editor-sticky-card {
+  background: #FFFFFF;
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-md);
+  padding: 1.5rem;
+  box-shadow: var(--admin-shadow-card);
+}
+
+.shv-preview-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--admin-border-subtle);
+}
+
+.shv-preview-label {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--admin-text-main);
+}
+
+.shv-preview-hint {
+  font-size: 0.72rem;
+  color: var(--admin-gold);
+  font-weight: 600;
+}
+
+.shv-preview-product-card {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--admin-border);
+  background: #FAFAFA;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+  transition: transform 0.25s ease;
+}
+
+.shv-preview-product-card:hover {
+  transform: translateY(-2px);
+}
+
+.shv-preview-image-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  background: #F1F3F5;
+  overflow: hidden;
+}
+
+.shv-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+}
+
+.shv-preview-product-card:hover .shv-preview-img {
+  transform: scale(1.04);
+}
+
+.shv-preview-badges {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  z-index: 2;
+}
+
+.shv-preview-badge-gold {
+  background: #C5A880;
+  color: #111418;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.shv-preview-badge-disc {
+  background: #EF4444;
+  color: #FFFFFF;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.shv-preview-badge-sold {
+  background: #475569;
+  color: #FFFFFF;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.shv-preview-hallmark-tag {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: rgba(255, 255, 255, 0.92);
+  color: #1E2229;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.shv-preview-meta {
+  padding: 1rem;
+}
+
+.shv-preview-category {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--admin-gold);
+  letter-spacing: 0.05em;
+  margin-bottom: 0.35rem;
+}
+
+.shv-preview-name {
+  font-size: 0.94rem;
+  font-weight: 600;
+  color: #1E2229;
+  margin: 0 0 0.3rem 0;
+  line-height: 1.35;
+}
+
+.shv-preview-material {
+  font-size: 0.76rem;
+  color: var(--admin-text-muted);
+  margin-bottom: 0.65rem;
+}
+
+.shv-preview-pricing {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+}
+
+.shv-preview-price {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1E2229;
+}
+
+.shv-preview-mrp {
+  font-size: 0.8rem;
+  color: var(--admin-text-muted);
+  text-decoration: line-through;
+}
+
+.shv-preview-sizes {
+  font-size: 0.72rem;
+  color: var(--admin-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.shv-preview-size-tag {
+  background: #E2E8F0;
+  color: #334155;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.shv-preview-summary-box {
+  background: #F8FAFC;
+  border-radius: 8px;
+  padding: 0.85rem;
+  margin: 1.25rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.shv-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--admin-text-muted);
+}
+
+.shv-summary-row strong {
+  color: var(--admin-text-main);
+}
+
+.text-green { color: var(--admin-green) !important; }
+.text-red { color: var(--admin-red) !important; }
+
+.shv-preview-save-btn {
+  width: 100%;
+  padding: 0.75rem;
+  background: #1E2229;
+  border: none;
+  border-radius: 8px;
+  color: #FFFFFF;
+  font-size: 0.88rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.shv-preview-save-btn:hover:not(:disabled) {
+  background: #000000;
+}
+
+/* ==========================================================================
+   5. STOREFRONT CMS STYLING
+   ========================================================================== */
+.shv-admin-cms-page {
+  animation: fadeIn 0.3s ease;
+}
+
+.shv-cms-nav-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.75rem;
+  border-bottom: 1px solid var(--admin-border);
+  padding-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.shv-cms-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.6rem 1.1rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--admin-text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.shv-cms-tab-btn:hover {
+  color: var(--admin-text-main);
+  background: #F1F5F9;
+}
+
+.shv-cms-tab-btn.active {
+  background: #1E2229;
+  color: #FFFFFF;
+}
+
+.shv-cms-content-card {
+  background: #FFFFFF;
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-md);
+  padding: 2rem;
+  box-shadow: var(--admin-shadow-sm);
+}
+
+.shv-cms-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--admin-border-subtle);
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.shv-cms-card-header h3 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--admin-text-main);
+  margin: 0 0 0.25rem 0;
+}
+
+.shv-cms-card-header p {
+  font-size: 0.84rem;
+  color: var(--admin-text-muted);
+  margin: 0;
+}
+
+.shv-cms-add-form {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.shv-cms-add-form input {
+  flex: 1;
+  padding: 0.7rem 1rem;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  font-size: 0.86rem;
+}
+
+.shv-cms-announcement-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.shv-cms-announcement-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: #F8FAFC;
+  border: 1px solid var(--admin-border);
+  border-radius: 10px;
+  padding: 0.85rem 1.25rem;
+  transition: all 0.2s ease;
+}
+
+.shv-cms-announcement-row:hover {
+  background: #F1F5F9;
+}
+
+.shv-cms-announcement-num {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--admin-gold);
+}
+
+.shv-cms-announcement-text {
+  flex: 1;
+  font-size: 0.86rem;
+  font-weight: 500;
+  color: var(--admin-text-main);
+}
+
+.shv-cms-delete-icon {
+  background: none;
+  border: none;
+  color: var(--admin-text-muted);
+  cursor: pointer;
+  padding: 0.3rem;
+  border-radius: 4px;
+}
+
+.shv-cms-delete-icon:hover {
+  color: var(--admin-red);
+  background: #FEF2F2;
+}
+
+.shv-alert-pill-success {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #ECFDF5;
+  color: #065F46;
+  border: 1px solid #A7F3D0;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+

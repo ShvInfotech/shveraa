@@ -10,6 +10,7 @@ const STORAGE_KEYS = {
   COUPONS: 'shveraa_dyn_coupons',
   SETTINGS: 'shveraa_dyn_settings',
   ORDERS: 'shveraa_orders',
+  ADMIN_AUTH: 'shveraa_admin_session',
 };
 
 const STORE_EVENT = 'shveraa_store_updated';
@@ -19,6 +20,89 @@ const notifyStoreUpdated = (type, payload) => {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent(STORE_EVENT, { detail: { type, payload } }));
   }
+};
+
+// Universal Fine 925 Sterling Silver Color & Metal Variation Specifications
+export const JEWELRY_COLORS = [
+  {
+    id: 'silver',
+    name: 'Pure 925 Silver',
+    shortName: 'Silver',
+    hex: '#DDE2E8',
+    gradient: 'linear-gradient(135deg, #FFFFFF 0%, #D4D9E2 50%, #9DA6B2 100%)',
+    border: '#CBD5E1',
+    badge: 'Mirror Rhodium',
+    purity: 'Solid 92.5% Sterling Silver',
+    description: 'Triple-dipped platinum-rhodium mirror polish over solid 925 sterling silver for everyday tarnish immunity.',
+  },
+  {
+    id: 'gold',
+    name: '18K Yellow Gold',
+    shortName: '18K Gold',
+    hex: '#E5C158',
+    gradient: 'linear-gradient(135deg, #FFF0B3 0%, #E5C158 50%, #B8860B 100%)',
+    border: '#D4AF37',
+    badge: '18K Vermeil',
+    purity: '18K Gold Plated over 925 Silver',
+    description: 'Thick 2.5 micron 18K yellow gold vermeil electroplated over solid 925 sterling silver.',
+  },
+  {
+    id: 'rose-gold',
+    name: '18K Rose Gold',
+    shortName: 'Rose Gold',
+    hex: '#E8A598',
+    gradient: 'linear-gradient(135deg, #FFE4DE 0%, #E8A598 50%, #B76E79 100%)',
+    border: '#C57E70',
+    badge: 'Rose Vermeil',
+    purity: '18K Rose Gold over 925 Silver',
+    description: 'Warm, blush-pink 18K copper-gold alloy vermeil finished with protective anti-tarnish glaze.',
+  },
+  {
+    id: 'oxidised',
+    name: 'Vintage Oxidised',
+    shortName: 'Oxidised',
+    hex: '#4A4E57',
+    gradient: 'linear-gradient(135deg, #64748B 0%, #334155 50%, #0F172A 100%)',
+    border: '#333A44',
+    badge: 'Antique Patina',
+    purity: 'Blackened 925 Silver',
+    description: 'Hand-burnished antique gunmetal patina crafted to highlight hand-chiseled artisan engravings.',
+  },
+];
+
+export const getProductColors = (product) => {
+  if (!product) return JEWELRY_COLORS.slice(0, 3);
+  if (Array.isArray(product.colors) && product.colors.length > 0) {
+    return product.colors.map((c) => {
+      if (typeof c === 'string') {
+        const found = JEWELRY_COLORS.find(
+          (jc) =>
+            jc.id === c.toLowerCase() ||
+            jc.name.toLowerCase() === c.toLowerCase() ||
+            jc.shortName.toLowerCase() === c.toLowerCase()
+        );
+        return (
+          found || {
+            id: c.toLowerCase().replace(/\s+/g, '-'),
+            name: c,
+            shortName: c,
+            hex: '#C5CBD3',
+            gradient: 'linear-gradient(135deg, #FFFFFF 0%, #D4D9E2 100%)',
+            border: '#CBD5E1',
+            badge: 'Custom Finish',
+            purity: 'Certified 925 Silver Base',
+            description: `${c} finish on certified 925 sterling silver.`,
+          }
+        );
+      }
+      return c;
+    });
+  }
+  const textToCheck = `${product.finish || ''} ${product.description || ''} ${product.material || ''}`.toLowerCase();
+  if (textToCheck.includes('oxid') || product.category === 'personalised') {
+    return JEWELRY_COLORS;
+  }
+  return JEWELRY_COLORS.slice(0, 3);
 };
 
 // Initial default coupons
@@ -40,6 +124,46 @@ const INITIAL_COUPONS = [
     isActive: true,
   },
   {
+    code: 'FIRST10',
+    discountType: 'percentage',
+    discountValue: 10,
+    minSpend: 0,
+    description: '10% off on your first atelier order',
+    isActive: true,
+  },
+  {
+    code: 'SPARKLE10',
+    discountType: 'percentage',
+    discountValue: 10,
+    minSpend: 1500,
+    description: '10% off on jewellery orders ₹1,500 to ₹5,000',
+    isActive: true,
+  },
+  {
+    code: 'SPARKLE15',
+    discountType: 'percentage',
+    discountValue: 15,
+    minSpend: 5001,
+    description: '15% off on jewellery orders ₹5,001 to ₹15,000',
+    isActive: true,
+  },
+  {
+    code: 'SPARKLE20',
+    discountType: 'percentage',
+    discountValue: 20,
+    minSpend: 15001,
+    description: '20% off on jewellery orders ₹15,001 to ₹25,000',
+    isActive: true,
+  },
+  {
+    code: 'SPARKLE30',
+    discountType: 'percentage',
+    discountValue: 30,
+    minSpend: 25000,
+    description: '30% off on heirloom orders above ₹25,000',
+    isActive: true,
+  },
+  {
     code: 'FREESHIP',
     discountType: 'shipping',
     discountValue: 100,
@@ -52,12 +176,29 @@ const INITIAL_COUPONS = [
 // Initial default CMS settings
 const INITIAL_SETTINGS = {
   announcementText: 'Code SHVERAA20 for 20% off your debut atelier piece • Complimentary Insured Air Express > ₹999',
+  announcements: [
+    '✦ Complimentary Insured Express Shipping on Orders Over ₹999',
+    '✦ 20% Off Your First Silver Order • Use Code: SHVERAA20',
+    '✦ Certified Pure 925 Sterling Silver • Anti-Tarnish Lifetime Warranty',
+  ],
   announcementEnabled: true,
   hallmarkStampText: 'Laser Tested 100% Pure 925 Sterling Silver & BIS Certified',
   conciergePhone: '+91 98765 43210',
+  conciergeWhatsApp: '+91 98765 43210',
   conciergeEmail: 'concierge@shveraa.luxury',
+  atelierAddress: 'Shveraa Heritage Atelier, Luxury Arcade, Mumbai 400001',
   currency: '₹',
   freeShippingMin: 999,
+  shippingStandardFee: 100,
+  codEnabled: true,
+  heroBanner: {
+    badge: 'NEW ATELIER COLLECTION 2026',
+    title: 'Pure 925 Silver. Pure Emotion.',
+    subtitle: 'Handcrafted in BIS certified sterling silver, mirror platinum rhodium and pure light.',
+    ctaText: 'Explore Atelier Creations',
+    ctaLink: '/shop',
+    image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=1800&q=85',
+  },
 };
 
 /* ==========================================================================
@@ -194,6 +335,9 @@ export const saveProduct = (productData) => {
         rating: productData.rating || 4.9,
         reviewsCount: productData.reviewsCount || 12,
         badge: productData.badge || (productData.bestseller ? 'Bestseller' : 'Atelier Edit'),
+        ...productData,
+        _id: id,
+        slug,
       };
       updated = [newProduct, ...current];
     }
@@ -248,7 +392,18 @@ export const getCoupons = () => {
       localStorage.setItem(STORAGE_KEYS.COUPONS, JSON.stringify(INITIAL_COUPONS));
       return INITIAL_COUPONS;
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    let updated = false;
+    INITIAL_COUPONS.forEach((ic) => {
+      if (!parsed.some((c) => c.code === ic.code)) {
+        parsed.push(ic);
+        updated = true;
+      }
+    });
+    if (updated) {
+      localStorage.setItem(STORAGE_KEYS.COUPONS, JSON.stringify(parsed));
+    }
+    return parsed;
   } catch (err) {
     console.error('Error reading coupons:', err);
     return INITIAL_COUPONS;
@@ -318,6 +473,8 @@ export const validateCoupon = (code, cartSubtotal) => {
   return {
     valid: true,
     code: found.code,
+    discountType: found.discountType,
+    discountValue: found.discountValue,
     discountAmount,
     description: found.description,
     message: `Promotion code ${found.code} successfully applied!`,
@@ -388,4 +545,55 @@ export const useDynamicStore = () => {
     settings,
     refreshStore,
   };
+};
+
+/* ==========================================================================
+   ADMIN AUTHENTICATION & ACCESS CONTROL
+   ========================================================================== */
+export const getAdminAuth = () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.ADMIN_AUTH);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+};
+
+export const loginAdmin = (email, password) => {
+  const masterEmail = 'admin@shveraa.luxury';
+  const savedPass = localStorage.getItem('shveraa_admin_pwd') || 'shveraa2026';
+
+  const cleanEmail = email ? email.trim().toLowerCase() : '';
+  const cleanPass = password ? password.trim() : '';
+
+  if (
+    (cleanEmail === masterEmail || cleanEmail === 'admin' || cleanEmail === 'admin@shveraa.com') &&
+    cleanPass === savedPass
+  ) {
+    const adminUser = {
+      email: masterEmail,
+      name: 'Master Silversmith & Atelier Admin',
+      role: 'Super Admin',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
+      loginTime: new Date().toISOString(),
+    };
+    localStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, JSON.stringify(adminUser));
+    notifyStoreUpdated('ADMIN_AUTH_CHANGED', adminUser);
+    return { success: true, user: adminUser };
+  }
+  return { success: false, message: 'Invalid admin credentials. Please verify your email and master passphrase.' };
+};
+
+export const logoutAdmin = () => {
+  localStorage.removeItem(STORAGE_KEYS.ADMIN_AUTH);
+  notifyStoreUpdated('ADMIN_AUTH_CHANGED', null);
+};
+
+export const updateAdminPassword = (newPassword) => {
+  if (!newPassword || newPassword.length < 6) {
+    return { success: false, message: 'Password must be at least 6 characters long.' };
+  }
+  localStorage.setItem('shveraa_admin_pwd', newPassword);
+  return { success: true, message: 'Admin master passphrase successfully updated.' };
 };

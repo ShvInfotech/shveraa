@@ -6,6 +6,8 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import CartDrawer from './components/CartDrawer';
 
+import Lenis from 'lenis';
+
 // Pages
 import Home from './pages/Home';
 import Shop from './pages/Shop';
@@ -23,6 +25,7 @@ import Returns from './pages/Returns';
 import Wishlist from './pages/Wishlist';
 import TrackOrder from './pages/TrackOrder';
 import SizeGuide from './pages/SizeGuide';
+import Search from './pages/Search';
 import NotFound from './pages/NotFound';
 import AdminLayout from './admin/AdminLayout';
 
@@ -53,6 +56,31 @@ const AppContent = () => {
   const { pathname } = useLocation();
   const isAdmin = pathname.startsWith('/admin');
 
+  // Awwwards-Style Silky Smooth Momentum Scrolling for Storefront (bypassed on Admin for fixed SaaS layout)
+  useEffect(() => {
+    if (isAdmin) return;
+
+    const lenis = new Lenis({
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      smoothWheel: true,
+      wheelMultiplier: 1.0,
+      touchMultiplier: 1.5,
+    });
+
+    let rafId;
+    function raf(time) {
+      lenis.raf(time);
+      rafId = requestAnimationFrame(raf);
+    }
+    rafId = requestAnimationFrame(raf);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      lenis.destroy();
+    };
+  }, [isAdmin]);
+
   if (isAdmin) {
     return (
       <Routes>
@@ -70,6 +98,7 @@ const AppContent = () => {
           <Route path="/" element={<Home />} />
           <Route path="/shop" element={<Shop />} />
           <Route path="/product/:id" element={<ProductDetail />} />
+          <Route path="/search" element={<Search />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />

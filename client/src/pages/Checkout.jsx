@@ -81,6 +81,7 @@ const Checkout = () => {
     const generatedOrderId = `SHV-${Math.floor(100000 + Math.random() * 900000)}`;
     const orderData = {
       orderId: generatedOrderId,
+      displayId: `#${generatedOrderId}`,
       date: new Date().toLocaleDateString('en-IN', {
         day: 'numeric',
         month: 'short',
@@ -110,6 +111,10 @@ const Checkout = () => {
       },
       deliveryOption,
       paymentMethod,
+      paymentStatus: paymentMethod === 'cod' ? 'Pending (COD)' : 'Paid',
+      status: 'Scheduled',
+      carrier: 'BlueDart Air Express',
+      trackingNumber: `BD-${Math.floor(10000000 + Math.random() * 90000000)}`,
       estimatedDelivery: '2–4 Business Days (Insured Air Express)',
     };
 
@@ -119,6 +124,7 @@ const Checkout = () => {
       const existingOrders = existingOrdersStr ? JSON.parse(existingOrdersStr) : [];
       const updatedOrders = [orderData, ...existingOrders.filter((o) => o.orderId !== orderData.orderId)];
       localStorage.setItem('shveraa_orders', JSON.stringify(updatedOrders));
+      window.dispatchEvent(new CustomEvent('shveraa_store_updated', { detail: { action: 'ORDER_PLACED', data: updatedOrders } }));
     } catch (err) {
       console.warn('Could not cache order in storage:', err);
     }
@@ -558,7 +564,7 @@ const Checkout = () => {
                     <div className="shv-summary-item-details">
                       <h4>{item.name}</h4>
                       <div className="shv-summary-item-meta">
-                        <span>Size: {item.selectedSize || 'Standard'}</span>
+                        <span>{item.color || item.selectedColor || 'Pure 925 Silver'} • Size: {item.selectedSize || item.size || 'Standard'}</span>
                         <span className="shv-summary-hallmark">925 BIS</span>
                       </div>
                     </div>

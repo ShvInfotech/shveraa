@@ -1,10 +1,19 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { validateCoupon } from '../services/storeService';
 
 const CartContext = createContext();
 
 export const FREE_SHIPPING_THRESHOLD = 999;
 
 export const CartProvider = ({ children }) => {
+  // Store update trigger for real-time reactivity
+  const [, setStoreVersion] = useState(0);
+  useEffect(() => {
+    const handleUpdate = () => setStoreVersion((v) => v + 1);
+    window.addEventListener('shveraa_store_updated', handleUpdate);
+    return () => window.removeEventListener('shveraa_store_updated', handleUpdate);
+  }, []);
+
   // Cart state with localStorage persistence
   const [cart, setCart] = useState(() => {
     try {
@@ -65,8 +74,10 @@ export const CartProvider = ({ children }) => {
   // Add to Bag with optional auto-opening of the slide-in drawer
   const addToCart = (product, selectedSize = null, quantity = 1, options = {}) => {
     const size = selectedSize || (product.sizes && product.sizes[0]) || 'Standard';
+    const color = options.color || product.selectedColor || product.color || 'Pure 925 Silver';
     const customText = options.customText || null;
-    const cartItemId = `${product._id || product.slug}-${size}${customText ? `-${customText}` : ''}`;
+    const colorKey = String(color).toLowerCase().replace(/[^a-z0-9]/g, '');
+    const cartItemId = `${product._id || product.slug}-${size}-${colorKey}${customText ? `-${customText}` : ''}`;
 
     setCart((prev) => {
       const existingIndex = prev.findIndex((item) => item.cartItemId === cartItemId);
@@ -83,10 +94,13 @@ export const CartProvider = ({ children }) => {
             name: product.name,
             price: product.price,
             originalPrice: product.originalPrice || product.price,
-            image: (product.images && product.images[0]) || '',
+            image: (product.images && product.images[0]) || product.image || '',
             category: product.category,
             material: product.material || '925 Sterling Silver',
             size,
+            selectedSize: size,
+            color,
+            selectedColor: color,
             customText,
             quantity,
           },
@@ -140,33 +154,28 @@ export const CartProvider = ({ children }) => {
     return wishlist.some((item) => (item._id || item.slug) === productId);
   };
 
-  // Promo coupon application
+  // Promo coupon application with dynamic store validation
   const applyCoupon = (code) => {
     const trimmed = (code || '').trim().toUpperCase();
     if (!trimmed) {
       setCouponError('Please enter a coupon code');
       return false;
     }
-    if (trimmed === 'SHVERAA20') {
+    const validation = validateCoupon(trimmed, cartSubtotal);
+    if (validation.valid) {
       setAppliedCoupon({
-        code: 'SHVERAA20',
-        discountPercent: 20,
-        description: '20% Off Launch Offer',
+        code: validation.code,
+        discountType: validation.discountType,
+        discountValue: validation.discountValue,
+        discountPercent: validation.discountType === 'percentage' ? validation.discountValue : 0,
+        discountAmount: validation.discountAmount,
+        description: validation.description,
       });
       setCouponError('');
-      showToast('Coupon SHVERAA20 applied! 20% discount added.');
-      return true;
-    } else if (trimmed === 'SILVER10') {
-      setAppliedCoupon({
-        code: 'SILVER10',
-        discountPercent: 10,
-        description: '10% Off Welcome Offer',
-      });
-      setCouponError('');
-      showToast('Coupon SILVER10 applied! 10% discount added.');
+      showToast(validation.message);
       return true;
     } else {
-      setCouponError('Invalid coupon code. Try SHVERAA20');
+      setCouponError(validation.message);
       return false;
     }
   };
@@ -181,9 +190,14 @@ export const CartProvider = ({ children }) => {
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartSubtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-  const discountAmount = appliedCoupon
-    ? Math.round((cartSubtotal * appliedCoupon.discountPercent) / 100)
-    : 0;
+  // Recalculate discount dynamically against latest store coupons & subtotal
+  let discountAmount = 0;
+  if (appliedCoupon) {
+    const recheck = validateCoupon(appliedCoupon.code, cartSubtotal);
+    if (recheck.valid) {
+      discountAmount = recheck.discountAmount;
+    }
+  }
 
   const freeShippingReached = cartSubtotal >= FREE_SHIPPING_THRESHOLD;
   const freeShippingProgress = Math.min(

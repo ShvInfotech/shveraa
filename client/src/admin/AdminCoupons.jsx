@@ -1,53 +1,81 @@
 import React, { useState } from 'react';
 import { Tag, Plus, Trash2, Check, X, Percent, DollarSign, Sparkles } from 'lucide-react';
 import { saveCoupon, deleteCoupon } from '../services/storeService';
+import { apiAdminAddCoupon, apiAdminUpdateCoupon, apiAdminDeleteCoupon } from '../services/api';
 
 const AdminCoupons = ({ coupons, onRefresh }) => {
   const [showModal, setShowModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState('');
+  const showMsg = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
   const [formData, setFormData] = useState({
     code: '',
     discountType: 'percentage',
     discountValue: '',
-    minSpend: '999',
+    minOrderAmount: '999',
+    maxDiscount: '',
+    expiresAt: '',
+    usageLimit: '100',
     description: '',
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.code.trim() || !formData.discountValue) return;
-
-    saveCoupon({
-      ...formData,
-      code: formData.code.trim().toUpperCase(),
-      discountValue: Number(formData.discountValue),
-      minSpend: Number(formData.minSpend || 0),
-      isActive: true,
-    });
-
-    setShowModal(false);
-    setFormData({
-      code: '',
-      discountType: 'percentage',
-      discountValue: '',
-      minSpend: '999',
-      description: '',
-    });
-    onRefresh && onRefresh();
-  };
-
-  const handleDelete = (code) => {
-    if (window.confirm(`Delete promotion code ${code}?`)) {
-      deleteCoupon(code);
+    setSaving(true);
+    try {
+      await apiAdminAddCoupon({
+        code: formData.code.trim().toUpperCase(),
+        discountType: formData.discountType,
+        discountValue: Number(formData.discountValue),
+        minOrderAmount: Number(formData.minOrderAmount || 0),
+        maxDiscount: Number(formData.maxDiscount || 0),
+        expiresAt: formData.expiresAt || null,
+        usageLimit: Number(formData.usageLimit || 100),
+      });
+      // Also update localStorage for immediate reactivity
+      saveCoupon({
+        code: formData.code.trim().toUpperCase(),
+        discountType: formData.discountType,
+        discountValue: Number(formData.discountValue),
+        minSpend: Number(formData.minOrderAmount || 0),
+        description: formData.description || '',
+        isActive: true,
+      });
+      showMsg('Coupon created successfully!');
+      setShowModal(false);
+      setFormData({ code: '', discountType: 'percentage', discountValue: '', minOrderAmount: '999', maxDiscount: '', expiresAt: '', usageLimit: '100', description: '' });
       onRefresh && onRefresh();
+    } catch (err) {
+      showMsg(err.message || 'Failed to create coupon');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleToggleActive = (coupon) => {
-    saveCoupon({
-      ...coupon,
-      isActive: !coupon.isActive,
-    });
-    onRefresh && onRefresh();
+  const handleDelete = async (coupon) => {
+    if (window.confirm(`Delete promotion code ${coupon.code}?`)) {
+      try {
+        if (coupon._id) await apiAdminDeleteCoupon(coupon._id);
+        deleteCoupon(coupon.code);
+        showMsg('Coupon deleted.');
+        onRefresh && onRefresh();
+      } catch (err) {
+        showMsg(err.message || 'Delete failed');
+      }
+    }
+  };
+
+  const handleToggleActive = async (coupon) => {
+    try {
+      if (coupon._id) {
+        await apiAdminUpdateCoupon(coupon._id, { isActive: !coupon.isActive });
+      }
+      saveCoupon({ ...coupon, isActive: !coupon.isActive });
+      onRefresh && onRefresh();
+    } catch (err) {
+      showMsg(err.message || 'Update failed');
+    }
   };
 
   return (

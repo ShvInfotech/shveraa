@@ -19,7 +19,7 @@ import { useCart } from '../context/CartContext';
 const Auth = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { login, register, authError, setAuthError, isAuthenticated, user } = useAuth();
+  const { login, register, forgotPassword, authError, setAuthError, isAuthenticated, user } = useAuth();
   const { showToast } = useCart();
 
   // Mode defaults based on pathname: /register or /login
@@ -35,11 +35,13 @@ const Auth = () => {
   const [rememberMe, setRememberMe] = useState(true);
   const [joinVault, setJoinVault] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   // Sync mode with route change
   useEffect(() => {
     setIsRegister(location.pathname.includes('register'));
     setAuthError(null);
+    setSuccessMessage('');
   }, [location.pathname, setAuthError]);
 
   // If already authenticated, redirect to home or previous page
@@ -50,26 +52,43 @@ const Auth = () => {
     }
   }, [isAuthenticated, navigate, location.search]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setSuccessMessage('');
 
     if (isRegister) {
-      const success = register(fullName, email, phone, password);
+      const res = await register(fullName, email, phone, password);
       setIsSubmitting(false);
-      if (success) {
-        showToast(`Welcome to the Shveraa Atelier, ${fullName.split(' ')[0]}!`);
+      if (res?.success) {
+        showToast(`Welcome to the Shveraa Atelier, ${(fullName || 'Muse').split(' ')[0]}!`);
         const redirectUrl = new URLSearchParams(location.search).get('redirect') || '/';
         navigate(redirectUrl);
       }
     } else {
-      const success = login(email, password);
+      const res = await login(email, password);
       setIsSubmitting(false);
-      if (success) {
+      if (res?.success) {
         showToast('Welcome back to your Shveraa vault!');
         const redirectUrl = new URLSearchParams(location.search).get('redirect') || '/';
         navigate(redirectUrl);
       }
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setAuthError('Please enter your email address first.');
+      return;
+    }
+    setIsSubmitting(true);
+    setAuthError(null);
+    setSuccessMessage('');
+    const res = await forgotPassword(email);
+    setIsSubmitting(false);
+    if (res?.success) {
+      setSuccessMessage(res.message || 'Reset password link sent to your registered email.');
+      showToast('Reset password link dispatched!');
     }
   };
 
@@ -127,8 +146,9 @@ const Auth = () => {
               </div>
             </div>
 
-            {/* Error Notification */}
+            {/* Success & Error Notifications */}
             {authError && <div className="shv-auth-error-banner">{authError}</div>}
+            {successMessage && <div className="shv-auth-error-banner" style={{ background: '#F4FBF7', borderColor: '#82C99B', color: '#1B5E20' }}>✓ {successMessage}</div>}
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="shv-auth-form">
@@ -187,7 +207,7 @@ const Auth = () => {
                     <button
                       type="button"
                       className="shv-forgot-link"
-                      onClick={() => alert('Password reset instructions will be sent to your registered email.')}
+                      onClick={handleForgotPassword}
                     >
                       Forgot password?
                     </button>

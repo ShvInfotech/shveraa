@@ -1,7 +1,13 @@
 // Central Reactive Store Engine for Shveraa Fine Jewellery
 // Coordinates Categories, Products, Coupons, Orders, and CMS Settings between Admin & Storefront
 import { useState, useEffect } from 'react';
-import { CATEGORIES as INITIAL_CATEGORIES, ALL_CATEGORIES, FALLBACK_PRODUCTS } from './api';
+import {
+  CATEGORIES as INITIAL_CATEGORIES, ALL_CATEGORIES, FALLBACK_PRODUCTS,
+  apiAdminLogin, apiAdminLogout,
+  apiAdminGetCategories, apiAdminGetProducts, apiAdminGetCoupons,
+  apiGetCategories, apiGetProducts,
+} from './api';
+
 import { DEFAULT_ADMIN_ORDERS } from '../admin/adminData';
 
 const STORAGE_KEYS = {
@@ -527,6 +533,53 @@ export const useDynamicStore = () => {
     setSettings(getSettings());
   };
 
+  // Fetch from backend API on mount and refresh localStorage cache
+  useEffect(() => {
+    // Fetch categories from backend
+    apiAdminGetCategories()
+      .then((data) => {
+        if (data?.categories?.length > 0) {
+          const cats = data.categories.map((c) => ({
+            ...c,
+            id: c.slug || c._id,
+            slug: c.slug,
+          }));
+          localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(cats));
+          setCategories(cats);
+        }
+      })
+      .catch(() => {
+        // Fallback to localStorage / defaults
+        apiGetCategories()
+          .then((d) => {
+            if (d?.categories?.length > 0) {
+              setCategories(d.categories.map((c) => ({ ...c, id: c.slug || c._id })));
+            }
+          })
+          .catch(() => {});
+      });
+
+    // Fetch products from backend
+    apiAdminGetProducts()
+      .then((data) => {
+        if (data?.products?.length > 0) {
+          localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(data.products));
+          setProducts(data.products);
+        }
+      })
+      .catch(() => {});
+
+    // Fetch coupons from backend
+    apiAdminGetCoupons()
+      .then((data) => {
+        if (data?.coupons?.length > 0) {
+          localStorage.setItem(STORAGE_KEYS.COUPONS, JSON.stringify(data.coupons));
+          setCoupons(data.coupons);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     const handleUpdate = () => refreshStore();
     window.addEventListener(STORE_EVENT, handleUpdate);
@@ -547,6 +600,7 @@ export const useDynamicStore = () => {
   };
 };
 
+
 /* ==========================================================================
    ADMIN AUTHENTICATION & ACCESS CONTROL
    ========================================================================== */
@@ -560,32 +614,23 @@ export const getAdminAuth = () => {
   }
 };
 
-export const loginAdmin = (email, password) => {
-  const masterEmail = 'admin@shveraa.luxury';
-  const savedPass = localStorage.getItem('shveraa_admin_pwd') || 'shveraa2026';
-
-  const cleanEmail = email ? email.trim().toLowerCase() : '';
-  const cleanPass = password ? password.trim() : '';
-
-  if (
-    (cleanEmail === masterEmail || cleanEmail === 'admin' || cleanEmail === 'admin@shveraa.com') &&
-    cleanPass === savedPass
-  ) {
-    const adminUser = {
-      email: masterEmail,
-      name: 'Master Silversmith & Atelier Admin',
-      role: 'Super Admin',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
-      loginTime: new Date().toISOString(),
-    };
-    localStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, JSON.stringify(adminUser));
-    notifyStoreUpdated('ADMIN_AUTH_CHANGED', adminUser);
-    return { success: true, user: adminUser };
+export const loginAdmin = async (email, password) => {
+  try {
+    const res = await apiAdminLogin({ email, password });
+    if (res?.admin) {
+      const adminUser = res.admin;
+      localStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, JSON.stringify(adminUser));
+      notifyStoreUpdated('ADMIN_AUTH_CHANGED', adminUser);
+      return { success: true, user: adminUser };
+    }
+    return { success: false, message: res?.message || 'Invalid admin credentials.' };
+  } catch (err) {
+    return { success: false, message: err.message || 'Admin login failed.' };
   }
-  return { success: false, message: 'Invalid admin credentials. Please verify your email and master passphrase.' };
 };
 
-export const logoutAdmin = () => {
+export const logoutAdmin = async () => {
+  await apiAdminLogout();
   localStorage.removeItem(STORAGE_KEYS.ADMIN_AUTH);
   notifyStoreUpdated('ADMIN_AUTH_CHANGED', null);
 };

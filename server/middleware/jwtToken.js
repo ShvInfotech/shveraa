@@ -9,11 +9,11 @@ import userModel from'../models/user.model.js'
 
 
 const generateJwtToken = (data) => {
-    return jwt.sign({ id: data.id, role: data.role }, process.env.JWT_SECRET)
+    return jwt.sign({ id: data.id || data._id, role: data.role }, process.env.JWT_SECRET)
 }
 
 const ForgotgenerateJwtToken = (data) => {
-    return jwt.sign({ id: data.id, role: data.role }, process.env.FORGOT_PASSWORD_JWT_SECRET,{ expiresIn: "10m" })
+    return jwt.sign({ id: data.id || data._id, role: data.role }, process.env.FORGOT_PASSWORD_JWT_SECRET,{ expiresIn: "10m" })
 
 }
 

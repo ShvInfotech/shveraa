@@ -32,12 +32,19 @@ const AdminLayout = () => {
   const { categories, products, coupons, settings, refreshStore } = useDynamicStore();
   const [orders, setOrders] = useState([]);
 
-  // Load initial orders and listen for live updates
+  // Load initial orders and listen for live updates & 401 unauthorized expiry
   useEffect(() => {
     setOrders(getAdminOrders());
     const handleOrderUpdate = () => setOrders(getAdminOrders());
+    const handleUnauthorized = () => setAdminUser(null);
+
     window.addEventListener('shveraa_store_updated', handleOrderUpdate);
-    return () => window.removeEventListener('shveraa_store_updated', handleOrderUpdate);
+    window.addEventListener('shveraa_admin_unauthorized', handleUnauthorized);
+
+    return () => {
+      window.removeEventListener('shveraa_store_updated', handleOrderUpdate);
+      window.removeEventListener('shveraa_admin_unauthorized', handleUnauthorized);
+    };
   }, []);
 
   // Update order status handler
@@ -52,8 +59,8 @@ const AdminLayout = () => {
     setCurrentTab('product-editor');
   };
 
-  const handleSignOut = () => {
-    logoutAdmin();
+  const handleSignOut = async () => {
+    await logoutAdmin();
     setAdminUser(null);
   };
 

@@ -177,19 +177,31 @@ const ProductDetail = () => {
         const data = await fetchProductById(id);
         if (data) {
           setProduct(data);
-          if (data.sizes && data.sizes.length > 0) {
-            setSelectedSize(data.sizes[0]);
+          if (data.variants && Array.isArray(data.variants) && data.variants.length > 0) {
+            const queryColor = searchParams.get('color') || location.state?.selectedColor;
+            const matchedVar = queryColor
+              ? data.variants.find((v) => v.color?.toLowerCase() === queryColor.toLowerCase())
+              : null;
+            const activeVar = matchedVar || data.variants[0];
+            setSelectedColor(activeVar.color);
+            if (activeVar.sizes && activeVar.sizes.length > 0) {
+              const firstSz = activeVar.sizes[0];
+              setSelectedSize(typeof firstSz === 'object' ? firstSz.size : firstSz);
+            }
+          } else {
+            if (data.sizes && data.sizes.length > 0) {
+              setSelectedSize(data.sizes[0]);
+            }
+            const colors = getProductColors(data);
+            const queryColor = searchParams.get('color') || location.state?.selectedColor;
+            const matched = colors.find(
+              (c) =>
+                c.name.toLowerCase() === queryColor?.toLowerCase() ||
+                c.id.toLowerCase() === queryColor?.toLowerCase() ||
+                c.shortName.toLowerCase() === queryColor?.toLowerCase()
+            );
+            setSelectedColor(matched ? matched.name : (colors[0]?.name || 'Pure 925 Silver'));
           }
-
-          const colors = getProductColors(data);
-          const queryColor = searchParams.get('color') || location.state?.selectedColor;
-          const matched = colors.find(
-            (c) =>
-              c.name.toLowerCase() === queryColor?.toLowerCase() ||
-              c.id.toLowerCase() === queryColor?.toLowerCase() ||
-              c.shortName.toLowerCase() === queryColor?.toLowerCase()
-          );
-          setSelectedColor(matched ? matched.name : (colors[0]?.name || 'Pure 925 Silver'));
 
           // Fetch related pieces
           const allCatalog = await fetchProducts();
@@ -260,30 +272,98 @@ const ProductDetail = () => {
     );
   }
 
-  const images =
-    product.images && product.images.length > 0
-      ? product.images
-      : product.image
-      ? [product.image]
-      : ['https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=900&q=85'];
+  const hasVariants = product.variants && Array.isArray(product.variants) && product.variants.length > 0;
 
-  const availableColors = product ? getProductColors(product) : [];
+  const activeVariant = hasVariants
+    ? product.variants.find((v) => v.color?.toLowerCase() === selectedColor?.toLowerCase()) || product.variants[0]
+    : null;
+
+  const currentVariantImages = activeVariant?.images && activeVariant.images.length > 0
+    ? activeVariant.images
+    : (product.images && product.images.length > 0 ? product.images : [product.image].filter(Boolean));
+
+  const images = currentVariantImages.length > 0
+    ? currentVariantImages
+    : ['https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=900&q=85'];
+
+  const availableColors = hasVariants
+    ? product.variants.map((v) => ({
+        id: v.color.toLowerCase().replace(/\s+/g, '-'),
+        name: v.color,
+        shortName: v.color,
+        hex: v.color.toLowerCase().includes('gold') && !v.color.toLowerCase().includes('rose') ? '#E5C158' : v.color.toLowerCase().includes('rose') ? '#E8A598' : '#DDE2E8',
+        gradient: v.color.toLowerCase().includes('gold') && !v.color.toLowerCase().includes('rose')
+          ? 'linear-gradient(135deg, #FFF0B3 0%, #E5C158 50%, #B8860B 100%)'
+          : v.color.toLowerCase().includes('rose')
+          ? 'linear-gradient(135deg, #FFE4DE 0%, #E8A598 50%, #B76E79 100%)'
+          : 'linear-gradient(135deg, #FFFFFF 0%, #D4D9E2 50%, #9DA6B2 100%)',
+        border: '#CBD5E1',
+      }))
+    : (product ? getProductColors(product) : []);
+
   const selectedColorObj = availableColors.find((c) => c.name === selectedColor) || availableColors[0];
 
+  const availableSizes = hasVariants && activeVariant?.sizes
+    ? activeVariant.sizes.map((s) => (typeof s === 'object' ? s.size : s))
+    : (product.sizes || []);
+
+  const activeSizeObj = hasVariants && activeVariant?.sizes
+    ? activeVariant.sizes.find((s) => (typeof s === 'object' ? s.size : s) === selectedSize)
+    : null;
+
+  const displayPrice = activeSizeObj && typeof activeSizeObj === 'object' && activeSizeObj.price
+    ? activeSizeObj.price
+    : (product.price || 0);
+
+  const displayStock = activeSizeObj && typeof activeSizeObj === 'object' && activeSizeObj.stock !== undefined
+    ? activeSizeObj.stock
+    : (product.stockCount ?? 10);
+
+  const handleColorChange = (colorName) => {
+    setSelectedColor(colorName);
+    setSelectedImageIndex(0);
+    if (hasVariants) {
+      const v = product.variants.find((varItem) => varItem.color?.toLowerCase() === colorName.toLowerCase());
+      if (v && v.sizes && v.sizes.length > 0) {
+        const firstSz = v.sizes[0];
+        setSelectedSize(typeof firstSz === 'object' ? firstSz.size : firstSz);
+      }
+    }
+  };
+
   const handleAddToCart = () => {
-    addToCart(product, selectedSize, quantity, {
-      color: selectedColor || selectedColorObj?.name || 'Pure 925 Silver',
-      customText: customEngraving.trim() || undefined,
-    });
+    addToCart(
+      {
+        ...product,
+        price: displayPrice,
+      },
+      selectedSize,
+      quantity,
+      {
+        color: selectedColor || selectedColorObj?.name || 'Pure 925 Silver',
+        sku: activeSizeObj?.sku || product.sku,
+        customText: customEngraving.trim() || undefined,
+      }
+    );
   };
 
   const handleBuyNow = () => {
-    addToCart(product, selectedSize, quantity, {
-      color: selectedColor || selectedColorObj?.name || 'Pure 925 Silver',
-      customText: customEngraving.trim() || undefined,
-    });
+    addToCart(
+      {
+        ...product,
+        price: displayPrice,
+      },
+      selectedSize,
+      quantity,
+      {
+        color: selectedColor || selectedColorObj?.name || 'Pure 925 Silver',
+        sku: activeSizeObj?.sku || product.sku,
+        customText: customEngraving.trim() || undefined,
+      }
+    );
     navigate('/checkout');
   };
+
 
   const toggleSection = (sectionKey) => {
     setOpenSection((prev) => (prev === sectionKey ? '' : sectionKey));
@@ -441,12 +521,12 @@ const ProductDetail = () => {
 
             {/* Price Row */}
             <div className="product-detail-price-row">
-              <span className="product-detail-price">₹{product.price?.toLocaleString('en-IN')}</span>
-              {product.originalPrice && product.originalPrice > product.price && (
+              <span className="product-detail-price">₹{displayPrice?.toLocaleString('en-IN')}</span>
+              {product.originalPrice && product.originalPrice > displayPrice && (
                 <>
                   <span className="product-detail-orig-price">₹{product.originalPrice?.toLocaleString('en-IN')}</span>
                   <span className="product-detail-save-badge">
-                    Save {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
+                    Save {Math.round(((product.originalPrice - displayPrice) / product.originalPrice) * 100)}%
                   </span>
                 </>
               )}
@@ -524,7 +604,7 @@ const ProductDetail = () => {
                         key={color.id || color.name}
                         type="button"
                         onClick={() => {
-                          setSelectedColor(color.name);
+                          handleColorChange(color.name);
                           setSearchParams(
                             (prev) => {
                               const next = new URLSearchParams(prev);
@@ -562,7 +642,7 @@ const ProductDetail = () => {
             )}
 
             {/* Size Selector */}
-            {product.sizes && product.sizes.length > 0 && (
+            {availableSizes && availableSizes.length > 0 && (
               <div style={{ marginBottom: '1.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <label style={{ fontSize: '0.82rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
@@ -573,7 +653,7 @@ const ProductDetail = () => {
                   </Link>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'gap', gap: '8px' }}>
-                  {product.sizes.map((size) => (
+                  {availableSizes.map((size) => (
                     <button
                       key={size}
                       type="button"
@@ -586,6 +666,7 @@ const ProductDetail = () => {
                 </div>
               </div>
             )}
+
 
             {/* Quantity Controller */}
             <div style={{ marginBottom: '1.5rem' }}>

@@ -22,6 +22,7 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { saveProduct, deleteProduct, JEWELRY_COLORS } from '../services/storeService';
+import { apiAdminAddProduct, apiAdminUpdateProduct, apiAdminDeleteProduct } from '../services/api';
 import { processMultipleImageFiles } from '../utils/imageUpload';
 
 const METAL_TYPES = [
@@ -115,14 +116,112 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
     metaDescription: product?.metaDescription || '',
   });
 
+  // Variant state: array of { color, images, sizes: [{ size, sku, price, stock }] }
+  const getInitialVariants = () => {
+    if (product?.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+      return product.variants;
+    }
+    return [];
+  };
+
   const [images, setImages] = useState(getInitialImages());
   const [sizes, setSizes] = useState(getInitialSizes());
   const [colors, setColors] = useState(getInitialColors());
+  const [variants, setVariants] = useState(getInitialVariants());
+  const [activeVariantIdx, setActiveVariantIdx] = useState(0);
   const [customSizeInput, setCustomSizeInput] = useState('');
   const [isProcessingUpload, setIsProcessingUpload] = useState(false);
   const [uploadMessage, setUploadMessage] = useState('');
   const [previewHover, setPreviewHover] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [apiError, setApiError] = useState('');
+
+  // Add a new variant
+  const handleAddVariant = () => {
+    setVariants((prev) => [
+      ...prev,
+      { color: `Color ${prev.length + 1}`, images: [], sizes: [{ size: '7', sku: '', price: Number(formData.price) || 0, stock: 10 }] },
+    ]);
+    setActiveVariantIdx(variants.length);
+  };
+
+  const handleRemoveVariant = (idx) => {
+    setVariants((prev) => prev.filter((_, i) => i !== idx));
+    setActiveVariantIdx(Math.max(0, idx - 1));
+  };
+
+  const handleVariantChange = (idx, field, value) => {
+    setVariants((prev) => prev.map((v, i) => (i === idx ? { ...v, [field]: value } : v)));
+  };
+
+  const handleVariantSizeChange = (varIdx, sizeIdx, field, value) => {
+    setVariants((prev) =>
+      prev.map((v, i) => {
+        if (i !== varIdx) return v;
+        const newSizes = v.sizes.map((s, si) => (si === sizeIdx ? { ...s, [field]: value } : s));
+        return { ...v, sizes: newSizes };
+      })
+    );
+  };
+
+  const handleAddVariantSize = (varIdx) => {
+    setVariants((prev) =>
+      prev.map((v, i) => {
+        if (i !== varIdx) return v;
+        return { ...v, sizes: [...v.sizes, { size: '', sku: '', price: Number(formData.price) || 0, stock: 10 }] };
+      })
+    );
+  };
+
+  const handleRemoveVariantSize = (varIdx, sizeIdx) => {
+    setVariants((prev) =>
+      prev.map((v, i) => {
+        if (i !== varIdx) return v;
+        return { ...v, sizes: v.sizes.filter((_, si) => si !== sizeIdx) };
+      })
+    );
+  };
+
+  const handleAddVariantImage = (varIdx, url) => {
+    if (!url.trim()) return;
+    setVariants((prev) =>
+      prev.map((v, i) => {
+        if (i !== varIdx) return v;
+        return { ...v, images: [...v.images, url.trim()] };
+      })
+    );
+  };
+
+  const handleRemoveVariantImage = (varIdx, imgIdx) => {
+    setVariants((prev) =>
+      prev.map((v, i) => {
+        if (i !== varIdx) return v;
+        return { ...v, images: v.images.filter((_, ii) => ii !== imgIdx) };
+      })
+    );
+  };
+
+  const handleVariantDeviceFiles = async (varIdx, e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    try {
+      const compressedUrls = await processMultipleImageFiles(files, {
+        maxWidth: 1200,
+        maxHeight: 1200,
+        quality: 0.85,
+      });
+      if (compressedUrls.length > 0) {
+        setVariants((prev) =>
+          prev.map((v, i) => {
+            if (i !== varIdx) return v;
+            return { ...v, images: [...(v.images || []), ...compressedUrls] };
+          })
+        );
+      }
+    } catch (err) {
+      console.error('Variant device image upload error:', err);
+    }
+  };
 
   // Auto generate slug if empty
   const handleNameChange = (e) => {
@@ -224,72 +323,134 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
 
   const prevImagesLength = () => images.length;
 
-  // Toggle Size selection
+  const autoGenerateVariantsFromSelections = (currentColors, currentSizes) => {
+    const defaultPrice = Number(formData.price) || 0;
+    const defaultStock = Number(formData.stockCount) || 10;
+    const baseSku = formData.sku || 'SHV';
+
+    setVariants((prevVariants) => {
+      return currentColors.map((colorName) => {
+        const existingVar = prevVariants.find((v) => v.color?.toLowerCase() === colorName.toLowerCase());
+        const sizeObjs = currentSizes.map((sz) => {
+          const existingSz = existingVar?.sizes?.find((s) => (typeof s === 'object' ? s.size : s) === sz);
+          if (existingSz && typeof existingSz === 'object') {
+            return existingSz;
+          }
+          const colorChar = colorName.charAt(0).toUpperCase();
+          return {
+            size: sz,
+            sku: `${baseSku}-${colorChar}-${sz}`,
+            price: defaultPrice,
+            stock: defaultStock,
+          };
+        });
+
+        return {
+          color: colorName,
+          images: existingVar?.images || [],
+          sizes: sizeObjs,
+        };
+      });
+    });
+  };
+
+  // Toggle Size selection with auto-variant update
   const toggleSize = (size) => {
-    if (sizes.includes(size)) {
-      setSizes((prev) => prev.filter((s) => s !== size));
-    } else {
-      setSizes((prev) => [...prev, size]);
-    }
+    const nextSizes = sizes.includes(size)
+      ? sizes.filter((s) => s !== size)
+      : [...sizes, size];
+    setSizes(nextSizes);
+    autoGenerateVariantsFromSelections(colors, nextSizes);
   };
 
   const handleAddCustomSize = (e) => {
     e.preventDefault();
     if (customSizeInput.trim() && !sizes.includes(customSizeInput.trim())) {
-      setSizes((prev) => [...prev, customSizeInput.trim()]);
+      const nextSizes = [...sizes, customSizeInput.trim()];
+      setSizes(nextSizes);
       setCustomSizeInput('');
+      autoGenerateVariantsFromSelections(colors, nextSizes);
     }
   };
 
-  // Toggle Color Variation selection
+  // Toggle Color Variation selection with auto-variant update
   const toggleColor = (colorName) => {
     if (colors.includes(colorName)) {
       if (colors.length === 1) {
         alert('Product must have at least one metal color variation.');
         return;
       }
-      setColors((prev) => prev.filter((c) => c !== colorName));
+      const nextColors = colors.filter((c) => c !== colorName);
+      setColors(nextColors);
+      autoGenerateVariantsFromSelections(nextColors, sizes);
     } else {
-      setColors((prev) => [...prev, colorName]);
+      const nextColors = [...colors, colorName];
+      setColors(nextColors);
+      autoGenerateVariantsFromSelections(nextColors, sizes);
     }
   };
 
-  // Save product
-  const handleFormSubmit = (e) => {
+
+  // Save product - calls real API
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
+    setApiError('');
     if (!formData.name.trim() || !formData.price) {
       alert('Please fill in Product Name and Selling Price.');
       return;
     }
 
     const payload = {
-      ...formData,
-      _id: product?._id || ('prod_shv_' + Date.now()),
+      name: formData.name.trim(),
       slug: formData.slug || formData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+      description: formData.description,
       price: Number(formData.price),
-      originalPrice: Number(formData.originalPrice || formData.price * 1.3),
+      originalPrice: Number(formData.originalPrice || (Number(formData.price) * 1.3).toFixed(0)),
+      category: formData.category,
       material: formData.metalType,
+      stone: formData.stone,
+      finish: formData.finish,
+      badge: formData.badge,
       images: images.length > 0 ? images : [SAMPLE_JEWELRY_IMAGES[0]],
-      image: images[0] || SAMPLE_JEWELRY_IMAGES[0],
-      secondaryImage: images[1] || images[0] || SAMPLE_JEWELRY_IMAGES[1],
+      featured: Boolean(formData.featured),
+      bestseller: Boolean(formData.bestseller),
+      inStock: Boolean(formData.inStock),
+      variants: variants,
+      // Legacy support for old UI
       sizes: sizes.length > 0 ? sizes : ['Standard'],
-      colors: colors.length > 0 ? colors : ['Pure 925 Silver', '18K Yellow Gold', '18K Rose Gold'],
-      stockCount: Number(formData.stockCount || 10),
+      colors: colors.length > 0 ? colors : ['Pure 925 Silver'],
     };
 
-    saveProduct(payload);
-    setSaveSuccess(true);
-
-    setTimeout(() => {
-      if (onSaveSuccess) onSaveSuccess(payload);
-      else if (onBack) onBack();
-    }, 600);
+    try {
+      let savedProduct;
+      if (product?._id) {
+        const res = await apiAdminUpdateProduct(product._id, payload);
+        savedProduct = res.product;
+      } else {
+        const res = await apiAdminAddProduct(payload);
+        savedProduct = res.product;
+      }
+      // Also update localStorage for immediate reactivity
+      saveProduct({ ...payload, _id: savedProduct?._id || product?._id || ('prod_shv_' + Date.now()) });
+      setSaveSuccess(true);
+      setTimeout(() => {
+        if (onSaveSuccess) onSaveSuccess(savedProduct || payload);
+        else if (onBack) onBack();
+      }, 600);
+    } catch (err) {
+      setApiError(err.message || 'Failed to save product');
+    }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (product && window.confirm(`Permanently delete "${product.name}" from the atelier catalog?`)) {
-      deleteProduct(product._id || product.slug);
-      if (onBack) onBack();
+      try {
+        if (product._id) await apiAdminDeleteProduct(product._id);
+        deleteProduct(product._id || product.slug);
+        if (onBack) onBack();
+      } catch (err) {
+        setApiError(err.message || 'Delete failed');
+      }
     }
   };
 
@@ -469,124 +630,7 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
             </div>
           </div>
 
-          {/* SECTION 2: DEVICE MULTI-IMAGE UPLOAD & GALLERY (KEY USER REQUIREMENT) */}
-          <div className="shv-editor-card">
-            <div className="shv-editor-card-header">
-              <div className="shv-editor-card-icon">
-                <ImageIcon size={17} />
-              </div>
-              <div>
-                <h2 className="shv-editor-card-title">Device Multi-Image Studio &amp; Gallery</h2>
-                <p className="shv-editor-card-subtitle">
-                  Upload multiple photos directly from your device. Hover flip effect uses the 2nd photo.
-                </p>
-              </div>
-            </div>
 
-            {/* Drag & Drop Upload Zone */}
-            <div
-              className={`shv-editor-dropzone ${isDragging ? 'drag-active' : ''}`}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={handleDeviceFiles}
-                style={{ display: 'none' }}
-              />
-
-              <div className="shv-dropzone-inner">
-                <div className="shv-dropzone-icon-wrap">
-                  <Upload size={28} />
-                </div>
-                <div className="shv-dropzone-text">
-                  <strong>Click to select images from device</strong> or drag &amp; drop photos here
-                </div>
-                <p className="shv-dropzone-hint">
-                  Supports multiple JPG, PNG, WEBP files. Photos are automatically optimized for high speed.
-                </p>
-              </div>
-            </div>
-
-            {/* Upload Notification Message */}
-            {uploadMessage && (
-              <div className="shv-editor-upload-alert">
-                <CheckCircle2 size={16} />
-                <span>{uploadMessage}</span>
-              </div>
-            )}
-
-            {/* Image Gallery Manager */}
-            <div className="shv-editor-gallery-wrap">
-              <div className="shv-gallery-header">
-                <span className="shv-gallery-count">
-                  Uploaded Gallery ({images.length} photos)
-                </span>
-                <span className="shv-gallery-tip">
-                  Photo 1 = Primary Hero • Photo 2 = Hover Flip
-                </span>
-              </div>
-
-              {images.length === 0 ? (
-                <div className="shv-gallery-empty">
-                  <ImageIcon size={32} />
-                  <p>No photos uploaded yet. Select files above from your computer or phone.</p>
-                </div>
-              ) : (
-                <div className="shv-gallery-grid">
-                  {images.map((imgSrc, idx) => (
-                    <div key={idx} className={`shv-gallery-item ${idx === 0 ? 'is-primary' : ''} ${idx === 1 ? 'is-hover' : ''}`}>
-                      <div className="shv-gallery-thumb-wrap">
-                        <img src={imgSrc} alt={`Jewellery angle ${idx + 1}`} />
-
-                        {/* Status Badges */}
-                        {idx === 0 && <span className="shv-img-badge primary">Primary Hero</span>}
-                        {idx === 1 && <span className="shv-img-badge hover">Secondary Hover</span>}
-                        {idx > 1 && <span className="shv-img-badge gallery">Gallery #{idx + 1}</span>}
-
-                        {/* Hover Actions */}
-                        <div className="shv-gallery-actions">
-                          {idx !== 0 && (
-                            <button
-                              type="button"
-                              onClick={() => setAsPrimaryImage(idx)}
-                              title="Make Primary Hero Image"
-                              className="shv-action-pill"
-                            >
-                              Make Hero
-                            </button>
-                          )}
-                          {idx !== 1 && images.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => setAsHoverImage(idx)}
-                              title="Make Secondary Hover Image"
-                              className="shv-action-pill"
-                            >
-                              Make Hover
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => removeImage(idx)}
-                            title="Remove Photo"
-                            className="shv-action-pill delete"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
 
           {/* SECTION 3: JEWELLERY METALLURGY & CRAFTSMANSHIP SPECIFICATIONS */}
           <div className="shv-editor-card">
@@ -826,6 +870,306 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
             </div>
           </div>
 
+          {/* SECTION 4B: COLOR & SIZE VARIANTS STUDIO (DYNAMIC VARIANTS) */}
+          <div className="shv-editor-card" style={{ border: '2px solid #E5C158' }}>
+            <div className="shv-editor-card-header" style={{ justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <div className="shv-editor-card-icon" style={{ background: '#FFF9E6', color: '#B8860B' }}>
+                  <Layers size={17} />
+                </div>
+                <div>
+                  <h2 className="shv-editor-card-title">Color &amp; Size Variants Studio (Dynamic Variants)</h2>
+                  <p className="shv-editor-card-subtitle">
+                    Configure per-color images, size SKUs, dynamic pricing and inventory per color finish (Gold, Rose Gold, Silver).
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleAddVariant}
+                className="shv-btn-primary"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 0.9rem', fontSize: '0.85rem' }}
+              >
+                <Plus size={15} />
+                <span>Add Color Variant</span>
+              </button>
+            </div>
+
+            {variants.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2rem 1rem', background: '#FAF9F6', borderRadius: '8px', border: '1px dashed #CBD5E1' }}>
+                <Layers size={32} color="#94A3B8" style={{ marginBottom: '0.5rem' }} />
+                <p style={{ fontWeight: 600, color: '#334155', marginBottom: '0.25rem' }}>No Color Variants Created Yet</p>
+                <p style={{ fontSize: '0.84rem', color: '#64748B', marginBottom: '1rem' }}>
+                  Click below to create color variants like "Gold", "Rose Gold", or "Silver" with specific photos, sizes, SKUs, and dynamic prices.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleAddVariant}
+                  className="shv-btn-primary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                >
+                  <Plus size={15} />
+                  <span>Create First Color Variant</span>
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                {/* Variant Tabs Header */}
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.75rem' }}>
+                  {variants.map((v, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setActiveVariantIdx(idx)}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        fontWeight: 600,
+                        fontSize: '0.88rem',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        border: activeVariantIdx === idx ? '2px solid #1E293B' : '1px solid #CBD5E1',
+                        background: activeVariantIdx === idx ? '#1E293B' : '#FFF',
+                        color: activeVariantIdx === idx ? '#FFF' : '#334155',
+                      }}
+                    >
+                      🎨 {v.color || `Variant #${idx + 1}`} ({v.images?.length || 0} photos, {v.sizes?.length || 0} sizes)
+                    </button>
+                  ))}
+                </div>
+
+                {/* Active Variant Editor */}
+                {variants[activeVariantIdx] && (
+                  <div style={{ padding: '1.25rem', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, maxWidth: '400px' }}>
+                        <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#1E293B', whiteSpace: 'nowrap' }}>
+                          Color Name:
+                        </label>
+                        <input
+                          type="text"
+                          value={variants[activeVariantIdx].color}
+                          onChange={(e) => handleVariantChange(activeVariantIdx, 'color', e.target.value)}
+                          placeholder="e.g. Gold, Rose Gold, Pure Silver"
+                          style={{ padding: '0.4rem 0.75rem', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.9rem', width: '100%' }}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveVariant(activeVariantIdx)}
+                        style={{ color: '#EF4444', background: '#FEE2E2', border: 'none', padding: '0.45rem 0.8rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                      >
+                        <Trash2 size={14} />
+                        <span>Delete Variant</span>
+                      </button>
+                    </div>
+
+                    {/* PER-COLOR IMAGES (DEVICE UPLOAD ONLY) */}
+                    <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#FFFFFF', borderRadius: '6px', border: '1px solid #E2E8F0' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                        <label style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <ImageIcon size={16} color="#A07E52" />
+                          <span>Photos for "{variants[activeVariantIdx].color}" Finish</span>
+                        </label>
+                        <span style={{ fontSize: '0.78rem', color: '#64748B' }}>
+                          {(variants[activeVariantIdx].images || []).length} photo(s) uploaded
+                        </span>
+                      </div>
+
+                      {/* Device Photo Upload Dropzone */}
+                      <label
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.4rem',
+                          padding: '1.25rem 1rem',
+                          border: '2px dashed #CBD5E1',
+                          borderRadius: '8px',
+                          background: '#F8FAFC',
+                          cursor: 'pointer',
+                          marginBottom: '1rem',
+                          textAlign: 'center',
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        <Upload size={22} color="#0F172A" />
+                        <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0F172A' }}>
+                          Click to Select &amp; Upload Device Photos for "{variants[activeVariantIdx].color}"
+                        </span>
+                        <span style={{ fontSize: '0.76rem', color: '#64748B' }}>
+                          Select JPG, PNG, WEBP files from your computer or phone. Photos optimize automatically.
+                        </span>
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          onChange={(e) => handleVariantDeviceFiles(activeVariantIdx, e)}
+                          style={{ display: 'none' }}
+                        />
+                      </label>
+
+                      {/* Live Thumbnail Previews for Active Variant */}
+                      {(variants[activeVariantIdx].images || []).length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '1rem', background: '#FFF9E6', borderRadius: '6px', border: '1px solid #FEF08A' }}>
+                          <p style={{ fontSize: '0.82rem', color: '#854D0E', margin: 0 }}>
+                            📷 No photos uploaded yet for <strong>{variants[activeVariantIdx].color}</strong>. Click above to upload from your device.
+                          </p>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                          {(variants[activeVariantIdx].images || []).map((imgUrl, imgIdx) => (
+                            <div
+                              key={imgIdx}
+                              style={{
+                                position: 'relative',
+                                width: '90px',
+                                height: '90px',
+                                borderRadius: '6px',
+                                overflow: 'hidden',
+                                border: '1px solid #CBD5E1',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                              }}
+                            >
+                              <img
+                                src={imgUrl}
+                                alt={`Variant ${variants[activeVariantIdx].color} Photo ${imgIdx + 1}`}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              />
+                              <span
+                                style={{
+                                  position: 'absolute',
+                                  bottom: '0',
+                                  left: '0',
+                                  right: '0',
+                                  background: imgIdx === 0 ? 'rgba(15,23,42,0.85)' : 'rgba(100,116,139,0.85)',
+                                  color: '#FFF',
+                                  fontSize: '0.62rem',
+                                  padding: '2px 4px',
+                                  textAlign: 'center',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {imgIdx === 0 ? 'Main Hero' : imgIdx === 1 ? 'Hover Flip' : `#${imgIdx + 1}`}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveVariantImage(activeVariantIdx, imgIdx)}
+                                style={{
+                                  position: 'absolute',
+                                  top: '3px',
+                                  right: '3px',
+                                  background: 'rgba(239,68,68,0.9)',
+                                  color: '#FFF',
+                                  border: 'none',
+                                  borderRadius: '50%',
+                                  width: '20px',
+                                  height: '20px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer',
+                                }}
+                                title="Remove photo"
+                              >
+                                <X size={12} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* PER-COLOR SIZES & DYNAMIC PRICING TABLE */}
+                    <div style={{ padding: '1rem', background: '#FFFFFF', borderRadius: '6px', border: '1px solid #E2E8F0' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                        <label style={{ fontWeight: 700, fontSize: '0.85rem', color: '#0F172A', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <DollarSign size={15} color="#10B981" />
+                          <span>Sizes, SKUs, Dynamic Prices &amp; Stock for "{variants[activeVariantIdx].color}"</span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => handleAddVariantSize(activeVariantIdx)}
+                          className="shv-size-add-btn"
+                          style={{ padding: '0.35rem 0.7rem', fontSize: '0.8rem' }}
+                        >
+                          <Plus size={13} />
+                          <span>Add Size Option</span>
+                        </button>
+                      </div>
+
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                          <thead>
+                            <tr style={{ background: '#F1F5F9', textAlign: 'left', color: '#475569' }}>
+                              <th style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid #CBD5E1' }}>Size</th>
+                              <th style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid #CBD5E1' }}>SKU Code</th>
+                              <th style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid #CBD5E1' }}>Price (₹)</th>
+                              <th style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid #CBD5E1' }}>Stock Units</th>
+                              <th style={{ padding: '0.5rem 0.75rem', borderBottom: '1px solid #CBD5E1', width: '50px' }}>Action</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(variants[activeVariantIdx].sizes || []).map((szObj, sizeIdx) => (
+                              <tr key={sizeIdx} style={{ borderBottom: '1px solid #E2E8F0' }}>
+                                <td style={{ padding: '0.4rem 0.75rem' }}>
+                                  <input
+                                    type="text"
+                                    value={szObj.size}
+                                    onChange={(e) => handleVariantSizeChange(activeVariantIdx, sizeIdx, 'size', e.target.value)}
+                                    placeholder="e.g. 6, 7, 8"
+                                    style={{ width: '80px', padding: '0.35rem', borderRadius: '4px', border: '1px solid #CBD5E1' }}
+                                  />
+                                </td>
+                                <td style={{ padding: '0.4rem 0.75rem' }}>
+                                  <input
+                                    type="text"
+                                    value={szObj.sku}
+                                    onChange={(e) => handleVariantSizeChange(activeVariantIdx, sizeIdx, 'sku', e.target.value)}
+                                    placeholder="RING-G-6"
+                                    style={{ width: '130px', padding: '0.35rem', borderRadius: '4px', border: '1px solid #CBD5E1' }}
+                                  />
+                                </td>
+                                <td style={{ padding: '0.4rem 0.75rem' }}>
+                                  <input
+                                    type="number"
+                                    value={szObj.price}
+                                    onChange={(e) => handleVariantSizeChange(activeVariantIdx, sizeIdx, 'price', Number(e.target.value))}
+                                    placeholder="1999"
+                                    style={{ width: '100px', padding: '0.35rem', borderRadius: '4px', border: '1px solid #CBD5E1' }}
+                                  />
+                                </td>
+                                <td style={{ padding: '0.4rem 0.75rem' }}>
+                                  <input
+                                    type="number"
+                                    value={szObj.stock}
+                                    onChange={(e) => handleVariantSizeChange(activeVariantIdx, sizeIdx, 'stock', Number(e.target.value))}
+                                    placeholder="5"
+                                    style={{ width: '80px', padding: '0.35rem', borderRadius: '4px', border: '1px solid #CBD5E1' }}
+                                  />
+                                </td>
+                                <td style={{ padding: '0.4rem 0.75rem', textAlign: 'center' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveVariantSize(activeVariantIdx, sizeIdx)}
+                                    style={{ color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer' }}
+                                    title="Remove size"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* SECTION 5: STORY, CARE & SEO */}
           <div className="shv-editor-card">
             <div className="shv-editor-card-header">
@@ -903,9 +1247,9 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
               <div className="shv-preview-image-wrap">
                 <img
                   src={
-                    previewHover && images[1]
-                      ? images[1]
-                      : images[0] || SAMPLE_JEWELRY_IMAGES[0]
+                    previewHover && (variants[activeVariantIdx]?.images?.[1] || images[1])
+                      ? (variants[activeVariantIdx]?.images?.[1] || images[1])
+                      : (variants[activeVariantIdx]?.images?.[0] || images[0] || SAMPLE_JEWELRY_IMAGES[0])
                   }
                   alt={formData.name || 'Product Preview'}
                   className="shv-preview-img"

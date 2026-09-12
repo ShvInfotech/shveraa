@@ -350,46 +350,66 @@ export const FALLBACK_PRODUCTS = [
 
 const API_BASE_URL = '/api';
 
-// Fetch all products with filter support
+// Fetch all products with filter support — tries v1 API first, then old API, then local fallback
 export const fetchProducts = async (params = {}) => {
+  // Try new v1 API first
+  try {
+    const query = new URLSearchParams(params).toString();
+    const url = `/api/v1/user/products${query ? `?${query}` : ''}`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.success && Array.isArray(data.products) && data.products.length > 0) {
+        return data.products;
+      }
+    }
+  } catch (_) {}
+
+  // Try old API
   try {
     const query = new URLSearchParams(params).toString();
     const url = `${API_BASE_URL}/products${query ? `?${query}` : ''}`;
     const res = await fetch(url);
-  
-    if (!res.ok) {
-      throw new Error(`API error: ${res.status}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.success && Array.isArray(data.data) && data.data.length > 0) {
+        return data.data;
+      }
     }
-    const data = await res.json();
-    
-    if (data && data.success && Array.isArray(data.data) && data.data.length > 0) {
-      return data.data;
-    }
+  } catch (_) {}
 
-    return filterLocalProducts(params);
-  } catch (err) {
-    console.info('Using local fallback silver products dataset.');
-    return filterLocalProducts(params);
-  }
+  console.info('Using local fallback silver products dataset.');
+  return filterLocalProducts(params);
 };
 
-// Fetch single product by id or slug
+// Fetch single product by id or slug — tries v1 API first, then old API, then local fallback
 export const fetchProductById = async (idOrSlug) => {
+  // Try new v1 API
+  try {
+    const res = await fetch(`/api/v1/user/products/${idOrSlug}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.success && data.product) {
+        return data.product;
+      }
+    }
+  } catch (_) {}
+
+  // Try old API
   try {
     const res = await fetch(`${API_BASE_URL}/products/${idOrSlug}`);
-    if (!res.ok) {
-      throw new Error(`API error: ${res.status}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.success && data.data) {
+        return data.data;
+      }
     }
-    const data = await res.json();
-    if (data && data.success && data.data) {
-      return data.data;
-    }
-    return getLocalProductById(idOrSlug);
-  } catch (err) {
-    console.info('Using local fallback for product:', idOrSlug);
-    return getLocalProductById(idOrSlug);
-  }
+  } catch (_) {}
+
+  console.info('Using local fallback for product:', idOrSlug);
+  return getLocalProductById(idOrSlug);
 };
+
 
 // Dynamic store synchronization
 export const getActiveCategories = () => {
@@ -493,3 +513,299 @@ export const sendContactMessage = async (formData) => {
     return { success: true, message: 'Message sent successfully' };
   }
 };
+
+/* ==========================================================================
+   UNIVERSAL API FETCH WITH 401 UNAUTHORIZED AUTOMATIC REDIRECT INTERCEPTOR
+   ========================================================================== */
+export const apiFetch = async (url, options = {}) => {
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(options.headers || {}),
+  };
+
+  const isAdminUrl = url.includes('/admin') || (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin'));
+  const adminToken = localStorage.getItem('shveraa_admin_token');
+  const userToken = localStorage.getItem('shveraa_user_token');
+
+  const tokenToUse = isAdminUrl ? (adminToken || userToken) : (userToken || adminToken);
+
+  if (tokenToUse && !headers['Authorization']) {
+    headers['Authorization'] = `Bearer ${tokenToUse}`;
+  }
+
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  });
+
+  // Handle 401 Unauthorized (Expired / Invalid Token / Blocked Account)
+  if (response.status === 401) {
+    if (isAdminUrl) {
+      localStorage.removeItem('shveraa_admin_token');
+      localStorage.removeItem('shveraa_admin_session');
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('shveraa_admin_unauthorized'));
+        if (window.location.pathname.startsWith('/admin')) {
+          window.location.href = '/admin';
+        }
+      }
+    } else {
+      localStorage.removeItem('shveraa_user_token');
+      localStorage.removeItem('shveraa_user');
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('shveraa_user_unauthorized'));
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
+      }
+    }
+  }
+
+  return response;
+};
+
+/* ==========================================================================
+   USER AUTHENTICATION API INTEGRATIONS
+   ========================================================================== */
+export const apiUserRegister = async ({ name, email, phone, password }) => {
+  const res = await apiFetch('/api/v1/user/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ name, email, phone, password }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Registration failed');
+  }
+  if (data.AccessToken) {
+    localStorage.setItem('shveraa_user_token', data.AccessToken);
+    localStorage.setItem('shveraa_user', JSON.stringify(data.user));
+  }
+  return data;
+};
+
+export const apiUserLogin = async ({ email, password }) => {
+  const res = await apiFetch('/api/v1/user/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Login failed');
+  }
+  if (data.AccessToken) {
+    localStorage.setItem('shveraa_user_token', data.AccessToken);
+    localStorage.setItem('shveraa_user', JSON.stringify(data.user));
+  }
+  return data;
+};
+
+export const apiUserLogout = async () => {
+  try {
+    const res = await apiFetch('/api/v1/user/auth/logout', {
+      method: 'POST',
+    });
+    await res.json();
+  } catch (err) {
+    console.error('Logout error:', err);
+  } finally {
+    localStorage.removeItem('shveraa_user_token');
+    localStorage.removeItem('shveraa_user');
+  }
+};
+
+export const apiUserForgotPassword = async (email) => {
+  const res = await apiFetch('/api/v1/user/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to send password reset email');
+  }
+  return data;
+};
+
+/* ==========================================================================
+   ADMIN AUTHENTICATION API INTEGRATIONS
+   ========================================================================== */
+export const apiAdminLogin = async ({ email, password }) => {
+  const res = await apiFetch('/api/v1/admin/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Admin login failed');
+  }
+  if (data.AccessToken) {
+    localStorage.setItem('shveraa_admin_token', data.AccessToken);
+    localStorage.setItem('shveraa_admin_session', JSON.stringify(data.admin));
+  }
+  return data;
+};
+
+export const apiAdminLogout = async () => {
+  try {
+    const res = await apiFetch('/api/v1/admin/auth/logout', {
+      method: 'POST',
+    });
+    await res.json();
+  } catch (err) {
+    console.error('Admin logout error:', err);
+  } finally {
+    localStorage.removeItem('shveraa_admin_token');
+    localStorage.removeItem('shveraa_admin_session');
+  }
+};
+
+/* ==========================================================================
+   CATEGORY APIs
+   ========================================================================== */
+export const apiGetCategories = async () => {
+  const res = await apiFetch('/api/v1/user/categories');
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to fetch categories');
+  return data;
+};
+
+export const apiAdminGetCategories = async () => {
+  const res = await apiFetch('/api/v1/admin/categoris/all');
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to fetch categories');
+  return data;
+};
+
+export const apiAdminAddCategory = async (categoryData) => {
+  const res = await apiFetch('/api/v1/admin/categoris/add', {
+    method: 'POST',
+    body: JSON.stringify(categoryData),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to add category');
+  return data;
+};
+
+export const apiAdminUpdateCategory = async (id, categoryData) => {
+  const res = await apiFetch(`/api/v1/admin/categoris/update/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(categoryData),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to update category');
+  return data;
+};
+
+export const apiAdminDeleteCategory = async (id) => {
+  const res = await apiFetch(`/api/v1/admin/categoris/delete/${id}`, {
+    method: 'DELETE',
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to delete category');
+  return data;
+};
+
+/* ==========================================================================
+   PRODUCT APIs
+   ========================================================================== */
+export const apiGetProducts = async (params = {}) => {
+  const query = new URLSearchParams(params).toString();
+  const url = `/api/v1/user/products${query ? `?${query}` : ''}`;
+  const res = await apiFetch(url);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to fetch products');
+  return data;
+};
+
+export const apiGetProductById = async (idOrSlug) => {
+  const res = await apiFetch(`/api/v1/user/products/${idOrSlug}`);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to fetch product');
+  return data;
+};
+
+export const apiAdminGetProducts = async () => {
+  const res = await apiFetch('/api/v1/admin/products/all');
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to fetch products');
+  return data;
+};
+
+export const apiAdminAddProduct = async (productData) => {
+  const res = await apiFetch('/api/v1/admin/products/add', {
+    method: 'POST',
+    body: JSON.stringify(productData),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to add product');
+  return data;
+};
+
+export const apiAdminUpdateProduct = async (id, productData) => {
+  const res = await apiFetch(`/api/v1/admin/products/update/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(productData),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to update product');
+  return data;
+};
+
+export const apiAdminDeleteProduct = async (id) => {
+  const res = await apiFetch(`/api/v1/admin/products/delete/${id}`, {
+    method: 'DELETE',
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to delete product');
+  return data;
+};
+
+/* ==========================================================================
+   COUPON APIs
+   ========================================================================== */
+export const apiVerifyCoupon = async ({ code, cartTotal }) => {
+  const res = await apiFetch('/api/v1/user/coupons/verify', {
+    method: 'POST',
+    body: JSON.stringify({ code, cartTotal }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Invalid coupon');
+  return data;
+};
+
+export const apiAdminGetCoupons = async () => {
+  const res = await apiFetch('/api/v1/admin/coupons/all');
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to fetch coupons');
+  return data;
+};
+
+export const apiAdminAddCoupon = async (couponData) => {
+  const res = await apiFetch('/api/v1/admin/coupons/add', {
+    method: 'POST',
+    body: JSON.stringify(couponData),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to add coupon');
+  return data;
+};
+
+export const apiAdminUpdateCoupon = async (id, couponData) => {
+  const res = await apiFetch(`/api/v1/admin/coupons/update/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(couponData),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to update coupon');
+  return data;
+};
+
+export const apiAdminDeleteCoupon = async (id) => {
+  const res = await apiFetch(`/api/v1/admin/coupons/delete/${id}`, {
+    method: 'DELETE',
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to delete coupon');
+  return data;
+};
+
+

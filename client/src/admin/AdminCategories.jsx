@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Plus, Edit2, Trash2, Layers, Sparkles, Image, Check, AlertCircle, Upload } from 'lucide-react';
 import { saveCategory, deleteCategory } from '../services/storeService';
+import { apiAdminAddCategory, apiAdminUpdateCategory, apiAdminDeleteCategory } from '../services/api';
 import { compressImageFile } from '../utils/imageUpload';
 
 const AdminCategories = ({ categories, products, onRefresh }) => {
@@ -8,6 +9,9 @@ const AdminCategories = ({ categories, products, onRefresh }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState('');
+  const showMsg = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
@@ -63,21 +67,35 @@ const AdminCategories = ({ categories, products, onRefresh }) => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
-
-    saveCategory({
-      ...formData,
-      id: formData.slug,
-      itemCount: `${products.filter((p) => p.category?.toLowerCase() === formData.slug?.toLowerCase()).length} designs`,
-    });
-
-    setShowModal(false);
-    onRefresh && onRefresh();
+    setSaving(true);
+    try {
+      if (editingCategory?._id) {
+        await apiAdminUpdateCategory(editingCategory._id, formData);
+        showMsg('Category updated successfully!');
+      } else {
+        await apiAdminAddCategory(formData);
+        showMsg('Category added successfully!');
+      }
+      // Also update localStorage for immediate reactivity
+      saveCategory({
+        ...formData,
+        id: formData.slug,
+        _id: editingCategory?._id,
+        itemCount: `${products.filter((p) => p.category?.toLowerCase() === formData.slug?.toLowerCase()).length} designs`,
+      });
+      setShowModal(false);
+      onRefresh && onRefresh();
+    } catch (err) {
+      showMsg(err.message || 'Save failed');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDelete = (cat) => {
+  const handleDelete = async (cat) => {
     const productCount = products.filter(
       (p) => p.category?.toLowerCase() === cat.slug?.toLowerCase()
     ).length;
@@ -89,8 +107,14 @@ const AdminCategories = ({ categories, products, onRefresh }) => {
         }`
       )
     ) {
-      deleteCategory(cat.slug);
-      onRefresh && onRefresh();
+      try {
+        if (cat._id) await apiAdminDeleteCategory(cat._id);
+        deleteCategory(cat.slug);
+        showMsg('Category deleted.');
+        onRefresh && onRefresh();
+      } catch (err) {
+        showMsg(err.message || 'Delete failed');
+      }
     }
   };
 

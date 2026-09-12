@@ -11,13 +11,13 @@ const AdminLogin = ({ onLoginSuccess }) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
-    setTimeout(() => {
-      const result = loginAdmin(email, password);
+    try {
+      const result = await loginAdmin(email, password);
       if (result.success) {
         if (onLoginSuccess) {
           onLoginSuccess(result.user);
@@ -25,10 +25,13 @@ const AdminLogin = ({ onLoginSuccess }) => {
           window.location.href = '/admin';
         }
       } else {
-        setError(result.message || 'Invalid credentials.');
-        setIsLoading(false);
+        setError(result.message || 'Invalid admin credentials.');
       }
-    }, 400);
+    } catch (err) {
+      setError(err.message || 'Server connection error.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleDemoFill = () => {

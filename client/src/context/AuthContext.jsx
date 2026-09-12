@@ -1,4 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import {
+  apiUserLogin,
+  apiUserRegister,
+  apiUserLogout,
+  apiUserForgotPassword,
+} from '../services/api';
 
 const AuthContext = createContext();
 
@@ -22,43 +28,74 @@ export const AuthProvider = ({ children }) => {
     }
   }, [user]);
 
-  const login = (email, password) => {
+  // Listen for 401 unauthorized auto-logout event
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setUser(null);
+      setAuthError('Your session has expired. Please sign in again.');
+    };
+    window.addEventListener('shveraa_user_unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('shveraa_user_unauthorized', handleUnauthorized);
+  }, []);
+
+  const login = async (email, password) => {
     setAuthError(null);
-    // Simple authentication simulation with persistent local profile
     if (!email || !password) {
       setAuthError('Please provide both email and password.');
-      return false;
+      return { success: false, message: 'Please provide both email and password.' };
     }
-    const namePart = email.split('@')[0];
-    const capitalizedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-    const loggedUser = {
-      name: capitalizedName,
-      email,
-      memberSince: '2026',
-      membershipTier: 'Silver Atelier Muse',
-    };
-    setUser(loggedUser);
-    return true;
+    try {
+      const response = await apiUserLogin({ email, password });
+      if (response?.user) {
+        setUser(response.user);
+        return { success: true, user: response.user };
+      }
+      return { success: false, message: response?.message || 'Login failed.' };
+    } catch (err) {
+      const errorMsg = err.message || 'Login failed. Please check your credentials.';
+      setAuthError(errorMsg);
+      return { success: false, message: errorMsg };
+    }
   };
 
-  const register = (fullName, email, phone, password) => {
+  const register = async (fullName, email, phone, password) => {
     setAuthError(null);
     if (!fullName || !email || !password) {
       setAuthError('Please fill in all required fields.');
-      return false;
+      return { success: false, message: 'Please fill in all required fields.' };
     }
-    const newUser = {
-      name: fullName,
-      email,
-      phone: phone || '',
-      memberSince: '2026',
-      membershipTier: 'Silver Atelier Muse',
-    };
-    setUser(newUser);
-    return true;
+    try {
+      const response = await apiUserRegister({ name: fullName, email, phone, password });
+      if (response?.user) {
+        setUser(response.user);
+        return { success: true, user: response.user };
+      }
+      return { success: false, message: response?.message || 'Registration failed.' };
+    } catch (err) {
+      const errorMsg = err.message || 'Registration failed.';
+      setAuthError(errorMsg);
+      return { success: false, message: errorMsg };
+    }
   };
 
-  const logout = () => {
+  const forgotPassword = async (email) => {
+    setAuthError(null);
+    if (!email) {
+      setAuthError('Please enter your registered email address.');
+      return { success: false, message: 'Please enter your registered email address.' };
+    }
+    try {
+      const response = await apiUserForgotPassword(email);
+      return { success: true, message: response?.message || 'Reset password link sent to your email.' };
+    } catch (err) {
+      const errorMsg = err.message || 'Failed to send reset link.';
+      setAuthError(errorMsg);
+      return { success: false, message: errorMsg };
+    }
+  };
+
+  const logout = async () => {
+    await apiUserLogout();
     setUser(null);
   };
 
@@ -69,6 +106,7 @@ export const AuthProvider = ({ children }) => {
         isAuthenticated: !!user,
         login,
         register,
+        forgotPassword,
         logout,
         authError,
         setAuthError,
@@ -80,3 +118,4 @@ export const AuthProvider = ({ children }) => {
 };
 
 export const useAuth = () => useContext(AuthContext);
+

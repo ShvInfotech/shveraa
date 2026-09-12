@@ -24,7 +24,7 @@ export const AdminLogin = async (req,res,next)=>{
             return next(CustomeError(404,"Admin Not Found"))
          }
 
-         const matchPassword = bcrypt.compare(password,admin.password)
+         const matchPassword = await bcrypt.compare(password, admin.password)
          if(!matchPassword){
             return next(CustomeError(403,"password not match"))
          }

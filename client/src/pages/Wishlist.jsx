@@ -182,12 +182,16 @@ const Wishlist = () => {
                 const prodId = product._id || product.slug;
                 const currentSize =
                   selectedSizes[prodId] || (product.sizes && product.sizes[0]) || 'Standard';
+                const firstVariant = product.variants?.[0];
                 const imageSrc =
-                  product.image ||
+                  firstVariant?.images?.[0] ||
                   (product.images && product.images[0]) ||
+                  product.image ||
                   '/hero-ring-banner.jpg';
                 const secondaryImg =
-                  (product.images && product.images[1]) || imageSrc;
+                  firstVariant?.images?.[1] ||
+                  (product.images && product.images[1]) ||
+                  imageSrc;
 
                 return (
                   <div key={prodId} className="shv-wishlist-item-card">

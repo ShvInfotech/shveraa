@@ -14,6 +14,7 @@ import {
   Check,
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { getImageUrl } from '../services/api';
 
 const CartDrawer = () => {
   const {
@@ -148,13 +149,19 @@ const CartDrawer = () => {
           ) : (
             <div className="cart-drawer-items">
               {cart.map((item) => (
-                <div key={item.cartItemId} className="cart-drawer-item">
+                <div key={item._id} className="cart-drawer-item">
                   <Link
                     to={`/product/${item.productId}`}
                     onClick={closeCart}
                     className="cart-drawer-item-img-link"
                   >
-                    <img src={item.image} alt={item.name} />
+                    <img
+                      src={getImageUrl(item.image)}
+                      alt={item.name}
+                      onError={(e) => {
+                        e.currentTarget.src = '/hero-ring-banner.jpg';
+                      }}
+                    />
                   </Link>
 
                   <div className="cart-drawer-item-details">
@@ -168,7 +175,7 @@ const CartDrawer = () => {
                       </Link>
                       <button
                         type="button"
-                        onClick={() => removeFromCart(item.cartItemId)}
+                        onClick={() => removeFromCart(item._id)}
                         className="cart-drawer-item-remove"
                         aria-label="Remove item"
                       >
@@ -192,7 +199,7 @@ const CartDrawer = () => {
                       <div className="cart-qty-controller">
                         <button
                           type="button"
-                          onClick={() => updateQuantity(item.cartItemId, item.quantity - 1)}
+                          onClick={() => updateQuantity(item._id, item.quantity - 1)}
                           aria-label="Decrease quantity"
                         >
                           <Minus size={13} />
@@ -200,7 +207,7 @@ const CartDrawer = () => {
                         <span>{item.quantity}</span>
                         <button
                           type="button"
-                          onClick={() => updateQuantity(item.cartItemId, item.quantity + 1)}
+                          onClick={() => updateQuantity(item._id, item.quantity + 1)}
                           aria-label="Increase quantity"
                         >
                           <Plus size={13} />

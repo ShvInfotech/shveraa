@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, Sparkles } from 'lucide-react';
+import { getImageUrl } from '../services/api';
 
 const CATEGORY_TAGS = {
   rings: { badge: 'Trending', priceHint: 'From ₹1,299' },
@@ -17,10 +18,14 @@ const CategoryCard = ({ category }) => {
     <Link to={`/shop?category=${category.slug}`} className="category-tile-card">
       <div className="category-tile-media">
         <img
-          src={category.image}
+          src={getImageUrl(category.image) || '/hero-ring-banner.jpg'}
           alt={category.name}
           loading="lazy"
           className="category-tile-img"
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = '/hero-ring-banner.jpg';
+          }}
         />
         <div className="category-tile-overlay" />
         <div className="category-tile-shine" />

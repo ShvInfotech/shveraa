@@ -34,11 +34,11 @@ const Cart = () => {
   const [couponInput, setCouponInput] = useState('');
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
 
-  const handleApplyCoupon = (e) => {
+  const handleApplyCoupon = async (e) => {
     e.preventDefault();
     if (couponInput.trim()) {
-      applyCoupon(couponInput.trim());
-      setCouponInput('');
+      const applied = await applyCoupon(couponInput.trim());
+      if (applied) setCouponInput('');
     }
   };
 
@@ -92,7 +92,7 @@ const Cart = () => {
               {/* Items List */}
               <div className="cart-page-items-list">
                 {cart.map((item) => (
-                  <CartItem key={item.cartItemId} item={item} />
+                  <CartItem key={item._id} item={item} />
                 ))}
               </div>
 
@@ -129,7 +129,13 @@ const Cart = () => {
                     <div className="cart-coupon-applied">
                       <div className="cart-coupon-info">
                         <Check size={16} color="#10B981" />
-                        <span>Code <strong>{appliedCoupon.code}</strong> (20% Off)</span>
+                        <span>
+                          Code <strong>{appliedCoupon.code}</strong> (
+                          {appliedCoupon.discountType === 'percentage'
+                            ? `${appliedCoupon.discountValue}% Off`
+                            : `₹${appliedCoupon.discountValue} Off`}
+                          )
+                        </span>
                       </div>
                       <button type="button" onClick={removeCoupon} className="cart-coupon-remove-btn">
                         Remove

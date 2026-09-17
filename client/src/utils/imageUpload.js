@@ -9,9 +9,9 @@
  */
 export const compressImageFile = (file, options = {}) => {
   const {
-    maxWidth = 1200,
-    maxHeight = 1200,
-    quality = 0.82,
+    maxWidth = 900,
+    maxHeight = 900,
+    quality = 0.78,
     outputType = 'image/jpeg',
   } = options;
 

@@ -27,6 +27,14 @@ import {
   ShoppingBag,
 } from 'lucide-react';
 
+import {
+  apiGetUserAddresses,
+  apiAddUserAddress,
+  apiUpdateUserAddress,
+  apiDeleteUserAddress,
+  apiSetDefaultUserAddress,
+} from '../services/api';
+
 const Account = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const { wishlistCount } = useCart();
@@ -37,26 +45,126 @@ const Account = () => {
   const initialTab = searchParams.get('tab') || 'orders';
   const [activeTab, setActiveTab] = useState(initialTab);
   const [copiedOrderId, setCopiedOrderId] = useState(null);
-  const [addressSavedNotice, setAddressSavedNotice] = useState(false);
+  const [addressSavedNotice, setAddressSavedNotice] = useState('');
   const [passwordSavedNotice, setPasswordSavedNotice] = useState(false);
 
-  // Address state
-  const [addresses, setAddresses] = useState([
-    {
-      id: 1,
-      isDefault: true,
-      label: 'Primary Atelier Residence',
-      name: user?.name || 'Aarav Mehta',
-      phone: user?.phone || '+91 98765 43210',
-      street: '402, Lotus Heritage, Linking Road',
-      locality: 'Near Bandra West Post Office',
-      city: 'Mumbai',
-      state: 'Maharashtra',
-      pincode: '400050',
-    },
-  ]);
+  // Address state & Modal state
+  const [addresses, setAddresses] = useState([]);
+  const [showAddrModal, setShowAddrModal] = useState(false);
+  const [editingAddr, setEditingAddr] = useState(null);
+  const [savingAddr, setSavingAddr] = useState(false);
+  const [addrForm, setAddrForm] = useState({
+    fullName: user?.name || '',
+    phone: user?.phone || '',
+    street: '',
+    locality: '',
+    city: '',
+    state: 'Maharashtra',
+    pincode: '',
+    label: 'Home',
+    isDefault: false,
+  });
 
-  // Orders state - reads from localStorage or seeds realistic default orders
+  const showMsg = (msg) => {
+    setAddressSavedNotice(msg);
+    setTimeout(() => setAddressSavedNotice(''), 3500);
+  };
+
+  const loadAddresses = async () => {
+    try {
+      const data = await apiGetUserAddresses();
+      if (data?.addresses) {
+        setAddresses(data.addresses);
+      }
+    } catch (_) {
+      // Fallback to localStorage
+      try {
+        const saved = localStorage.getItem('shveraa_user_addresses');
+        if (saved) setAddresses(JSON.parse(saved));
+      } catch {}
+    }
+  };
+
+  useEffect(() => {
+    loadAddresses();
+  }, []);
+
+  const openAddAddrModal = () => {
+    setEditingAddr(null);
+    setAddrForm({
+      fullName: user?.name || '',
+      phone: user?.phone || '',
+      street: '',
+      locality: '',
+      city: '',
+      state: 'Maharashtra',
+      pincode: '',
+      label: 'Home',
+      isDefault: addresses.length === 0,
+    });
+    setShowAddrModal(true);
+  };
+
+  const openEditAddrModal = (addr) => {
+    setEditingAddr(addr);
+    setAddrForm({
+      fullName: addr.fullName || addr.name || '',
+      phone: addr.phone || '',
+      street: addr.street || '',
+      locality: addr.locality || '',
+      city: addr.city || '',
+      state: addr.state || 'Maharashtra',
+      pincode: addr.pincode || '',
+      label: addr.label || 'Home',
+      isDefault: Boolean(addr.isDefault),
+    });
+    setShowAddrModal(true);
+  };
+
+  const handleSaveAddr = async (e) => {
+    e.preventDefault();
+    setSavingAddr(true);
+    try {
+      if (editingAddr?._id) {
+        const res = await apiUpdateUserAddress(editingAddr._id, addrForm);
+        setAddresses(res.addresses);
+        showMsg('Address updated successfully!');
+      } else {
+        const res = await apiAddUserAddress(addrForm);
+        setAddresses(res.addresses);
+        showMsg('New address added successfully!');
+      }
+      setShowAddrModal(false);
+    } catch (err) {
+      showMsg(err.message || 'Failed to save address');
+    } finally {
+      setSavingAddr(false);
+    }
+  };
+
+  const handleDeleteAddr = async (addrId) => {
+    if (window.confirm('Are you sure you want to delete this address?')) {
+      try {
+        const res = await apiDeleteUserAddress(addrId);
+        setAddresses(res.addresses);
+        showMsg('Address deleted.');
+      } catch (err) {
+        showMsg(err.message || 'Delete failed');
+      }
+    }
+  };
+
+  const handleSetDefaultAddr = async (addrId) => {
+    try {
+      const res = await apiSetDefaultUserAddress(addrId);
+      setAddresses(res.addresses);
+      showMsg('Default address updated!');
+    } catch (err) {
+      showMsg(err.message || 'Update failed');
+    }
+  };
+
+  // Orders state - reads from localStorage (only real placed orders)
   const [orders, setOrders] = useState([]);
 
   useEffect(() => {
@@ -68,79 +176,8 @@ const Account = () => {
         const lastOrderStr = localStorage.getItem('shveraa_last_order');
         if (lastOrderStr) {
           setOrders([JSON.parse(lastOrderStr)]);
-        } else {
-          // Pre-populate with realistic orders for rich immediate display
-          setOrders([
-            {
-              orderId: 'SHV-856726',
-              date: '09 Sep 2026',
-              status: 'Dispatched — In Transit',
-              statusStep: 3, // 1: Placed, 2: Inspected, 3: Dispatched, 4: Delivered
-              carrier: 'BlueDart Air Express',
-              trackingNumber: 'BD-84920491',
-              customer: {
-                fullName: user?.name || 'Aarav Mehta',
-                email: user?.email || 'aarav@shveraa.luxury',
-                phone: user?.phone || '+91 98765 43210',
-                address: '402, Lotus Heritage, Linking Road, Mumbai, Maharashtra - 400050',
-              },
-              items: [
-                {
-                  id: 'prod_1',
-                  name: 'Lumina 925 Silver Solitaire Ring',
-                  image: '/hero-ring-banner.jpg',
-                  price: 1899,
-                  quantity: 1,
-                  size: 'US 7 (54mm)',
-                },
-                {
-                  id: 'prod_2',
-                  name: 'Eternal Wave Stacking Silver Band',
-                  image: '/category-bracelet.jpg',
-                  price: 1299,
-                  quantity: 1,
-                  size: 'US 7 (54mm)',
-                },
-              ],
-              pricing: {
-                subtotal: 3198,
-                discount: 0,
-                shipping: 'FREE',
-                total: 3198,
-              },
-            },
-            {
-              orderId: 'SHV-719302',
-              date: '18 Aug 2026',
-              status: 'Delivered',
-              statusStep: 4,
-              carrier: 'BlueDart Air Express',
-              trackingNumber: 'BD-78901234',
-              customer: {
-                fullName: user?.name || 'Aarav Mehta',
-                email: user?.email || 'aarav@shveraa.luxury',
-                phone: user?.phone || '+91 98765 43210',
-                address: '402, Lotus Heritage, Linking Road, Mumbai, Maharashtra - 400050',
-              },
-              items: [
-                {
-                  id: 'prod_3',
-                  name: 'Fluid Sculpted Silver Cuff Bracelet',
-                  image: '/muse-bracelet.jpg',
-                  price: 3499,
-                  quantity: 1,
-                  size: 'Standard (65mm)',
-                },
-              ],
-              pricing: {
-                subtotal: 3499,
-                discount: 350,
-                shipping: 'FREE',
-                total: 3149,
-              },
-            },
-          ]);
         }
+        // No fallback fake data — show empty state if no real orders
       }
     } catch (e) {
       console.error('Error parsing stored orders:', e);
@@ -456,52 +493,217 @@ const Account = () => {
         {/* Tab 2: Saved Addresses */}
         {activeTab === 'addresses' && (
           <div className="shv-addresses-tab-view">
+            {/* Success / Error Notice */}
             {addressSavedNotice && (
               <div className="shv-alert-notice">
                 <CheckCircle2 size={16} />
-                <span>Primary delivery address updated successfully!</span>
+                <span>{addressSavedNotice}</span>
               </div>
             )}
 
+            {/* Addresses Grid */}
             <div className="shv-addresses-grid">
+              {addresses.length === 0 && (
+                <div className="shv-addr-empty-state">
+                  <MapPin size={36} className="shv-empty-icon" />
+                  <h3>No Saved Addresses</h3>
+                  <p>Add your first delivery address to speed up checkout.</p>
+                </div>
+              )}
+
               {addresses.map((addr) => (
-                <div key={addr.id} className="shv-address-card default">
+                <div
+                  key={addr._id}
+                  className={`shv-address-card${addr.isDefault ? ' default' : ''}`}
+                >
                   <div className="shv-addr-badge-row">
-                    <span className="shv-addr-type-pill">Default Delivery Address</span>
-                    <ShieldCheck size={16} color="#10B981" />
+                    <span className="shv-addr-type-pill">{addr.label || 'Home'}</span>
+                    {addr.isDefault && <ShieldCheck size={15} color="#10B981" />}
+                    {addr.isDefault && <span className="shv-addr-default-tag">Default</span>}
                   </div>
-                  <h3 className="shv-addr-name">{addr.name}</h3>
+                  <h3 className="shv-addr-name">{addr.fullName}</h3>
                   <p className="shv-addr-phone">
                     <Phone size={13} /> {addr.phone}
                   </p>
                   <p className="shv-addr-text">
-                    {addr.street},<br />
-                    {addr.locality},<br />
+                    {addr.street}
+                    {addr.locality ? `, ${addr.locality}` : ''},<br />
                     {addr.city}, {addr.state} — <strong>{addr.pincode}</strong>
                   </p>
                   <div className="shv-addr-actions">
+                    {!addr.isDefault && (
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => handleSetDefaultAddr(addr._id)}
+                        title="Set as default address"
+                      >
+                        <CheckCircle2 size={13} /> Set Default
+                      </button>
+                    )}
                     <button
                       type="button"
                       className="btn btn-outline btn-sm"
-                      onClick={() => alert('Address editor loaded for ' + addr.label)}
+                      onClick={() => openEditAddrModal(addr)}
                     >
-                      <Edit3 size={13} /> Edit Address
+                      <Edit3 size={13} /> Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-danger-ghost btn-sm"
+                      onClick={() => handleDeleteAddr(addr._id)}
+                    >
+                      ✕ Delete
                     </button>
                   </div>
                 </div>
               ))}
 
-              {/* Add New Address Trigger */}
-              <div
-                className="shv-address-add-card"
-                onClick={() => alert('Add secondary address form: you can save up to 5 shipping locations.')}
-              >
+              {/* Add New Address Card */}
+              <div className="shv-address-add-card" onClick={openAddAddrModal}>
                 <div className="shv-add-icon-circle">
                   <Plus size={24} />
                 </div>
                 <h4>Add New Delivery Address</h4>
-                <p>Save workplace, vacation retreat, or gifting recipient address.</p>
+                <p>Save home, workplace, or a gifting recipient address.</p>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Address Modal */}
+        {showAddrModal && (
+          <div className="shv-modal-overlay" onClick={() => setShowAddrModal(false)}>
+            <div className="shv-modal-card shv-addr-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="shv-modal-header">
+                <h3>{editingAddr ? 'Edit Address' : 'Add New Address'}</h3>
+                <button
+                  type="button"
+                  className="shv-modal-close-btn"
+                  onClick={() => setShowAddrModal(false)}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveAddr} className="shv-addr-modal-form">
+                {/* Label selector */}
+                <div className="shv-addr-label-pills">
+                  {['Home', 'Work', 'Other'].map((lbl) => (
+                    <button
+                      key={lbl}
+                      type="button"
+                      className={`shv-label-pill${addrForm.label === lbl ? ' active' : ''}`}
+                      onClick={() => setAddrForm((f) => ({ ...f, label: lbl }))}
+                    >
+                      {lbl}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="shv-form-row">
+                  <div className="shv-input-group">
+                    <label>Full Name *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Recipient full name"
+                      value={addrForm.fullName}
+                      onChange={(e) => setAddrForm((f) => ({ ...f, fullName: e.target.value }))}
+                    />
+                  </div>
+                  <div className="shv-input-group">
+                    <label>Phone Number *</label>
+                    <input
+                      type="tel"
+                      required
+                      maxLength={10}
+                      placeholder="10-digit mobile"
+                      value={addrForm.phone}
+                      onChange={(e) => setAddrForm((f) => ({ ...f, phone: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="shv-input-group">
+                  <label>Street Address, Flat / House No. *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. 402, Lotus Heritage, Linking Road"
+                    value={addrForm.street}
+                    onChange={(e) => setAddrForm((f) => ({ ...f, street: e.target.value }))}
+                  />
+                </div>
+
+                <div className="shv-input-group">
+                  <label>Locality / Area (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Bandra West"
+                    value={addrForm.locality}
+                    onChange={(e) => setAddrForm((f) => ({ ...f, locality: e.target.value }))}
+                  />
+                </div>
+
+                <div className="shv-form-row-3">
+                  <div className="shv-input-group">
+                    <label>City *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Mumbai"
+                      value={addrForm.city}
+                      onChange={(e) => setAddrForm((f) => ({ ...f, city: e.target.value }))}
+                    />
+                  </div>
+                  <div className="shv-input-group">
+                    <label>State *</label>
+                    <select
+                      value={addrForm.state}
+                      onChange={(e) => setAddrForm((f) => ({ ...f, state: e.target.value }))}
+                      required
+                    >
+                      {['Maharashtra','Gujarat','Delhi','Karnataka','Tamil Nadu','Rajasthan','Uttar Pradesh','Telangana','West Bengal','Other'].map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="shv-input-group">
+                    <label>PIN Code *</label>
+                    <input
+                      type="text"
+                      required
+                      maxLength={6}
+                      placeholder="400050"
+                      value={addrForm.pincode}
+                      onChange={(e) => setAddrForm((f) => ({ ...f, pincode: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <label className="shv-default-checkbox-row">
+                  <input
+                    type="checkbox"
+                    checked={addrForm.isDefault}
+                    onChange={(e) => setAddrForm((f) => ({ ...f, isDefault: e.target.checked }))}
+                  />
+                  <span>Set as default delivery address</span>
+                </label>
+
+                <div className="shv-modal-footer">
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={() => setShowAddrModal(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-primary" disabled={savingAddr}>
+                    {savingAddr ? 'Saving…' : editingAddr ? 'Update Address' : 'Save Address'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}

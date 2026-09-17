@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   ShieldCheck,
@@ -13,9 +13,11 @@ import {
   CheckCircle2,
   Gift,
   ChevronRight,
+  MapPin,
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { apiGetUserAddresses, getImageUrl } from '../services/api';
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -41,6 +43,39 @@ const Checkout = () => {
   const [stateName, setStateName] = useState('Maharashtra');
   const [pincode, setPincode] = useState('');
   const [saveInfo, setSaveInfo] = useState(true);
+
+  // Saved addresses
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [selectedAddrId, setSelectedAddrId] = useState(null);
+
+  useEffect(() => {
+    const fetchAddresses = async () => {
+      try {
+        const data = await apiGetUserAddresses();
+        if (data?.addresses?.length) {
+          setSavedAddresses(data.addresses);
+          // Auto-fill default address
+          const def = data.addresses.find((a) => a.isDefault) || data.addresses[0];
+          if (def) applyAddress(def);
+        }
+      } catch (_) {
+        // Not logged in or network error – ignore
+      }
+    };
+    fetchAddresses();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const applyAddress = (addr) => {
+    setSelectedAddrId(addr._id);
+    setFullName(addr.fullName || '');
+    setPhone(addr.phone || '');
+    setAddress(addr.street || '');
+    setApartment(addr.locality || '');
+    setCity(addr.city || '');
+    setStateName(addr.state || 'Maharashtra');
+    setPincode(addr.pincode || '');
+  };
 
   // Delivery Option State: 'express' or 'whiteglove'
   const [deliveryOption, setDeliveryOption] = useState('express');
@@ -211,6 +246,48 @@ const Checkout = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Saved Address Selector (if user has addresses) */}
+              {savedAddresses.length > 0 && (
+                <div className="shv-checkout-step-card shv-saved-addr-selector">
+                  <div className="shv-step-header">
+                    <div className="shv-step-num"><MapPin size={14} /></div>
+                    <h3>Ship to a Saved Address</h3>
+                  </div>
+                  <div className="shv-step-body">
+                    <div className="shv-saved-addr-list">
+                      {savedAddresses.map((addr) => (
+                        <label
+                          key={addr._id}
+                          className={`shv-saved-addr-row${selectedAddrId === addr._id ? ' active' : ''}`}
+                        >
+                          <input
+                            type="radio"
+                            name="savedAddr"
+                            checked={selectedAddrId === addr._id}
+                            onChange={() => applyAddress(addr)}
+                          />
+                          <div className="shv-saved-addr-info">
+                            <strong>{addr.fullName}</strong>
+                            <span>{addr.street}{addr.locality ? `, ${addr.locality}` : ''}, {addr.city}, {addr.state} – {addr.pincode}</span>
+                          </div>
+                          {addr.isDefault && <span className="shv-saved-addr-default-tag">Default</span>}
+                        </label>
+                      ))}
+                      <label
+                        className={`shv-saved-addr-row${selectedAddrId === '__new__' ? ' active' : ''}`}
+                        onClick={() => { setSelectedAddrId('__new__'); setFullName(''); setPhone(''); setAddress(''); setApartment(''); setCity(''); setStateName('Maharashtra'); setPincode(''); }}
+                      >
+                        <input type="radio" name="savedAddr" checked={selectedAddrId === '__new__'} onChange={() => {}} />
+                        <div className="shv-saved-addr-info">
+                          <strong>+ Enter a new address</strong>
+                          <span>Deliver to a different location</span>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Step 2: Shipping Address */}
               <div className="shv-checkout-step-card">
@@ -551,10 +628,10 @@ const Checkout = () => {
               {/* Items List */}
               <div className="shv-summary-items-list">
                 {cart.map((item) => (
-                  <div key={item.cartItemId} className="shv-summary-item-row">
+                  <div key={item._id} className="shv-summary-item-row">
                     <div className="shv-summary-item-img-wrap">
                       <img
-                        src={item.image || (item.images && item.images[0]) || '/hero-ring-banner.jpg'}
+                        src={getImageUrl(item.image || (item.images && item.images[0]))}
                         alt={item.name}
                         onError={(e) => { e.currentTarget.src = '/hero-ring-banner.jpg'; }}
                       />

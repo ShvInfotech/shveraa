@@ -86,7 +86,7 @@ const Shop = () => {
   const { categories } = useDynamicStore();
   const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
-  const [allProducts, setAllProducts] = useState(FALLBACK_PRODUCTS || []);
+  const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [gridCols, setGridCols] = useState(4); // 4 or 3 columns on desktop
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);

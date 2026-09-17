@@ -1,12 +1,33 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { validateCoupon } from '../services/storeService';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import {
+  apiGetCart,
+  apiAddToCart,
+  apiUpdateCartItem,
+  apiRemoveCartItem,
+  apiClearCart,
+  apiVerifyCoupon,
+  apiGetWishlist,
+  apiToggleWishlist,
+  fetchProducts,
+} from '../services/api';
 
 const CartContext = createContext();
 
 export const FREE_SHIPPING_THRESHOLD = 999;
 
+// Cart data is always read from the authenticated user's database cart.
+const getToken = () => {
+  try {
+    const token = localStorage.getItem('shveraa_user_token');
+    return token || null;
+  } catch {
+    return null;
+  }
+};
+
+const isLoggedIn = () => !!getToken() || !!localStorage.getItem('shveraa_user');
+
 export const CartProvider = ({ children }) => {
-  // Store update trigger for real-time reactivity
   const [, setStoreVersion] = useState(0);
   useEffect(() => {
     const handleUpdate = () => setStoreVersion((v) => v + 1);
@@ -14,168 +35,232 @@ export const CartProvider = ({ children }) => {
     return () => window.removeEventListener('shveraa_store_updated', handleUpdate);
   }, []);
 
-  // Cart state with localStorage persistence
-  const [cart, setCart] = useState(() => {
-    try {
-      const saved = localStorage.getItem('shveraa_cart');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  // ─── Cart State ──────────────────────────────────────────────────────────
+  const [cart, setCart] = useState([]);
 
-  // Wishlist state with localStorage persistence
+  useEffect(() => {
+    // Remove the legacy browser cart once. It is no longer read or written.
+    localStorage.removeItem('shveraa_cart');
+  }, []);
+
+  // ─── Wishlist State (always stores full product objects) ──────────────────
   const [wishlist, setWishlist] = useState(() => {
     try {
       const saved = localStorage.getItem('shveraa_wishlist');
       return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
+    } catch { return []; }
   });
 
-  // Slide-in Cart Drawer state (Emily's Jewellery UX)
-  const [isCartOpen, setIsCartOpen] = useState(false);
+  // Track if we've already loaded from DB for this session
+  const dbLoadedRef = useRef(false);
 
-  // Discount / Coupon state
+  // ─── Persist to localStorage as backup ───────────────────────────────────
+  useEffect(() => {
+    try { localStorage.setItem('shveraa_wishlist', JSON.stringify(wishlist)); } catch {}
+  }, [wishlist]);
+
+  // ─── On mount / login: load cart & wishlist from DB ──────────────────────
+  useEffect(() => {
+    const loadFromDB = async () => {
+      if (!isLoggedIn() || dbLoadedRef.current) return;
+      dbLoadedRef.current = true;
+      try {
+        // Fetch DB cart
+        const cartRes = await apiGetCart();
+        const dbCart = cartRes?.cart || [];
+
+        // Fetch DB wishlist (array of productIds)
+        const wlRes = await apiGetWishlist();
+        const dbWishlist = wlRes?.wishlist || [];
+
+        // Merge: local items not yet in DB → push to DB
+        setCart(Array.isArray(dbCart) ? dbCart : []);
+
+        // Map DB wishlist IDs to full product objects
+        if (Array.isArray(dbWishlist) && dbWishlist.length > 0) {
+          const allProducts = await fetchProducts();
+          const fullWishlist = dbWishlist.map(item => {
+            if (typeof item === 'object' && item !== null) return item;
+            const found = allProducts.find(p => String(p._id) === String(item) || String(p.slug) === String(item));
+            return found || { _id: item, name: '925 Silver Piece', price: 0, image: '' };
+          });
+          setWishlist(fullWishlist);
+        }
+      } catch {
+        setCart([]);
+      }
+    };
+
+    loadFromDB();
+
+    // Re-run on login event
+    const handleLogin = () => { dbLoadedRef.current = false; loadFromDB(); };
+    const handleLogout = () => {
+      dbLoadedRef.current = false;
+      setCart([]);
+    };
+    window.addEventListener('shveraa_user_logged_in', handleLogin);
+    window.addEventListener('shveraa_user_logged_out', handleLogout);
+    window.addEventListener('shveraa_user_unauthorized', handleLogout);
+    return () => {
+      window.removeEventListener('shveraa_user_logged_in', handleLogin);
+      window.removeEventListener('shveraa_user_logged_out', handleLogout);
+      window.removeEventListener('shveraa_user_unauthorized', handleLogout);
+    };
+  }, []);
+
+  // ─── Cart Drawer ──────────────────────────────────────────────────────────
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const openCart = () => setIsCartOpen(true);
+  const closeCart = () => setIsCartOpen(false);
+  const toggleCart = () => setIsCartOpen(prev => !prev);
+
+  // ─── Coupon State ─────────────────────────────────────────────────────────
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponError, setCouponError] = useState('');
 
-  // Toast feedback state
+  // ─── Toast ────────────────────────────────────────────────────────────────
   const [toast, setToast] = useState(null);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('shveraa_cart', JSON.stringify(cart));
-    } catch (e) {
-      console.warn('Failed to persist cart to localStorage', e);
-    }
-  }, [cart]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('shveraa_wishlist', JSON.stringify(wishlist));
-    } catch (e) {
-      console.warn('Failed to persist wishlist to localStorage', e);
-    }
-  }, [wishlist]);
-
   const showToast = (message) => {
     setToast(message);
-    setTimeout(() => {
-      setToast(null);
-    }, 3200);
+    setTimeout(() => setToast(null), 3200);
   };
 
-  const openCart = () => setIsCartOpen(true);
-  const closeCart = () => setIsCartOpen(false);
-  const toggleCart = () => setIsCartOpen((prev) => !prev);
+  // ─── ADD TO CART ──────────────────────────────────────────────────────────
+  const addToCart = async (product, selectedSize = null, quantity = 1, options = {}) => {
+    if (!isLoggedIn()) {
+      showToast('Please sign in to add items to your bag');
+      return false;
+    }
 
-  // Add to Bag with optional auto-opening of the slide-in drawer
-  const addToCart = (product, selectedSize = null, quantity = 1, options = {}) => {
-    const size = selectedSize || (product.sizes && product.sizes[0]) || 'Standard';
-    const color = options.color || product.selectedColor || product.color || 'Pure 925 Silver';
-    const customText = options.customText || null;
-    const colorKey = String(color).toLowerCase().replace(/[^a-z0-9]/g, '');
-    const cartItemId = `${product._id || product.slug}-${size}-${colorKey}${customText ? `-${customText}` : ''}`;
+    let color = options.color || product.selectedColor || product.color || '';
+    let variantId = options.variantId || product.selectedVariantId || '';
+    const selectedVariant =
+      (variantId && product.variants?.find((variant) => String(variant._id || variant.id || variant.sku) === String(variantId))) ||
+      (color && product.variants?.find((variant) => variant.color?.toLowerCase() === color.toLowerCase())) ||
+      product.variants?.[0];
 
-    setCart((prev) => {
-      const existingIndex = prev.findIndex((item) => item.cartItemId === cartItemId);
-      if (existingIndex > -1) {
-        const updated = [...prev];
-        updated[existingIndex].quantity += quantity;
-        return updated;
-      } else {
-        return [
-          ...prev,
-          {
-            cartItemId,
-            productId: product._id || product.slug,
-            name: product.name,
-            price: product.price,
-            originalPrice: product.originalPrice || product.price,
-            image: (product.images && product.images[0]) || product.image || '',
-            category: product.category,
-            material: product.material || '925 Sterling Silver',
-            size,
-            selectedSize: size,
-            color,
-            selectedColor: color,
-            customText,
-            quantity,
-          },
-        ];
-      }
-    });
+    color = color || selectedVariant?.color || 'Pure 925 Silver';
+    variantId = variantId || selectedVariant?._id || selectedVariant?.id || selectedVariant?.sku || '';
+    const firstVariantSize = selectedVariant?.sizes?.[0];
+    const size = selectedSize || (typeof firstVariantSize === 'object' ? firstVariantSize?.size : firstVariantSize) || 'Standard';
+    // Always prefer the first image of the selected colour variant.
+    const itemImage = selectedVariant?.images?.[0] ||
+      selectedVariant?.image ||
+      options.image ||
+      (product.images && product.images[0]) ||
+      product.image ||
+      '';
 
-    showToast(`Added "${product.name}" to your bag`);
+    const cartItem = {
+      productId: product._id || product.slug,
+      variantId,
+      name: product.name,
+      price: product.price,
+      originalPrice: product.originalPrice || product.price,
+      image: itemImage,
+      category: product.category || '',
+      material: product.material || '925 Sterling Silver',
+      size,
+      selectedSize: size,
+      color,
+      selectedColor: color,
+      quantity,
+    };
 
-    // Smoothly slide open cart drawer unless explicitly suppressed
-    if (!options.silent) {
-      setIsCartOpen(true);
+    try {
+      const response = await apiAddToCart(cartItem);
+      setCart(Array.isArray(response?.cart) ? response.cart : []);
+      setAppliedCoupon(null);
+      showToast(response?.added === false ? 'This colour and size is already in your bag' : `Added "${product.name}" to your bag`);
+      if (!options.silent) setIsCartOpen(true);
+      return true;
+    } catch (error) {
+      showToast(error.message || 'Unable to update your bag');
+      return false;
     }
   };
 
-  const updateQuantity = (cartItemId, quantity) => {
-    if (quantity <= 0) {
-      removeFromCart(cartItemId);
-      return;
+  // ─── UPDATE QUANTITY ──────────────────────────────────────────────────────
+  const updateQuantity = async (cartId, quantity) => {
+    if (quantity <= 0) { removeFromCart(cartId); return; }
+    if (!isLoggedIn()) return;
+    try {
+      const response = await apiUpdateCartItem(cartId, quantity);
+      setCart(Array.isArray(response?.cart) ? response.cart : []);
+      setAppliedCoupon(null);
+    } catch (error) {
+      showToast(error.message || 'Unable to update your bag');
     }
-    setCart((prev) =>
-      prev.map((item) => (item.cartItemId === cartItemId ? { ...item, quantity } : item))
-    );
   };
 
-  const removeFromCart = (cartItemId) => {
-    setCart((prev) => prev.filter((item) => item.cartItemId !== cartItemId));
-    showToast('Item removed from your bag');
+  // ─── REMOVE FROM CART ─────────────────────────────────────────────────────
+  const removeFromCart = async (cartId) => {
+    if (!isLoggedIn()) return;
+    try {
+      const response = await apiRemoveCartItem(cartId);
+      setCart(Array.isArray(response?.cart) ? response.cart : []);
+      setAppliedCoupon(null);
+      showToast('Item removed from your bag');
+    } catch (error) {
+      showToast(error.message || 'Unable to update your bag');
+    }
   };
 
-  const clearCart = () => {
-    setCart([]);
+  // ─── CLEAR CART ───────────────────────────────────────────────────────────
+  const clearCart = async () => {
+    if (!isLoggedIn()) return;
+    try {
+      const response = await apiClearCart();
+      setCart(Array.isArray(response?.cart) ? response.cart : []);
+      setAppliedCoupon(null);
+    } catch (error) {
+      showToast(error.message || 'Unable to clear your bag');
+    }
   };
 
-  // Wishlist toggle
+  // ─── WISHLIST TOGGLE ──────────────────────────────────────────────────────
   const toggleWishlist = (product) => {
-    const id = product._id || product.slug;
-    setWishlist((prev) => {
-      const exists = prev.some((item) => (item._id || item.slug) === id);
-      if (exists) {
-        showToast(`Removed "${product.name}" from your wishlist`);
-        return prev.filter((item) => (item._id || item.slug) !== id);
-      } else {
-        showToast(`Saved "${product.name}" to your wishlist`);
-        return [...prev, product];
-      }
+    if (!product) return;
+    const productId = String(product._id || product.slug);
+
+    setWishlist(prev => {
+      const exists = prev.some(i => String(typeof i === 'object' ? (i._id || i.slug) : i) === productId);
+      showToast(exists ? `Removed "${product.name || 'Item'}" from your wishlist` : `Saved "${product.name || 'Item'}" to your wishlist`);
+      return exists
+        ? prev.filter(i => String(typeof i === 'object' ? (i._id || i.slug) : i) !== productId)
+        : [...prev, product];
     });
+
+    if (isLoggedIn()) {
+      apiToggleWishlist(productId).catch(() => {});
+    }
   };
 
   const isInWishlist = (productId) => {
-    return wishlist.some((item) => (item._id || item.slug) === productId);
+    if (!productId) return false;
+    const id = String(productId);
+    return wishlist.some(i => String(typeof i === 'object' ? (i._id || i.slug) : i) === id);
   };
 
-  // Promo coupon application with dynamic store validation
-  const applyCoupon = (code) => {
+  // ─── COUPON ───────────────────────────────────────────────────────────────
+  const cartSubtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+  const applyCoupon = async (code) => {
     const trimmed = (code || '').trim().toUpperCase();
-    if (!trimmed) {
-      setCouponError('Please enter a coupon code');
-      return false;
-    }
-    const validation = validateCoupon(trimmed, cartSubtotal);
-    if (validation.valid) {
+    if (!trimmed) { setCouponError('Please enter a coupon code'); return false; }
+    try {
+      const response = await apiVerifyCoupon({ code: trimmed });
+      const coupon = response?.coupon;
+      if (!coupon) throw new Error('Invalid coupon');
       setAppliedCoupon({
-        code: validation.code,
-        discountType: validation.discountType,
-        discountValue: validation.discountValue,
-        discountPercent: validation.discountType === 'percentage' ? validation.discountValue : 0,
-        discountAmount: validation.discountAmount,
-        description: validation.description,
+        ...coupon,
       });
       setCouponError('');
-      showToast(validation.message);
+      showToast(response.message || 'Coupon applied');
       return true;
-    } else {
-      setCouponError(validation.message);
+    } catch (error) {
+      setCouponError(error.message || 'Unable to apply coupon');
       return false;
     }
   };
@@ -186,26 +271,15 @@ export const CartProvider = ({ children }) => {
     showToast('Coupon removed');
   };
 
-  // Cart financial calculations
-  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-  const cartSubtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  // ─── Calculations ─────────────────────────────────────────────────────────
+  const cartCount = cart.reduce((sum, i) => sum + i.quantity, 0);
+  const cartItemCount = cart.length;
 
-  // Recalculate discount dynamically against latest store coupons & subtotal
-  let discountAmount = 0;
-  if (appliedCoupon) {
-    const recheck = validateCoupon(appliedCoupon.code, cartSubtotal);
-    if (recheck.valid) {
-      discountAmount = recheck.discountAmount;
-    }
-  }
+  const discountAmount = appliedCoupon?.discountAmount || 0;
 
   const freeShippingReached = cartSubtotal >= FREE_SHIPPING_THRESHOLD;
-  const freeShippingProgress = Math.min(
-    100,
-    Math.round((cartSubtotal / FREE_SHIPPING_THRESHOLD) * 100)
-  );
+  const freeShippingProgress = Math.min(100, Math.round((cartSubtotal / FREE_SHIPPING_THRESHOLD) * 100));
   const amountNeededForFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - cartSubtotal);
-
   const shippingCost = cartCount === 0 || freeShippingReached ? 0 : 99;
   const cartTotal = Math.max(0, cartSubtotal - discountAmount + shippingCost);
 
@@ -218,6 +292,7 @@ export const CartProvider = ({ children }) => {
         removeFromCart,
         clearCart,
         cartCount,
+        cartItemCount,
         cartSubtotal,
         cartTotal,
         discountAmount,
@@ -226,22 +301,18 @@ export const CartProvider = ({ children }) => {
         couponError,
         applyCoupon,
         removeCoupon,
-        // Free shipping progress bar
         FREE_SHIPPING_THRESHOLD,
         freeShippingReached,
         freeShippingProgress,
         amountNeededForFreeShipping,
-        // Cart drawer
         isCartOpen,
         openCart,
         closeCart,
         toggleCart,
-        // Wishlist
         wishlist,
         toggleWishlist,
         isInWishlist,
         wishlistCount: wishlist.length,
-        // Toast
         toast,
         showToast,
       }}
@@ -253,8 +324,6 @@ export const CartProvider = ({ children }) => {
 
 export const useCart = () => {
   const context = useContext(CartContext);
-  if (!context) {
-    throw new Error('useCart must be used within a CartProvider');
-  }
+  if (!context) throw new Error('useCart must be used within a CartProvider');
   return context;
 };

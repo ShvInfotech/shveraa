@@ -34,8 +34,8 @@ const ProductCard = ({ product }) => {
     ? product.variants.find((v) => v.color?.toLowerCase() === selectedColor?.toLowerCase()) || product.variants[0]
     : null;
 
-  const primaryImage = (activeVariant?.images && activeVariant.images[0]) || (product.images && product.images[0]) || product.image || '';
-  const secondaryImage = (activeVariant?.images && activeVariant.images[1]) || (product.images && product.images[1]) || product.secondaryImage || primaryImage;
+  const primaryImage = (activeVariant?.images || product.images || []).filter(Boolean)[0] || product.image || '';
+  const secondaryImage = (activeVariant?.images || product.images || []).filter(Boolean)[1] || product.secondaryImage || '';
 
   // Compute price if variant size has dynamic price
   const displayPrice = activeVariant?.sizes?.[0]?.price || product.price;
@@ -73,12 +73,16 @@ const ProductCard = ({ product }) => {
         {/* Image Container with Second Image Hover Crossfade */}
         <div className="product-image-container">
           <div className="product-image-stack">
-            <img
-              src={primaryImage}
-              alt={product.name}
-              loading="lazy"
-              className="product-main-img product-img-primary"
-            />
+            {primaryImage ? (
+              <img
+                src={primaryImage}
+                alt={product.name}
+                loading="lazy"
+                className="product-main-img product-img-primary"
+              />
+            ) : (
+              <div className="product-image-empty" aria-label="Product image unavailable" />
+            )}
             {secondaryImage && secondaryImage !== primaryImage && (
               <img
                 src={secondaryImage}
@@ -95,6 +99,9 @@ const ProductCard = ({ product }) => {
               <span className="product-badge product-badge-silver">
                 {product.badge}
               </span>
+            )}
+            {product.freeShipping !== false && (
+              <span className="product-hallmark-tag" style={{ background: '#10B981', color: '#FFF' }}>Free Delivery</span>
             )}
             <span className="product-hallmark-tag">925 BIS</span>
           </div>

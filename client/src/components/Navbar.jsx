@@ -29,7 +29,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { categories, settings } = useDynamicStore();
   const { user, isAuthenticated, logout } = useAuth();
-  const { cartCount, openCart, wishlistCount } = useCart();
+  const { cartItemCount, openCart, wishlistCount } = useCart();
   const [announcementIdx, setAnnouncementIdx] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -255,7 +255,7 @@ const Navbar = () => {
               title="Shopping Bag"
             >
               <ShoppingBag size={19} strokeWidth={1.9} />
-              <span className="cart-badge">{cartCount}</span>
+              <span className="cart-badge">{cartItemCount}</span>
             </button>
           </div>
         </div>

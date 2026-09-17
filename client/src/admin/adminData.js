@@ -236,10 +236,10 @@ export const getAdminProducts = () => {
   try {
     const custom = localStorage.getItem(PRODUCTS_KEY);
     const customList = custom ? JSON.parse(custom) : [];
-    return [...customList, ...FALLBACK_PRODUCTS];
+    return customList;
   } catch (err) {
     console.error('Error reading admin products:', err);
-    return FALLBACK_PRODUCTS;
+    return [];
   }
 };
 

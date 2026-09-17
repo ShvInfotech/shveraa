@@ -1,14 +1,14 @@
 import React, { useState, useRef } from 'react';
 import { Plus, Edit2, Trash2, Layers, Sparkles, Image, Check, AlertCircle, Upload } from 'lucide-react';
 import { saveCategory, deleteCategory } from '../services/storeService';
-import { apiAdminAddCategory, apiAdminUpdateCategory, apiAdminDeleteCategory } from '../services/api';
-import { compressImageFile } from '../utils/imageUpload';
+import { apiAdminAddCategory, apiAdminUpdateCategory, apiAdminDeleteCategory, getImageUrl } from '../services/api';
 
 const AdminCategories = ({ categories, products, onRefresh }) => {
   const catFileInputRef = useRef(null);
   const [showModal, setShowModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
-  const [uploadingImage, setUploadingImage] = useState(false);
+  const [selectedImageFile, setSelectedImageFile] = useState(null);
+  const [selectedImagePreview, setSelectedImagePreview] = useState('');
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
   const showMsg = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
@@ -16,23 +16,15 @@ const AdminCategories = ({ categories, products, onRefresh }) => {
     name: '',
     slug: '',
     subtitle: '',
-    image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=900&q=85',
+    image: '',
   });
 
-  const handleCategoryFileUpload = async (e) => {
+  const handleCategoryFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    try {
-      setUploadingImage(true);
-      const dataUrl = await compressImageFile(file, { maxWidth: 1200, maxHeight: 1200, quality: 0.85 });
-      setFormData((prev) => ({ ...prev, image: dataUrl }));
-    } catch (err) {
-      console.error('Category image upload error:', err);
-      alert('Failed to process image. Please choose another photo.');
-    } finally {
-      setUploadingImage(false);
-      if (catFileInputRef.current) catFileInputRef.current.value = '';
-    }
+    setSelectedImageFile(file);
+    setSelectedImagePreview(URL.createObjectURL(file));
+    if (catFileInputRef.current) catFileInputRef.current.value = '';
   };
 
   const openAddModal = () => {
@@ -41,8 +33,10 @@ const AdminCategories = ({ categories, products, onRefresh }) => {
       name: '',
       slug: '',
       subtitle: '925 Silver Adornments',
-      image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=900&q=85',
+      image: '',
     });
+    setSelectedImageFile(null);
+    setSelectedImagePreview('');
     setShowModal(true);
   };
 
@@ -54,6 +48,8 @@ const AdminCategories = ({ categories, products, onRefresh }) => {
       subtitle: cat.subtitle || '',
       image: cat.image || '',
     });
+    setSelectedImageFile(null);
+    setSelectedImagePreview('');
     setShowModal(true);
   };
 
@@ -72,19 +68,22 @@ const AdminCategories = ({ categories, products, onRefresh }) => {
     if (!formData.name.trim()) return;
     setSaving(true);
     try {
+      let savedCategory;
       if (editingCategory?._id) {
-        await apiAdminUpdateCategory(editingCategory._id, formData);
+        const response = await apiAdminUpdateCategory(editingCategory._id, formData, selectedImageFile);
+        savedCategory = response.category;
         showMsg('Category updated successfully!');
       } else {
-        await apiAdminAddCategory(formData);
+        const response = await apiAdminAddCategory(formData, selectedImageFile);
+        savedCategory = response.category;
         showMsg('Category added successfully!');
       }
       // Also update localStorage for immediate reactivity
       saveCategory({
-        ...formData,
-        id: formData.slug,
-        _id: editingCategory?._id,
-        itemCount: `${products.filter((p) => p.category?.toLowerCase() === formData.slug?.toLowerCase()).length} designs`,
+        ...(savedCategory || formData),
+        id: savedCategory?.slug || formData.slug,
+        _id: savedCategory?._id || editingCategory?._id,
+        itemCount: savedCategory?.itemCount || `${products.filter((p) => p.category?.toLowerCase() === formData.slug?.toLowerCase()).length} designs`,
       });
       setShowModal(false);
       onRefresh && onRefresh();
@@ -166,8 +165,12 @@ const AdminCategories = ({ categories, products, onRefresh }) => {
                   <tr key={cat.slug || cat.id}>
                     <td>
                       <img
-                        src={cat.image}
+                        src={getImageUrl(cat.image) || '/hero-ring-banner.jpg'}
                         alt={cat.name}
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = '/hero-ring-banner.jpg';
+                        }}
                         style={{
                           width: '54px',
                           height: '54px',
@@ -323,7 +326,7 @@ const AdminCategories = ({ categories, products, onRefresh }) => {
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
                     <Upload size={24} color="#1E2229" />
                     <span style={{ fontSize: '0.86rem', fontWeight: 600, color: '#1E2229' }}>
-                      {uploadingImage ? 'Optimizing photo...' : 'Click to select photo from device'}
+                      {selectedImageFile ? 'Photo selected - upload on save' : 'Click to select photo from device'}
                     </span>
                     <span style={{ fontSize: '0.74rem', color: '#64748B' }}>
                       Supports JPG, PNG, WEBP from your computer or phone
@@ -331,26 +334,58 @@ const AdminCategories = ({ categories, products, onRefresh }) => {
                   </div>
                 </div>
 
-                {formData.image && (
+                {(selectedImagePreview || formData.image) && (
                   <div style={{ marginTop: '0.85rem', display: 'flex', alignItems: 'center', gap: '1rem', background: '#F8FAFC', padding: '0.75rem', borderRadius: '8px', border: '1px solid var(--admin-border)' }}>
                     <img
-                      src={formData.image}
+                      src={selectedImagePreview || getImageUrl(formData.image)}
                       alt="Category Preview"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = '/hero-ring-banner.jpg';
+                      }}
                       style={{ height: '70px', width: '100px', borderRadius: '6px', objectFit: 'cover' }}
                     />
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#1E2229' }}>Photo Selected</div>
-                      <button
-                        type="button"
-                        onClick={() => catFileInputRef.current?.click()}
-                        className="shv-table-filter-btn"
-                        style={{ padding: '0.25rem 0.6rem', fontSize: '0.76rem', marginTop: '0.3rem' }}
-                      >
-                        Change Photo
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.3rem' }}>
+                        <button
+                          type="button"
+                          onClick={() => catFileInputRef.current?.click()}
+                          className="shv-table-filter-btn"
+                          style={{ padding: '0.25rem 0.6rem', fontSize: '0.76rem' }}
+                        >
+                          Change Photo
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedImageFile(null);
+                            setSelectedImagePreview('');
+                            setFormData((prev) => ({ ...prev, image: '' }));
+                          }}
+                          className="shv-table-filter-btn"
+                          style={{ padding: '0.25rem 0.6rem', fontSize: '0.76rem', color: 'var(--admin-red)', borderColor: 'rgba(239, 68, 68, 0.2)' }}
+                        >
+                          Remove Photo
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
+
+                <div style={{ marginTop: '0.75rem' }}>
+                  <label style={{ fontSize: '0.76rem', color: '#64748B', display: 'block', marginBottom: '0.25rem' }}>
+                    Direct Image URL or Server Path
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. /uploads/image.png or https://domain.com/photo.jpg"
+                    value={formData.image}
+                    onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                    className="shv-form-input"
+                    style={{ fontSize: '0.82rem' }}
+                  />
+                </div>
               </div>
 
               <div className="shv-form-actions">

@@ -1,8 +1,14 @@
 import Coupon from '../../../models/coupon.model.js';
 import { CustomeError } from '../../../middleware/globelError.js';
 
+// Keep the API compatible with older clients that sent "flat".
+const normalizeDiscountType = (discountType) => (
+  discountType === 'flat' ? 'fixed' : discountType
+);
+
 export const AddCoupon = async (req, res, next) => {
   try {
+    console.log(req.body)
     const { code, discountType, discountValue, minOrderAmount, maxDiscount, expiresAt, usageLimit } = req.body || {};
 
     if (!code) {
@@ -20,7 +26,7 @@ export const AddCoupon = async (req, res, next) => {
 
     const coupon = await Coupon.create({
       code: uppercaseCode,
-      discountType: discountType || 'percentage',
+      discountType: normalizeDiscountType(discountType) || 'percentage',
       discountValue: Number(discountValue),
       minOrderAmount: Number(minOrderAmount || 0),
       maxDiscount: Number(maxDiscount || 0),
@@ -61,7 +67,7 @@ export const UpdateCoupon = async (req, res, next) => {
 
     let updateData = {};
     if (code !== undefined) updateData.code = code.toUpperCase().trim();
-    if (discountType !== undefined) updateData.discountType = discountType;
+    if (discountType !== undefined) updateData.discountType = normalizeDiscountType(discountType);
     if (discountValue !== undefined) updateData.discountValue = Number(discountValue);
     if (minOrderAmount !== undefined) updateData.minOrderAmount = Number(minOrderAmount);
     if (maxDiscount !== undefined) updateData.maxDiscount = Number(maxDiscount);

@@ -278,13 +278,9 @@ const ProductDetail = () => {
     ? product.variants.find((v) => v.color?.toLowerCase() === selectedColor?.toLowerCase()) || product.variants[0]
     : null;
 
-  const currentVariantImages = activeVariant?.images && activeVariant.images.length > 0
-    ? activeVariant.images
-    : (product.images && product.images.length > 0 ? product.images : [product.image].filter(Boolean));
-
-  const images = currentVariantImages.length > 0
-    ? currentVariantImages
-    : ['https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=900&q=85'];
+  const images = hasVariants
+    ? (activeVariant?.images || []).filter(Boolean)
+    : (product.images || []).filter(Boolean);
 
   const availableColors = hasVariants
     ? product.variants.map((v) => ({
@@ -332,6 +328,7 @@ const ProductDetail = () => {
   };
 
   const handleAddToCart = () => {
+    const selectedImg = images[selectedImageIndex] || activeVariant?.image || activeVariant?.images?.[0] || product.image || (product.images && product.images[0]) || '';
     addToCart(
       {
         ...product,
@@ -341,6 +338,8 @@ const ProductDetail = () => {
       quantity,
       {
         color: selectedColor || selectedColorObj?.name || 'Pure 925 Silver',
+        variantId: activeVariant?._id || activeVariant?.id || activeVariant?.sku || '',
+        image: selectedImg,
         sku: activeSizeObj?.sku || product.sku,
         customText: customEngraving.trim() || undefined,
       }
@@ -348,6 +347,7 @@ const ProductDetail = () => {
   };
 
   const handleBuyNow = () => {
+    const selectedImg = images[selectedImageIndex] || activeVariant?.image || activeVariant?.images?.[0] || product.image || (product.images && product.images[0]) || '';
     addToCart(
       {
         ...product,
@@ -357,6 +357,8 @@ const ProductDetail = () => {
       quantity,
       {
         color: selectedColor || selectedColorObj?.name || 'Pure 925 Silver',
+        variantId: activeVariant?._id || activeVariant?.id || activeVariant?.sku || '',
+        image: selectedImg,
         sku: activeSizeObj?.sku || product.sku,
         customText: customEngraving.trim() || undefined,
       }
@@ -477,7 +479,11 @@ const ProductDetail = () => {
           {/* Left: Gallery */}
           <div className="product-gallery">
             <div className="product-main-gallery-img">
-              <img src={images[selectedImageIndex]} alt={product.name} />
+              {images.length > 0 ? (
+                <img src={images[selectedImageIndex]} alt={product.name} />
+              ) : (
+                <div className="product-image-empty" aria-label="Product image unavailable" />
+              )}
               {product.badge && (
                 <span className="product-badge product-badge-silver" style={{ top: '16px', left: '16px' }}>
                   {product.badge}
@@ -506,6 +512,11 @@ const ProductDetail = () => {
           <div className="product-info-column">
             {/* Hallmark & Purity Badges */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
+              {product.freeShipping !== false && (
+                <span className="product-hallmark-pill" style={{ background: '#ECFDF5', borderColor: '#10B981', color: '#047857' }}>
+                  <Truck size={13} color="#10B981" /> Complimentary Express Shipping
+                </span>
+              )}
               <span className="product-hallmark-pill">
                 <ShieldCheck size={13} color="#A07E52" /> BIS 925 Hallmarked
               </span>

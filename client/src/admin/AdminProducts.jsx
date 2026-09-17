@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, Copy, Check, X, Sparkles, Filter, Eye, Package, ExternalLink } from 'lucide-react';
 import { saveProduct, deleteProduct, toggleProductStock } from '../services/storeService';
+import { apiAdminDeleteProduct, getImageUrl } from '../services/api';
 
 const AdminProducts = ({ products, categories, searchQuery, onRefresh, onOpenEditor }) => {
+  console.log(products);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
   const [stockFilter, setStockFilter] = useState('all'); // 'all' | 'inStock' | 'outOfStock'
 
@@ -17,8 +19,15 @@ const AdminProducts = ({ products, categories, searchQuery, onRefresh, onOpenEdi
     onRefresh && onRefresh();
   };
 
-  const handleDelete = (prod) => {
+  const handleDelete = async (prod) => {
     if (window.confirm(`Are you sure you want to delete "${prod.name}" from the atelier catalog?`)) {
+      try {
+        if (prod._id) {
+          await apiAdminDeleteProduct(prod._id);
+        }
+      } catch (err) {
+        console.error('API product deletion error:', err);
+      }
       deleteProduct(prod._id || prod.slug);
       onRefresh && onRefresh();
     }
@@ -141,18 +150,30 @@ const AdminProducts = ({ products, categories, searchQuery, onRefresh, onOpenEdi
                 </tr>
               ) : (
                 filteredProducts.map((prod) => {
-                  const imgUrl = (prod.images && prod.images[0]) || prod.image;
-                  const secondImg = (prod.images && prod.images[1]) || prod.secondaryImage;
+                  // First variant's images → prod.images → prod.image (priority order)
+                  const firstVariant = prod.variants && prod.variants.length > 0 ? prod.variants[0] : null;
+                  const imgUrl = getImageUrl(
+                    (firstVariant?.images && firstVariant.images[0]) ||
+                    (prod.images && prod.images[0]) ||
+                    prod.image || ''
+                  );
+                  const secondImg = getImageUrl(
+                    (firstVariant?.images && firstVariant.images[1]) ||
+                    (prod.images && prod.images[1]) ||
+                    prod.secondaryImage || ''
+                  );
+                  const variantCount = prod.variants ? prod.variants.length : 0;
                   return (
                     <tr key={prod._id || prod.slug}>
                       <td>
                         <div className="shv-table-item-cell">
                           <div style={{ position: 'relative', width: '52px', height: '52px' }}>
                             <img
-                              src={imgUrl}
+                              src={imgUrl || '/hero-ring-banner.jpg'}
                               alt={prod.name}
                               className="shv-table-item-thumb"
                               style={{ width: '52px', height: '52px', borderRadius: '10px', objectFit: 'cover' }}
+                              onError={(e) => { e.target.onerror = null; e.target.src = '/hero-ring-banner.jpg'; }}
                             />
                             {secondImg && (
                               <span
@@ -177,7 +198,10 @@ const AdminProducts = ({ products, categories, searchQuery, onRefresh, onOpenEdi
                             <strong style={{ fontSize: '0.88rem', color: '#1E2229' }}>{prod.name}</strong>
                             <div style={{ fontSize: '0.74rem', color: 'var(--admin-text-muted)', display: 'flex', gap: '0.5rem', marginTop: '2px' }}>
                               <span>SKU: {prod.sku || prod.slug?.substring(0, 16)}</span>
-                              {prod.images && prod.images.length > 1 && (
+                              {variantCount > 0 && (
+                                <span style={{ color: '#A07E52', fontWeight: 600 }}>• {variantCount} variant{variantCount > 1 ? 's' : ''}</span>
+                              )}
+                              {!variantCount && prod.images && prod.images.length > 1 && (
                                 <span>• {prod.images.length} photos</span>
                               )}
                             </div>

@@ -12,14 +12,18 @@ export const hashUserPassword = (password)=>{
 
 export const DeleteImage = (filepath) => {
     try {
-        const deletepath = path.join(__dirname, "..", filepath)
+        if (!filepath || typeof filepath !== 'string') return;
+        // Strip backend domain prefix if present
+        let cleanPath = filepath.replace(/^https?:\/\/[^\/]+/, '');
+        if (!cleanPath.startsWith('/')) cleanPath = '/' + cleanPath;
+        const deletepath = path.join(process.cwd(), cleanPath);
         if (fs.existsSync(deletepath)) {
-            fs.unlinkSync(deletepath)
+            fs.unlinkSync(deletepath);
+            console.log("Deleted image:", deletepath);
         }
     } catch (error) {
-        console.log("image delete error:", error)
+        console.log("image delete error:", error);
     }
-
 }
 
 

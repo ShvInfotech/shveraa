@@ -6,6 +6,9 @@ import { ForgotgenerateJwtToken, generatehashToken, generateJwtToken } from '../
 import UserModel from '../../../models/user.model.js'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
+import AddressModel from '../../../models/address.model.js'
+import CartModel from '../../../models/cart.model.js'
+import WishlistModel from '../../../models/wishlist.model.js'
 
 
 
@@ -238,3 +241,272 @@ export const UserUpdateProfile = async (req,res,next) =>{
         return next(error)
     }
 }
+
+/* ==========================================================================
+   ADDRESS CONTROLLERS  (separate AddressModel)
+   ========================================================================== */
+export const GetUserAddresses = async (req, res, next) => {
+  try {
+    const addresses = await AddressModel.find({ userId: req.user._id }).sort({ isDefault: -1, createdAt: 1 });
+    return res.status(200).json({ success: true, addresses });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const AddUserAddress = async (req, res, next) => {
+  try {
+    const { fullName, phone, street, locality, city, state, pincode, isDefault, label } = req.body || {};
+    if (!fullName || !phone || !street || !city || !state || !pincode) {
+      return next(CustomeError(422, 'Full name, phone, street, city, state, and pincode are required'));
+    }
+
+    const count = await AddressModel.countDocuments({ userId: req.user._id });
+    const shouldBeDefault = Boolean(isDefault) || count === 0;
+
+    if (shouldBeDefault) {
+      await AddressModel.updateMany({ userId: req.user._id }, { $set: { isDefault: false } });
+    }
+
+    const address = await AddressModel.create({
+      userId: req.user._id,
+      fullName,
+      phone,
+      street,
+      locality: locality || '',
+      city,
+      state,
+      pincode,
+      isDefault: shouldBeDefault,
+      label: label || 'Home',
+    });
+
+    const addresses = await AddressModel.find({ userId: req.user._id }).sort({ isDefault: -1, createdAt: 1 });
+    return res.status(201).json({ success: true, message: 'Address added successfully', address, addresses });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const UpdateUserAddress = async (req, res, next) => {
+  try {
+    const { addressId } = req.params;
+    const { fullName, phone, street, locality, city, state, pincode, isDefault, label } = req.body || {};
+
+    const address = await AddressModel.findOne({ _id: addressId, userId: req.user._id });
+    if (!address) return next(CustomeError(404, 'Address not found'));
+
+    if (isDefault) {
+      await AddressModel.updateMany({ userId: req.user._id }, { $set: { isDefault: false } });
+    }
+
+    if (fullName !== undefined) address.fullName = fullName;
+    if (phone !== undefined) address.phone = phone;
+    if (street !== undefined) address.street = street;
+    if (locality !== undefined) address.locality = locality;
+    if (city !== undefined) address.city = city;
+    if (state !== undefined) address.state = state;
+    if (pincode !== undefined) address.pincode = pincode;
+    if (label !== undefined) address.label = label;
+    if (isDefault !== undefined) address.isDefault = Boolean(isDefault);
+
+    await address.save();
+
+    const addresses = await AddressModel.find({ userId: req.user._id }).sort({ isDefault: -1, createdAt: 1 });
+    return res.status(200).json({ success: true, message: 'Address updated successfully', address, addresses });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const DeleteUserAddress = async (req, res, next) => {
+  try {
+    const { addressId } = req.params;
+    const address = await AddressModel.findOneAndDelete({ _id: addressId, userId: req.user._id });
+    if (!address) return next(CustomeError(404, 'Address not found'));
+
+    // If deleted was default, promote the oldest remaining as default
+    if (address.isDefault) {
+      const next_ = await AddressModel.findOne({ userId: req.user._id }).sort({ createdAt: 1 });
+      if (next_) { next_.isDefault = true; await next_.save(); }
+    }
+
+    const addresses = await AddressModel.find({ userId: req.user._id }).sort({ isDefault: -1, createdAt: 1 });
+    return res.status(200).json({ success: true, message: 'Address deleted successfully', addresses });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const SetDefaultUserAddress = async (req, res, next) => {
+  try {
+    const { addressId } = req.params;
+    const address = await AddressModel.findOne({ _id: addressId, userId: req.user._id });
+    if (!address) return next(CustomeError(404, 'Address not found'));
+
+    await AddressModel.updateMany({ userId: req.user._id }, { $set: { isDefault: false } });
+    address.isDefault = true;
+    await address.save();
+
+    const addresses = await AddressModel.find({ userId: req.user._id }).sort({ isDefault: -1, createdAt: 1 });
+    return res.status(200).json({ success: true, message: 'Default address updated', addresses });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/* ==========================================================================
+   CART CONTROLLERS  (separate CartModel)
+   ========================================================================== */
+export const GetCart = async (req, res, next) => {
+  try {
+    const cart = await CartModel.find({ userId: req.user._id });
+    return res.status(200).json({ success: true, cart });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const SyncCart = async (req, res, next) => {
+  try {
+    const { cart } = req.body || {};
+    if (!Array.isArray(cart)) return next(CustomeError(422, 'cart must be an array'));
+
+    // Delete all existing items for user then reinsert
+    await CartModel.deleteMany({ userId: req.user._id });
+    if (cart.length > 0) {
+      const docs = cart.map(item => ({ ...item, userId: req.user._id }));
+      await CartModel.insertMany(docs, { ordered: false }).catch(() => {});
+    }
+    const updated = await CartModel.find({ userId: req.user._id });
+    return res.status(200).json({ success: true, cart: updated });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const AddToCart = async (req, res, next) => {
+  try {
+    const { productId, variantId, name, price, originalPrice, image, category, size, color, quantity } = req.body || {};
+    if (!productId || !name || !price) {
+      return next(CustomeError(422, 'productId, name and price are required'));
+    }
+
+    const normalizedSize = String(size || 'Standard').trim();
+    const normalizedColor = String(color || '').trim().toLowerCase();
+    const cartItemFilter = {
+      userId: req.user._id,
+      productId,
+      size: normalizedSize,
+      color: normalizedColor,
+    };
+    const existing = await CartModel.findOne(cartItemFilter);
+    if (existing) {
+      const cart = await CartModel.find({ userId: req.user._id });
+      return res.status(200).json({
+        success: true,
+        added: false,
+        message: 'This colour and size is already in your cart',
+        cart,
+      });
+    } else {
+      await CartModel.create({
+        userId: req.user._id,
+        productId,
+        variantId: variantId || '',
+        name,
+        price: Number(price),
+        originalPrice: Number(originalPrice || 0),
+        image: image || '',
+        category: category || '',
+        size: normalizedSize,
+        color: normalizedColor,
+        quantity: quantity || 1,
+      });
+    }
+
+    const cart = await CartModel.find({ userId: req.user._id });
+    return res.status(200).json({ success: true, added: true, cart });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const UpdateCartItem = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { quantity } = req.body || {};
+
+    if (quantity <= 0) {
+      await CartModel.findOneAndDelete({ _id: id, userId: req.user._id });
+    } else {
+      const item = await CartModel.findOneAndUpdate(
+        { _id: id, userId: req.user._id },
+        { $set: { quantity } },
+        { new: true }
+      );
+      if (!item) return next(CustomeError(404, 'Cart item not found'));
+    }
+
+    const cart = await CartModel.find({ userId: req.user._id });
+    return res.status(200).json({ success: true, cart });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const RemoveCartItem = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    await CartModel.findOneAndDelete({ _id: id, userId: req.user._id });
+    const cart = await CartModel.find({ userId: req.user._id });
+    return res.status(200).json({ success: true, cart });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const ClearCart = async (req, res, next) => {
+  try {
+    await CartModel.deleteMany({ userId: req.user._id });
+    return res.status(200).json({ success: true, cart: [] });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/* ==========================================================================
+   WISHLIST CONTROLLERS  (separate WishlistModel)
+   ========================================================================== */
+export const GetWishlist = async (req, res, next) => {
+  try {
+    const items = await WishlistModel.find({ userId: req.user._id });
+    const wishlist = items.map(i => i.productId);
+    return res.status(200).json({ success: true, wishlist });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const ToggleWishlist = async (req, res, next) => {
+  try {
+    const { productId } = req.body || {};
+    if (!productId) return next(CustomeError(422, 'productId is required'));
+
+    const existing = await WishlistModel.findOne({ userId: req.user._id, productId });
+    let action;
+    if (existing) {
+      await existing.deleteOne();
+      action = 'removed';
+    } else {
+      await WishlistModel.create({ userId: req.user._id, productId });
+      action = 'added';
+    }
+
+    const items = await WishlistModel.find({ userId: req.user._id });
+    const wishlist = items.map(i => i.productId);
+    return res.status(200).json({ success: true, wishlist, action });
+  } catch (error) {
+    return next(error);
+  }
+};

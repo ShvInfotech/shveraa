@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Tag, Plus, Trash2, Check, X, Percent, DollarSign, Sparkles } from 'lucide-react';
-import { saveCoupon, deleteCoupon } from '../services/storeService';
 import { apiAdminAddCoupon, apiAdminUpdateCoupon, apiAdminDeleteCoupon } from '../services/api';
 
 const AdminCoupons = ({ coupons, onRefresh }) => {
@@ -33,15 +32,6 @@ const AdminCoupons = ({ coupons, onRefresh }) => {
         expiresAt: formData.expiresAt || null,
         usageLimit: Number(formData.usageLimit || 100),
       });
-      // Also update localStorage for immediate reactivity
-      saveCoupon({
-        code: formData.code.trim().toUpperCase(),
-        discountType: formData.discountType,
-        discountValue: Number(formData.discountValue),
-        minSpend: Number(formData.minOrderAmount || 0),
-        description: formData.description || '',
-        isActive: true,
-      });
       showMsg('Coupon created successfully!');
       setShowModal(false);
       setFormData({ code: '', discountType: 'percentage', discountValue: '', minOrderAmount: '999', maxDiscount: '', expiresAt: '', usageLimit: '100', description: '' });
@@ -57,7 +47,6 @@ const AdminCoupons = ({ coupons, onRefresh }) => {
     if (window.confirm(`Delete promotion code ${coupon.code}?`)) {
       try {
         if (coupon._id) await apiAdminDeleteCoupon(coupon._id);
-        deleteCoupon(coupon.code);
         showMsg('Coupon deleted.');
         onRefresh && onRefresh();
       } catch (err) {
@@ -71,7 +60,6 @@ const AdminCoupons = ({ coupons, onRefresh }) => {
       if (coupon._id) {
         await apiAdminUpdateCoupon(coupon._id, { isActive: !coupon.isActive });
       }
-      saveCoupon({ ...coupon, isActive: !coupon.isActive });
       onRefresh && onRefresh();
     } catch (err) {
       showMsg(err.message || 'Update failed');
@@ -136,7 +124,7 @@ const AdminCoupons = ({ coupons, onRefresh }) => {
                   </td>
                   <td>
                     <span>
-                      {c.minSpend > 0 ? `₹${c.minSpend.toLocaleString('en-IN')}` : 'No Minimum'}
+                      {c.minOrderAmount > 0 ? `₹${c.minOrderAmount.toLocaleString('en-IN')}` : 'No Minimum'}
                     </span>
                   </td>
                   <td>
@@ -159,7 +147,7 @@ const AdminCoupons = ({ coupons, onRefresh }) => {
                   <td>
                     <button
                       type="button"
-                      onClick={() => handleDelete(c.code)}
+                      onClick={() => handleDelete(c)}
                       className="shv-table-filter-btn"
                       title="Delete Coupon"
                       style={{
@@ -216,7 +204,7 @@ const AdminCoupons = ({ coupons, onRefresh }) => {
                     className="shv-form-select"
                   >
                     <option value="percentage">Percentage Discount (%)</option>
-                    <option value="flat">Flat Cash Discount (₹)</option>
+                    <option value="fixed">Flat Cash Discount (₹)</option>
                   </select>
                 </div>
 
@@ -240,8 +228,8 @@ const AdminCoupons = ({ coupons, onRefresh }) => {
                 <input
                   type="number"
                   placeholder="999"
-                  value={formData.minSpend}
-                  onChange={(e) => setFormData({ ...formData, minSpend: e.target.value })}
+                  value={formData.minOrderAmount}
+                  onChange={(e) => setFormData({ ...formData, minOrderAmount: e.target.value })}
                   className="shv-form-input"
                 />
               </div>

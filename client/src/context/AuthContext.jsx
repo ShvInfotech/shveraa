@@ -48,6 +48,8 @@ export const AuthProvider = ({ children }) => {
       const response = await apiUserLogin({ email, password });
       if (response?.user) {
         setUser(response.user);
+        // Notify CartContext to reload from DB
+        window.dispatchEvent(new Event('shveraa_user_logged_in'));
         return { success: true, user: response.user };
       }
       return { success: false, message: response?.message || 'Login failed.' };
@@ -68,6 +70,8 @@ export const AuthProvider = ({ children }) => {
       const response = await apiUserRegister({ name: fullName, email, phone, password });
       if (response?.user) {
         setUser(response.user);
+        // Notify CartContext to reload from DB
+        window.dispatchEvent(new Event('shveraa_user_logged_in'));
         return { success: true, user: response.user };
       }
       return { success: false, message: response?.message || 'Registration failed.' };
@@ -77,6 +81,7 @@ export const AuthProvider = ({ children }) => {
       return { success: false, message: errorMsg };
     }
   };
+
 
   const forgotPassword = async (email) => {
     setAuthError(null);
@@ -97,6 +102,7 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     await apiUserLogout();
     setUser(null);
+    window.dispatchEvent(new Event('shveraa_user_logged_out'));
   };
 
   return (

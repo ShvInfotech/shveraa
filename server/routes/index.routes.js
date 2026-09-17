@@ -1,9 +1,15 @@
 import express from "express";
-const router = express.Router()
-import UserRoutes from './user/v1/user.routes.js'
-import AdminRoutes from './admin/v1/admin.routes.js'
+import UserRoutes from './user/v1/user.routes.js';
+import AdminRoutes from './admin/v1/admin.routes.js';
+import { UploadImage } from '../middleware/imageUploading.js';
+import { UploadFileHandler } from '../controllers/upload.controller.js';
 
-router.use('/user',UserRoutes)
-router.use('/admin',AdminRoutes)
+const router = express.Router();
 
-export default router 
+router.use('/user', UserRoutes);
+router.use('/admin', AdminRoutes);
+
+router.post('/upload', UploadImage.single('image'), UploadFileHandler);
+router.post('/upload/multiple', UploadImage.array('images', 10), UploadFileHandler);
+
+export default router;

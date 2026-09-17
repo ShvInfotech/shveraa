@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Trash2, Plus, Minus } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { getImageUrl } from '../services/api';
 
 const CartItem = ({ item }) => {
   const { updateQuantity, removeFromCart } = useCart();
@@ -10,7 +11,13 @@ const CartItem = ({ item }) => {
     <div className="cart-page-item">
       {/* Thumbnail */}
       <Link to={`/product/${item.productId}`} className="cart-page-item-img-link">
-        <img src={item.image} alt={item.name} />
+        <img
+          src={getImageUrl(item.image)}
+          alt={item.name}
+          onError={(e) => {
+            e.currentTarget.src = '/hero-ring-banner.jpg';
+          }}
+        />
       </Link>
 
       {/* Info */}
@@ -43,7 +50,7 @@ const CartItem = ({ item }) => {
         <div className="cart-qty-controller">
           <button
             type="button"
-            onClick={() => updateQuantity(item.cartItemId, item.quantity - 1)}
+            onClick={() => updateQuantity(item._id, item.quantity - 1)}
             aria-label="Decrease quantity"
           >
             <Minus size={13} />
@@ -51,7 +58,7 @@ const CartItem = ({ item }) => {
           <span>{item.quantity}</span>
           <button
             type="button"
-            onClick={() => updateQuantity(item.cartItemId, item.quantity + 1)}
+            onClick={() => updateQuantity(item._id, item.quantity + 1)}
             aria-label="Increase quantity"
           >
             <Plus size={13} />
@@ -64,7 +71,7 @@ const CartItem = ({ item }) => {
 
         <button
           type="button"
-          onClick={() => removeFromCart(item.cartItemId)}
+          onClick={() => removeFromCart(item._id)}
           className="cart-page-item-remove-btn"
           aria-label="Remove item"
         >

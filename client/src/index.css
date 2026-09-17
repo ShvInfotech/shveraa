@@ -2649,6 +2649,12 @@ h4 { font-size: 1.15rem; }
   transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
+.product-image-empty {
+  width: 100%;
+  height: 100%;
+  background: #f7f4ef;
+}
+
 .product-img-secondary {
   position: absolute;
   top: 0;
@@ -6731,6 +6737,71 @@ h4 { font-size: 1.15rem; }
   box-shadow: 0 4px 16px rgba(60, 48, 36, 0.03);
 }
 
+/* Saved address selector inside checkout */
+.shv-saved-addr-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shv-saved-addr-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1.5px solid rgba(160, 126, 82, 0.2);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.18s;
+  background: #FDFAF6;
+}
+
+.shv-saved-addr-row:hover {
+  border-color: #A07E52;
+  background: rgba(160, 126, 82, 0.04);
+}
+
+.shv-saved-addr-row.active {
+  border-color: #A07E52;
+  background: rgba(160, 126, 82, 0.07);
+}
+
+.shv-saved-addr-row input[type="radio"] {
+  accent-color: #A07E52;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.shv-saved-addr-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.shv-saved-addr-info strong {
+  font-size: 0.9rem;
+  color: #1F1B17;
+}
+
+.shv-saved-addr-info span {
+  font-size: 0.78rem;
+  color: #72685E;
+  line-height: 1.4;
+}
+
+.shv-saved-addr-default-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #10B981;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 2px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
 @media (min-width: 768px) {
   .shv-checkout-step-card {
     padding: 28px 28px;
@@ -8339,7 +8410,246 @@ h4 { font-size: 1.15rem; }
   max-width: 260px;
 }
 
-/* Security Tab */
+/* Address card — action row */
+.shv-addr-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(160, 126, 82, 0.12);
+}
+
+.shv-addr-default-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #10B981;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 2px 7px;
+  border-radius: 20px;
+  margin-left: 4px;
+}
+
+/* Address empty state */
+.shv-addr-empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 3.5rem 1rem;
+  color: #72685E;
+}
+
+.shv-addr-empty-state h3 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.5rem;
+  color: #1F1B17;
+  margin: 1rem 0 0.5rem;
+}
+
+.shv-addr-empty-state p {
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* Danger ghost button */
+.btn-danger-ghost {
+  color: #E53E3E;
+  background: transparent;
+  border: 1px solid rgba(229, 62, 62, 0.25);
+  font-size: 0.8rem;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-danger-ghost:hover {
+  background: rgba(229, 62, 62, 0.08);
+  border-color: #E53E3E;
+}
+
+/* Ghost button */
+.btn-ghost {
+  color: #A07E52;
+  background: transparent;
+  border: 1px solid rgba(160, 126, 82, 0.25);
+  font-size: 0.8rem;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-ghost:hover {
+  background: rgba(160, 126, 82, 0.08);
+  border-color: #A07E52;
+}
+
+/* ============================
+   ADDRESS MODAL
+   ============================ */
+.shv-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 16, 10, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: fadeIn 0.2s ease;
+}
+
+.shv-modal-card {
+  background: #FFFFFF;
+  border-radius: var(--radius-xl, 16px);
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 64px rgba(20, 16, 10, 0.22);
+  animation: slideUp 0.25s ease;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.shv-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 1.75rem 1rem;
+  border-bottom: 1px solid rgba(160, 126, 82, 0.15);
+}
+
+.shv-modal-header h3 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.45rem;
+  font-weight: 600;
+  color: #1F1B17;
+  margin: 0;
+}
+
+.shv-modal-close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: #72685E;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.shv-modal-close-btn:hover {
+  background: rgba(160, 126, 82, 0.1);
+  color: #1F1B17;
+}
+
+.shv-addr-modal-form {
+  padding: 1.5rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+/* Label Pills */
+.shv-addr-label-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.shv-label-pill {
+  padding: 6px 16px;
+  border-radius: 20px;
+  border: 1.5px solid rgba(160, 126, 82, 0.3);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #72685E;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.shv-label-pill.active {
+  background: #A07E52;
+  border-color: #A07E52;
+  color: #FFFFFF;
+}
+
+/* Form inputs inside modal */
+.shv-addr-modal-form .shv-input-group label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #61574D;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.shv-addr-modal-form .shv-input-group input,
+.shv-addr-modal-form .shv-input-group select {
+  width: 100%;
+  padding: 10px 13px;
+  border: 1.5px solid rgba(160, 126, 82, 0.28);
+  border-radius: var(--radius-sm, 8px);
+  font-size: 0.9rem;
+  color: #1F1B17;
+  background: #FDFAF6;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.shv-addr-modal-form .shv-input-group input:focus,
+.shv-addr-modal-form .shv-input-group select:focus {
+  border-color: #A07E52;
+  box-shadow: 0 0 0 3px rgba(160, 126, 82, 0.12);
+}
+
+/* Default checkbox */
+.shv-default-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  color: #61574D;
+  font-weight: 500;
+}
+
+.shv-default-checkbox-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #A07E52;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* Modal footer */
+.shv-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(160, 126, 82, 0.12);
+  margin-top: 0.5rem;
+}
+
+
 .shv-security-grid {
   display: grid;
   grid-template-columns: 1fr;

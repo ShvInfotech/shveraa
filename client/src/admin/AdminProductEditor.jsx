@@ -22,7 +22,7 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { saveProduct, deleteProduct, JEWELRY_COLORS } from '../services/storeService';
-import { apiAdminAddProduct, apiAdminUpdateProduct, apiAdminDeleteProduct } from '../services/api';
+import { apiAdminAddProduct, apiAdminUpdateProduct, apiAdminDeleteProduct, apiUploadImage, apiUploadMultipleImages, getImageUrl } from '../services/api';
 import { processMultipleImageFiles } from '../utils/imageUpload';
 
 const METAL_TYPES = [
@@ -68,7 +68,7 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
 
   // Normalize initial images
   const getInitialImages = () => {
-    if (!product) return [SAMPLE_JEWELRY_IMAGES[0]];
+    if (!product) return [];
     if (Array.isArray(product.images) && product.images.length > 0) {
       return product.images;
     }
@@ -77,16 +77,25 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
   };
 
   const getInitialSizes = () => {
-    if (!product || !product.sizes) return ['US 6', 'US 7', 'US 8'];
-    if (Array.isArray(product.sizes)) return product.sizes;
-    return String(product.sizes).split(',').map((s) => s.trim()).filter(Boolean);
+    // Sizes are stored only inside color variants. Derive the selected chips
+    // from every variant so the edit screen mirrors the saved product data.
+    if (!product) return [];
+    return [...new Set((product.variants || []).flatMap((variant) =>
+      (variant.sizes || [])
+        .map((item) => (typeof item === 'string' ? item : item?.size))
+        .filter(Boolean)
+    ))];
   };
 
   const getInitialColors = () => {
-    if (!product || !product.colors || !Array.isArray(product.colors) || product.colors.length === 0) {
-      return ['Pure 925 Silver', '18K Yellow Gold', '18K Rose Gold'];
+    // Only pre-populate colors when editing an existing product
+    if (!product) return [];
+    if (Array.isArray(product.colors) && product.colors.length > 0) {
+      return product.colors.map((c) => (typeof c === 'string' ? c : c.name));
     }
-    return product.colors.map((c) => (typeof c === 'string' ? c : c.name));
+
+    // Current API stores color choices as variants.
+    return [...new Set((product.variants || []).map((variant) => variant.color).filter(Boolean))];
   };
 
   const [formData, setFormData] = useState({
@@ -108,12 +117,19 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
     description: product?.description || 'Individually cast in certified 925 sterling silver and finished with mirror platinum rhodium plating.',
     careInstructions: product?.careInstructions || 'Keep away from moisture, chlorine, and perfumes. Wipe with complimentary microfibre cloth.',
     inStock: product ? product.inStock !== false : true,
+    freeShipping: product ? product.freeShipping !== false : true,
     stockCount: product?.stockCount || 24,
     bestseller: Boolean(product?.bestseller),
     featured: Boolean(product?.featured),
     badge: product?.badge || (product?.bestseller ? 'Bestseller' : 'Atelier Edit'),
     metaTitle: product?.metaTitle || '',
     metaDescription: product?.metaDescription || '',
+    packing: {
+      length: product?.packing?.length ?? '',
+      height: product?.packing?.height ?? '',
+      width: product?.packing?.width ?? '',
+      weight: product?.packing?.weight ?? '',
+    },
   });
 
   // Variant state: array of { color, images, sizes: [{ size, sku, price, stock }] }
@@ -234,29 +250,25 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
     }));
   };
 
-  // Device File Upload Handler (Multiple Images + Canvas Compression)
+  // Device File Upload Handler (Uploads directly to server /uploads folder)
   const handleDeviceFiles = async (e) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     setIsProcessingUpload(true);
-    setUploadMessage(`Processing & optimizing ${files.length} photo(s) from device...`);
+    setUploadMessage(`Uploading ${files.length} photo(s) to server...`);
 
     try {
-      const compressedUrls = await processMultipleImageFiles(files, {
-        maxWidth: 1200,
-        maxHeight: 1200,
-        quality: 0.85,
-      });
+      const serverUrls = await apiUploadMultipleImages(files);
 
-      if (compressedUrls.length > 0) {
-        setImages((prev) => [...prev, ...compressedUrls]);
-        setUploadMessage(`Successfully imported ${compressedUrls.length} image(s).`);
+      if (serverUrls.length > 0) {
+        setImages((prev) => [...prev, ...serverUrls]);
+        setUploadMessage(`Successfully uploaded ${serverUrls.length} image(s).`);
         setTimeout(() => setUploadMessage(''), 4000);
       }
     } catch (err) {
       console.error('File upload error:', err);
-      setUploadMessage('Error processing device images. Please try again.');
+      setUploadMessage('Error uploading device images. Please try again.');
     } finally {
       setIsProcessingUpload(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -275,16 +287,12 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       setIsProcessingUpload(true);
-      setUploadMessage(`Optimizing ${e.dataTransfer.files.length} dropped photo(s)...`);
+      setUploadMessage(`Uploading ${e.dataTransfer.files.length} dropped photo(s)...`);
       try {
-        const compressedUrls = await processMultipleImageFiles(e.dataTransfer.files, {
-          maxWidth: 1200,
-          maxHeight: 1200,
-          quality: 0.85,
-        });
-        if (compressedUrls.length > 0) {
-          setImages((prev) => [...prev, ...compressedUrls]);
-          setUploadMessage(`Successfully added ${compressedUrls.length} photo(s).`);
+        const serverUrls = await apiUploadMultipleImages(e.dataTransfer.files);
+        if (serverUrls.length > 0) {
+          setImages((prev) => [...prev, ...serverUrls]);
+          setUploadMessage(`Successfully uploaded ${serverUrls.length} photo(s).`);
           setTimeout(() => setUploadMessage(''), 4000);
         }
       } catch (err) {
@@ -364,9 +372,10 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
   };
 
   const handleAddCustomSize = (e) => {
-    e.preventDefault();
-    if (customSizeInput.trim() && !sizes.includes(customSizeInput.trim())) {
-      const nextSizes = [...sizes, customSizeInput.trim()];
+    if (e) e.preventDefault();
+    const sizeToAdd = customSizeInput.trim();
+    if (sizeToAdd && !sizes.includes(sizeToAdd)) {
+      const nextSizes = [...sizes, sizeToAdd];
       setSizes(nextSizes);
       setCustomSizeInput('');
       autoGenerateVariantsFromSelections(colors, nextSizes);
@@ -407,17 +416,34 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
       price: Number(formData.price),
       originalPrice: Number(formData.originalPrice || (Number(formData.price) * 1.3).toFixed(0)),
       category: formData.category,
+      sku: formData.sku.trim(),
+      collection: formData.collection.trim(),
+      makingCharges: Number(formData.makingCharges || 0),
       material: formData.metalType,
+      metalType: formData.metalType,
+      metalPurity: formData.metalPurity,
+      metalWeight: formData.metalWeight,
       stone: formData.stone,
+      stoneCarat: formData.stoneCarat,
       finish: formData.finish,
+      dimensions: formData.dimensions,
+      careInstructions: formData.careInstructions,
       badge: formData.badge,
       images: images.length > 0 ? images : [SAMPLE_JEWELRY_IMAGES[0]],
       featured: Boolean(formData.featured),
       bestseller: Boolean(formData.bestseller),
       inStock: Boolean(formData.inStock),
+      freeShipping: Boolean(formData.freeShipping),
+      stockCount: Number(formData.stockCount || 0),
+      metaTitle: formData.metaTitle,
+      metaDescription: formData.metaDescription,
+      packing: {
+        length: Number(formData.packing.length || 0),
+        height: Number(formData.packing.height || 0),
+        width: Number(formData.packing.width || 0),
+        weight: Number(formData.packing.weight || 0),
+      },
       variants: variants,
-      // Legacy support for old UI
-      sizes: sizes.length > 0 ? sizes : ['Standard'],
       colors: colors.length > 0 ? colors : ['Pure 925 Silver'],
     };
 
@@ -608,7 +634,7 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
                 />
               </div>
 
-              <div className="shv-field half-width" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', paddingTop: '1.4rem' }}>
+              <div className="shv-field full-width shv-editor-feature-flags">
                 <label className="shv-editor-checkbox">
                   <input
                     type="checkbox"
@@ -625,6 +651,15 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
                     onChange={(e) => setFormData({ ...formData, featured: e.target.checked })}
                   />
                   <span>New Arrival</span>
+                </label>
+
+                <label className="shv-editor-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={formData.freeShipping}
+                    onChange={(e) => setFormData({ ...formData, freeShipping: e.target.checked })}
+                  />
+                  <span>✦ Free Express Shipping</span>
                 </label>
               </div>
             </div>
@@ -725,7 +760,12 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
 
               {/* Sizes Available */}
               <div className="shv-field full-width">
-                <label>Available Sizes &amp; Fit Options</label>
+                <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>Available Sizes &amp; Fit Options</span>
+                  <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 400 }}>
+                    Select preset chips or click "Add Size" below
+                  </span>
+                </label>
                 <div className="shv-editor-chips-wrap">
                   {PRESET_SIZES.map((sz) => {
                     const isSelected = sizes.includes(sz);
@@ -741,14 +781,36 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
                       </button>
                     );
                   })}
+                  {sizes
+                    .filter((sz) => !PRESET_SIZES.includes(sz))
+                    .map((sz) => (
+                      <button
+                        key={sz}
+                        type="button"
+                        onClick={() => toggleSize(sz)}
+                        className="shv-size-chip active"
+                        style={{ borderColor: '#A07E52', color: '#A07E52', background: '#FDFBF7' }}
+                        title="Custom Size - Click to remove"
+                      >
+                        <Check size={13} />
+                        <span>{sz}</span>
+                        <X size={12} style={{ marginLeft: '4px' }} />
+                      </button>
+                    ))}
                 </div>
 
-                <div className="shv-editor-custom-size-group">
+                <div className="shv-editor-custom-size-group" style={{ marginTop: '0.75rem' }}>
                   <input
                     type="text"
                     value={customSizeInput}
                     onChange={(e) => setCustomSizeInput(e.target.value)}
-                    placeholder="Custom size (e.g. 2.4 Bangle, 18cm Bracelet)"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddCustomSize(e);
+                      }
+                    }}
+                    placeholder="Custom size (e.g. US 11, 2.4 Bangle, 18cm Bracelet, Free Size)"
                   />
                   <button type="button" onClick={handleAddCustomSize} className="shv-size-add-btn">
                     <Plus size={14} />
@@ -867,6 +929,44 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
                   </div>
                 </label>
               </div>
+            </div>
+          </div>
+
+          {/* SECTION 4A: PACKING DETAILS */}
+          <div className="shv-editor-card">
+            <div className="shv-editor-card-header">
+              <div className="shv-editor-card-icon">
+                <Layers size={17} />
+              </div>
+              <div>
+                <h2 className="shv-editor-card-title">Packing Details</h2>
+                <p className="shv-editor-card-subtitle">Enter the packed parcel dimensions in centimetres and weight in kilograms.</p>
+              </div>
+            </div>
+
+            <div className="shv-editor-fields-grid">
+              {[
+                ['length', 'Package Length (cm)'],
+                ['height', 'Package Height (cm)'],
+                ['width', 'Package Width (cm)'],
+                ['weight', 'Package Weight (kg)'],
+              ].map(([field, label]) => (
+                <div className="shv-field half-width" key={field}>
+                  <label>{label} *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    required
+                    value={formData.packing[field]}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      packing: { ...formData.packing, [field]: e.target.value },
+                    })}
+                    placeholder={field === 'weight' ? '0.25' : '10'}
+                  />
+                </div>
+              ))}
             </div>
           </div>
 
@@ -1091,7 +1191,7 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
                           type="button"
                           onClick={() => handleAddVariantSize(activeVariantIdx)}
                           className="shv-size-add-btn"
-                          style={{ padding: '0.35rem 0.7rem', fontSize: '0.8rem' }}
+                          style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', fontWeight: 600 }}
                         >
                           <Plus size={13} />
                           <span>Add Size Option</span>

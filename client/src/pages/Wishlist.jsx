@@ -40,26 +40,53 @@ const Wishlist = () => {
     }));
   };
 
-  const handleMoveToBag = (product) => {
+  // Wishlist products store colour/size data inside variants.  Always use the
+  // first variant as the default selection when moving an item to the bag.
+  const getVariantSizes = (product) => {
+    const sizes = product.variants?.[0]?.sizes || product.sizes || [];
+    return sizes
+      .map((size) => (typeof size === 'object' ? size.size : size))
+      .filter(Boolean);
+  };
+
+  const getCartSelection = (product, chosenSize) => {
+    const variant = product.variants?.[0];
+    const firstVariantSize = getVariantSizes(product)[0];
+
+    return {
+      size: chosenSize || firstVariantSize || 'Standard',
+      options: {
+        color: variant?.color || product.selectedColor || product.color || '',
+        variantId: variant?._id || variant?.id || variant?.sku || '',
+        image: variant?.images?.[0] || variant?.image || product.images?.[0] || product.image || '',
+      },
+    };
+  };
+
+  const handleMoveToBag = async (product) => {
     const id = product._id || product.slug;
-    const chosenSize = selectedSizes[id] || (product.sizes && product.sizes[0]) || 'Standard';
-    addToCart(product, chosenSize, 1);
-    toggleWishlist(product);
-    if (showToast) {
+    const { size, options } = getCartSelection(product, selectedSizes[id]);
+    const added = await addToCart(product, size, 1, options);
+
+    if (added) {
+      toggleWishlist(product);
+    }
+    if (added && showToast) {
       showToast(`Moved "${product.name}" to your shopping bag!`);
     }
   };
 
-  const handleMoveAllToBag = () => {
+  const handleMoveAllToBag = async () => {
     if (wishlist.length === 0) return;
-    wishlist.forEach((product) => {
+    const movedProducts = [];
+    for (const product of wishlist) {
       const id = product._id || product.slug;
-      const chosenSize = selectedSizes[id] || (product.sizes && product.sizes[0]) || 'Standard';
-      addToCart(product, chosenSize, 1);
-    });
-    // Remove all moved items from wishlist
-    [...wishlist].forEach((p) => toggleWishlist(p));
-    if (showToast) {
+      const { size, options } = getCartSelection(product, selectedSizes[id]);
+      const added = await addToCart(product, size, 1, { ...options, silent: true });
+      if (added) movedProducts.push(product);
+    }
+    movedProducts.forEach((product) => toggleWishlist(product));
+    if (movedProducts.length > 0 && showToast) {
       showToast('All preserved silhouettes moved to your shopping bag!');
     }
   };
@@ -180,8 +207,8 @@ const Wishlist = () => {
             <div className="shv-shop-products-grid col-4">
               {wishlist.map((product) => {
                 const prodId = product._id || product.slug;
-                const currentSize =
-                  selectedSizes[prodId] || (product.sizes && product.sizes[0]) || 'Standard';
+                const variantSizes = getVariantSizes(product);
+                const currentSize = selectedSizes[prodId] || variantSizes[0] || 'Standard';
                 const firstVariant = product.variants?.[0];
                 const imageSrc =
                   firstVariant?.images?.[0] ||
@@ -281,11 +308,11 @@ const Wishlist = () => {
                       </div>
 
                       {/* Size Selection Pills */}
-                      {product.sizes && product.sizes.length > 0 && (
+                      {variantSizes.length > 0 && (
                         <div className="shv-wishlist-size-picker">
                           <span className="shv-wishlist-size-label">Size:</span>
                           <div className="shv-wishlist-size-pills">
-                            {product.sizes.map((sz) => (
+                            {variantSizes.map((sz) => (
                               <button
                                 key={sz}
                                 type="button"

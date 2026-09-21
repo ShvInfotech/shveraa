@@ -4,7 +4,7 @@ import { saveProduct, deleteProduct, toggleProductStock } from '../services/stor
 import { apiAdminDeleteProduct, getImageUrl } from '../services/api';
 
 const AdminProducts = ({ products, categories, searchQuery, onRefresh, onOpenEditor }) => {
-  console.log(products);
+
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
   const [stockFilter, setStockFilter] = useState('all'); // 'all' | 'inStock' | 'outOfStock'
 

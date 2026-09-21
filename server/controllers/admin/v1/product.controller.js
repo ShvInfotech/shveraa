@@ -1,6 +1,15 @@
 import V1Product from '../../../models/product.model.js';
 import { CustomeError } from '../../../middleware/globelError.js';
 import { DeleteImage } from '../../../helper/helper.js';
+import { toStoredProductImagePaths, withProductImageUrls } from '../../../helper/productImageUrl.js';
+
+const toStoredVariants = (variants) => {
+  if (!Array.isArray(variants)) return [];
+  return variants.map((variant) => ({
+    ...variant,
+    images: toStoredProductImagePaths(variant.images),
+  }));
+};
 
 const normalizePacking = (packing) => {
   if (!packing || typeof packing !== 'object' || Array.isArray(packing)) return undefined;
@@ -88,7 +97,7 @@ export const AddProduct = async (req, res, next) => {
       dimensions: dimensions || '',
       careInstructions: careInstructions || '',
       badge: badge || '',
-      images: Array.isArray(images) ? images : [],
+      images: toStoredProductImagePaths(images),
       featured: Boolean(featured),
       bestseller: Boolean(bestseller),
       inStock: inStock !== undefined ? Boolean(inStock) : true,
@@ -97,11 +106,11 @@ export const AddProduct = async (req, res, next) => {
       metaTitle: metaTitle || '',
       metaDescription: metaDescription || '',
       colors: Array.isArray(colors) ? colors : [],
-      variants: Array.isArray(variants) ? variants : [],
+      variants: toStoredVariants(variants),
       ...(packing !== undefined ? { packing: normalizePacking(packing) } : {}),
     });
 
-    return res.status(201).json({ success: true, message: 'Product created successfully', product });
+    return res.status(201).json({ success: true, message: 'Product created successfully', product: withProductImageUrls(product, req) });
   } catch (error) {
     return next(error);
   }
@@ -110,7 +119,7 @@ export const AddProduct = async (req, res, next) => {
 export const GetAllProducts = async (req, res, next) => {
   try {
     const products = await V1Product.find().sort({ createdAt: -1 });
-    return res.status(200).json({ success: true, products });
+    return res.status(200).json({ success: true, products: products.map((product) => withProductImageUrls(product, req)) });
   } catch (error) {
     return next(error);
   }
@@ -122,7 +131,7 @@ export const GetProductById = async (req, res, next) => {
     if (!product) {
       return next(CustomeError(404, 'Product not found'));
     }
-    return res.status(200).json({ success: true, product });
+    return res.status(200).json({ success: true, product: withProductImageUrls(product, req) });
   } catch (error) {
     return next(error);
   }
@@ -188,7 +197,7 @@ export const UpdateProduct = async (req, res, next) => {
     if (dimensions !== undefined) updateData.dimensions = dimensions;
     if (careInstructions !== undefined) updateData.careInstructions = careInstructions;
     if (badge !== undefined) updateData.badge = badge;
-    if (images !== undefined) updateData.images = Array.isArray(images) ? images : [];
+    if (images !== undefined) updateData.images = toStoredProductImagePaths(images);
     if (featured !== undefined) updateData.featured = Boolean(featured);
     if (bestseller !== undefined) updateData.bestseller = Boolean(bestseller);
     if (inStock !== undefined) updateData.inStock = Boolean(inStock);
@@ -197,7 +206,7 @@ export const UpdateProduct = async (req, res, next) => {
     if (metaTitle !== undefined) updateData.metaTitle = metaTitle;
     if (metaDescription !== undefined) updateData.metaDescription = metaDescription;
     if (colors !== undefined) updateData.colors = Array.isArray(colors) ? colors : [];
-    if (variants !== undefined) updateData.variants = Array.isArray(variants) ? variants : [];
+    if (variants !== undefined) updateData.variants = toStoredVariants(variants);
     if (packing !== undefined) updateData.packing = normalizePacking(packing);
 
     const product = await V1Product.findByIdAndUpdate(req.params.id, updateData, { new: true });
@@ -205,7 +214,7 @@ export const UpdateProduct = async (req, res, next) => {
       return next(CustomeError(404, 'Product not found'));
     }
 
-    return res.status(200).json({ success: true, message: 'Product updated successfully', product });
+    return res.status(200).json({ success: true, message: 'Product updated successfully', product: withProductImageUrls(product, req) });
   } catch (error) {
     return next(error);
   }

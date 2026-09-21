@@ -23,7 +23,6 @@ import {
 } from 'lucide-react';
 import { saveProduct, deleteProduct, JEWELRY_COLORS } from '../services/storeService';
 import { apiAdminAddProduct, apiAdminUpdateProduct, apiAdminDeleteProduct, apiUploadImage, apiUploadMultipleImages, getImageUrl } from '../services/api';
-import { processMultipleImageFiles } from '../utils/imageUpload';
 
 const METAL_TYPES = [
   '925 Sterling Silver & Platinum Rhodium',
@@ -146,6 +145,7 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
   const [variants, setVariants] = useState(getInitialVariants());
   const [activeVariantIdx, setActiveVariantIdx] = useState(0);
   const [customSizeInput, setCustomSizeInput] = useState('');
+  const [customColorInput, setCustomColorInput] = useState('');
   const [isProcessingUpload, setIsProcessingUpload] = useState(false);
   const [uploadMessage, setUploadMessage] = useState('');
   const [previewHover, setPreviewHover] = useState(false);
@@ -220,23 +220,48 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
   const handleVariantDeviceFiles = async (varIdx, e) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+
+    setIsProcessingUpload(true);
+    setUploadMessage(`Uploading ${files.length} variant photo(s) to server...`);
+
     try {
-      const compressedUrls = await processMultipleImageFiles(files, {
-        maxWidth: 1200,
-        maxHeight: 1200,
-        quality: 0.85,
-      });
-      if (compressedUrls.length > 0) {
+      const serverUrls = await apiUploadMultipleImages(files);
+      if (serverUrls.length > 0) {
         setVariants((prev) =>
           prev.map((v, i) => {
             if (i !== varIdx) return v;
-            return { ...v, images: [...(v.images || []), ...compressedUrls] };
+            return { ...v, images: [...(v.images || []), ...serverUrls] };
           })
         );
+        setUploadMessage(`Successfully uploaded ${serverUrls.length} variant image(s).`);
+        setTimeout(() => setUploadMessage(''), 4000);
       }
     } catch (err) {
       console.error('Variant device image upload error:', err);
+      setUploadMessage('Error uploading variant images. Please try again.');
+    } finally {
+      setIsProcessingUpload(false);
+      e.target.value = '';
     }
+  };
+
+  // Products saved before server uploads were introduced can still contain
+  // data URLs. Migrate those images on save so an edit never sends base64 to
+  // the product API or stores it in MongoDB again.
+  const uploadLegacyBase64Images = async (imageUrls, prefix) => {
+    return Promise.all((imageUrls || []).map(async (imageUrl, index) => {
+      if (typeof imageUrl !== 'string' || !imageUrl.startsWith('data:image/')) {
+        return imageUrl;
+      }
+
+      const imageResponse = await fetch(imageUrl);
+      const imageBlob = await imageResponse.blob();
+      const extension = imageBlob.type.split('/')[1] || 'jpg';
+      const imageFile = new File([imageBlob], `${prefix}-${index + 1}.${extension}`, {
+        type: imageBlob.type,
+      });
+      return apiUploadImage(imageFile);
+    }));
   };
 
   // Auto generate slug if empty
@@ -382,6 +407,21 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
     }
   };
 
+  // Add a finish that is not one of the preset metal/color chips. Like a
+  // selected preset, it immediately gets a variant with the chosen sizes.
+  const handleAddCustomColor = (e) => {
+    if (e) e.preventDefault();
+    const colorToAdd = customColorInput.trim();
+    const alreadyExists = colors.some((color) => color.toLowerCase() === colorToAdd.toLowerCase());
+
+    if (colorToAdd && !alreadyExists) {
+      const nextColors = [...colors, colorToAdd];
+      setColors(nextColors);
+      setCustomColorInput('');
+      autoGenerateVariantsFromSelections(nextColors, sizes);
+    }
+  };
+
   // Toggle Color Variation selection with auto-variant update
   const toggleColor = (colorName) => {
     if (colors.includes(colorName)) {
@@ -409,7 +449,17 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
       return;
     }
 
-    const payload = {
+    try {
+      setIsProcessingUpload(true);
+      setUploadMessage('Preparing product images for upload...');
+
+      const storedImages = await uploadLegacyBase64Images(images, 'product-image');
+      const storedVariants = await Promise.all(variants.map(async (variant, variantIndex) => ({
+        ...variant,
+        images: await uploadLegacyBase64Images(variant.images, `variant-${variantIndex + 1}`),
+      })));
+
+      const payload = {
       name: formData.name.trim(),
       slug: formData.slug || formData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
       description: formData.description,
@@ -429,7 +479,7 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
       dimensions: formData.dimensions,
       careInstructions: formData.careInstructions,
       badge: formData.badge,
-      images: images.length > 0 ? images : [SAMPLE_JEWELRY_IMAGES[0]],
+      images: storedImages.length > 0 ? storedImages : [SAMPLE_JEWELRY_IMAGES[0]],
       featured: Boolean(formData.featured),
       bestseller: Boolean(formData.bestseller),
       inStock: Boolean(formData.inStock),
@@ -443,11 +493,10 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
         width: Number(formData.packing.width || 0),
         weight: Number(formData.packing.weight || 0),
       },
-      variants: variants,
+      variants: storedVariants,
       colors: colors.length > 0 ? colors : ['Pure 925 Silver'],
-    };
+      };
 
-    try {
       let savedProduct;
       if (product?._id) {
         const res = await apiAdminUpdateProduct(product._id, payload);
@@ -465,6 +514,8 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
       }, 600);
     } catch (err) {
       setApiError(err.message || 'Failed to save product');
+    } finally {
+      setIsProcessingUpload(false);
     }
   };
 
@@ -849,9 +900,43 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
                       </button>
                     );
                   })}
+                  {colors
+                    .filter((color) => !JEWELRY_COLORS.some((preset) => preset.name.toLowerCase() === color.toLowerCase()))
+                    .map((color) => (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => toggleColor(color)}
+                        className="shv-size-chip active"
+                        style={{ borderColor: '#A07E52', color: '#A07E52', background: '#FDFBF7' }}
+                        title="Custom metal/color variation - Click to remove"
+                      >
+                        <Check size={13} />
+                        <span>{color}</span>
+                        <X size={12} style={{ marginLeft: '4px' }} />
+                      </button>
+                    ))}
+                </div>
+                <div className="shv-editor-custom-size-group" style={{ marginTop: '0.75rem' }}>
+                  <input
+                    type="text"
+                    value={customColorInput}
+                    onChange={(e) => setCustomColorInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddCustomColor(e);
+                      }
+                    }}
+                    placeholder="Custom metal/color (e.g. Champagne Gold, Black Rhodium)"
+                  />
+                  <button type="button" onClick={handleAddCustomColor} className="shv-size-add-btn">
+                    <Plus size={14} />
+                    <span>Add Variation</span>
+                  </button>
                 </div>
                 <span style={{ fontSize: '0.76rem', color: '#64748B', marginTop: '4px', display: 'block' }}>
-                  Select all finishes available for this piece. Customers can toggle between these on both the card and detail page.
+                  Select preset finishes or add a custom variation. Each selection creates its own size, price, SKU, stock and photo variant.
                 </span>
               </div>
             </div>

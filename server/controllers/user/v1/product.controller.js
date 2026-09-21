@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import V1Product from '../../../models/product.model.js';
 import { CustomeError } from '../../../middleware/globelError.js';
+import { withProductImageUrls } from '../../../helper/productImageUrl.js';
 
 export const GetUserProducts = async (req, res, next) => {
   try {
@@ -25,7 +26,7 @@ export const GetUserProducts = async (req, res, next) => {
     }
 
     const products = await V1Product.find(filter).sort({ createdAt: -1 });
-    return res.status(200).json({ success: true, products });
+    return res.status(200).json({ success: true, products: products.map((product) => withProductImageUrls(product, req)) });
   } catch (error) {
     return next(error);
   }
@@ -47,7 +48,7 @@ export const GetUserProductById = async (req, res, next) => {
       return next(CustomeError(404, 'Product not found'));
     }
 
-    return res.status(200).json({ success: true, product });
+    return res.status(200).json({ success: true, product: withProductImageUrls(product, req) });
   } catch (error) {
     return next(error);
   }

@@ -97,6 +97,7 @@ const Checkout = () => {
   const finalPayable = cartTotal + deliverySurcharge + codSurcharge;
 
   const handlePlaceOrder = (e) => {
+    console.log(cart)
     e.preventDefault();
     setFormError('');
 
@@ -134,7 +135,7 @@ const Checkout = () => {
         image: item.image || (item.images && item.images[0]) || '/hero-ring-banner.jpg',
         price: item.price,
         quantity: item.quantity,
-        size: item.selectedSize || 'Standard',
+        size: item.size || 'Standard',
       })),
       pricing: {
         subtotal: cartSubtotal,

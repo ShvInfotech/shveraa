@@ -211,7 +211,22 @@ const Home = () => {
       <PromoPopup isOpen={showPromoPopup} onClose={handleClosePromoPopup} />
 
       {/* 1. Hero Section with Cinematic Ring Arch & Dynamic JS Background Image */}
-      <HeroSection heroImage={heroBgImage} />
+      <HeroSection
+        heroImage={settings?.heroBanners?.length || settings?.heroBanner?.title ? undefined : heroBgImage}
+        slides={(settings?.heroBanners?.length ? settings.heroBanners : (settings?.heroBanner?.title ? [settings.heroBanner] : []))
+          .map((banner, index) => ({
+            ...banner,
+            id: banner.id || `cms-hero-${index}`,
+            num: String(index + 1).padStart(2, '0'),
+            tagline: banner.badge || 'SHVERAA ATELIER',
+            title: banner.title || 'Pure 925 Silver. Pure Emotion.',
+            subtitle: banner.subtitle || '',
+            image: banner.image || '/hero-ring-banner.jpg',
+            link: banner.ctaLink || '/shop',
+            ctaText: banner.ctaText || 'SHOP COLLECTION',
+            isCms: true,
+          }))}
+      />
 
       {/* 2. Brand Trust Strip — Warm Editorial Ribbon */}
       <section className="shv-editorial-trust-strip">

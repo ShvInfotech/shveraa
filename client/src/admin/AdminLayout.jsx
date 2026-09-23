@@ -145,6 +145,7 @@ const AdminLayout = () => {
           {currentTab === 'cms' && (
             <AdminCMS
               onRefresh={refreshStore}
+              settings={settings}
             />
           )}
 

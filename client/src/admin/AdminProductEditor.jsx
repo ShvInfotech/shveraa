@@ -104,7 +104,9 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
     category: (product?.category || categories[0]?.slug || 'rings').toLowerCase(),
     collection: product?.collection || 'Atelier Signature',
     price: product?.price || '',
-    originalPrice: product?.originalPrice || '',
+    // Keep a missing compare-at MRP as zero. In particular, do not replace it
+    // with an inferred markup when an existing product is updated.
+    originalPrice: product?.originalPrice ?? 0,
     makingCharges: product?.makingCharges || 450,
     metalType: product?.metalType || product?.material || METAL_TYPES[0],
     metalPurity: product?.metalPurity || 'BIS Hallmarked 925 Pure Silver',
@@ -464,7 +466,7 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
       slug: formData.slug || formData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
       description: formData.description,
       price: Number(formData.price),
-      originalPrice: Number(formData.originalPrice || (Number(formData.price) * 1.3).toFixed(0)),
+      originalPrice: Number(formData.originalPrice || 0),
       category: formData.category,
       sku: formData.sku.trim(),
       collection: formData.collection.trim(),

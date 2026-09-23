@@ -37,14 +37,22 @@ const Navbar = () => {
   const [megaMenuOpen, setMegaMenuOpen] = useState(null); // 'shop' | 'collections' | 'personalised' | null
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
+  const configuredAnnouncements = Array.isArray(settings?.announcements)
+    ? settings.announcements.filter((message) => typeof message === 'string' && message.trim())
+    : [];
   const announcements =
-    settings?.announcements && settings.announcements.length > 0
-      ? settings.announcements
+    configuredAnnouncements.length > 0
+      ? configuredAnnouncements
       : [
-          settings?.announcementText || DEFAULT_ANNOUNCEMENTS[0],
-          DEFAULT_ANNOUNCEMENTS[1],
-          DEFAULT_ANNOUNCEMENTS[2],
+          settings?.announcementText?.trim() || DEFAULT_ANNOUNCEMENTS[0],
+          ...DEFAULT_ANNOUNCEMENTS.slice(1),
         ];
+  const announcementSignature = announcements.join('\u0000');
+  const visibleAnnouncement = announcements[announcementIdx % announcements.length];
+
+  useEffect(() => {
+    setAnnouncementIdx(0);
+  }, [announcementSignature]);
 
   // Auto rotate announcement bar every 4 seconds
   useEffect(() => {
@@ -90,11 +98,11 @@ const Navbar = () => {
 
   return (
     <>
-      {/* 1. Top Rotating Announcement Bar (Hidden on editorial Home page to match reference design) */}
+      {/* Top rotating announcement bar */}
       {!isHomePage && (
         <div className="announcement-bar" role="region" aria-label="Offers and Announcements">
           <div key={announcementIdx} className="announcement-text-container shv-announcement-animate">
-            <span className="announcement-text">{announcements[announcementIdx]}</span>
+            <span className="announcement-text">{visibleAnnouncement}</span>
           </div>
         </div>
       )}

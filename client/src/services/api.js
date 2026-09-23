@@ -519,6 +519,23 @@ export const apiAdminGetCoupons = async () => {
   return data;
 };
 
+export const apiGetStoreSettings = async () => {
+  const res = await apiFetch('/api/v1/admin/store-settings');
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to fetch storefront settings');
+  return data;
+};
+
+export const apiAdminSaveStoreSettings = async (settings) => {
+  const res = await apiFetch('/api/v1/admin/store-settings', {
+    method: 'PUT',
+    body: JSON.stringify({ settings }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to save storefront settings');
+  return data;
+};
+
 export const apiAdminAddCoupon = async (couponData) => {
   const res = await apiFetch('/api/v1/admin/coupons/add', {
     method: 'POST',

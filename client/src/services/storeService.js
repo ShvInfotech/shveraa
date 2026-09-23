@@ -6,6 +6,7 @@ import {
   apiAdminLogin, apiAdminLogout,
   apiAdminGetCategories, apiAdminGetProducts, apiAdminGetCoupons,
   apiGetCategories, apiGetProducts,
+  apiGetStoreSettings, apiAdminSaveStoreSettings,
 } from './api';
 
 import { DEFAULT_ADMIN_ORDERS } from '../admin/adminData';
@@ -313,28 +314,21 @@ export const validateCoupon = (code, cartSubtotal) => {
    CMS SETTINGS CRUD
    ========================================================================== */
 export const getSettings = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(INITIAL_SETTINGS));
-      return INITIAL_SETTINGS;
-    }
-    return { ...INITIAL_SETTINGS, ...JSON.parse(raw) };
-  } catch (err) {
-    console.error('Error reading settings:', err);
-    return INITIAL_SETTINGS;
-  }
+  // Database is the source of truth. This value is only the initial loading state.
+  return INITIAL_SETTINGS;
 };
 
-export const saveSettings = (newSettings) => {
+export const saveSettings = async (newSettings) => {
   try {
     const updated = { ...getSettings(), ...newSettings };
-    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(updated));
-    notifyStoreUpdated('SETTINGS_UPDATED', updated);
-    return updated;
+    const result = await apiAdminSaveStoreSettings(updated);
+    const persisted = { ...INITIAL_SETTINGS, ...result.settings };
+    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(persisted));
+    notifyStoreUpdated('SETTINGS_UPDATED', persisted);
+    return persisted;
   } catch (err) {
     console.error('Error saving settings:', err);
-    return getSettings();
+    throw err;
   }
 };
 
@@ -379,9 +373,21 @@ export const useDynamicStore = () => {
     }
   };
 
+  const fetchStoreSettings = async () => {
+    try {
+      const data = await apiGetStoreSettings();
+      const dbSettings = { ...INITIAL_SETTINGS, ...(data?.settings || {}) };
+      setSettings(dbSettings);
+      return dbSettings;
+    } catch (err) {
+      console.error('Error loading storefront settings from DB:', err);
+      return null;
+    }
+  };
+
   const refreshStore = () => {
     setCategories(getCategories());
-    setSettings(getSettings());
+    fetchStoreSettings();
     fetchBackendProducts();
     fetchBackendCoupons();
   };
@@ -414,6 +420,8 @@ export const useDynamicStore = () => {
 
     // Fetch products from backend
     fetchBackendProducts();
+
+    fetchStoreSettings();
 
     // Fetch coupons from backend
     fetchBackendCoupons();

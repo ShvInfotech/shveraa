@@ -129,6 +129,10 @@ const HeroSection = ({ heroImage, slides: propSlides }) => {
     return base;
   }, [propSlides, heroImage]);
 
+  useEffect(() => {
+    setActiveIdx((index) => Math.min(index, Math.max(slides.length - 1, 0)));
+  }, [slides.length]);
+
   const goToSlide = useCallback((index) => {
     if (index === activeIdx) return;
     setIsFading(true);
@@ -234,19 +238,20 @@ const HeroSection = ({ heroImage, slides: propSlides }) => {
           <span className="shv-hero-pretitle">{slide.tagline}</span>
 
           <h1 className="shv-hero-headline">
-            {slide.titleLine1} <br />
-            {slide.titleLine2} <br />
-            <span className="shv-hero-headline-italic">{slide.titleAccent}</span>
+            {slide.isCms ? slide.title : <>
+              {slide.titleLine1} <br />
+              {slide.titleLine2} <br />
+              <span className="shv-hero-headline-italic">{slide.titleAccent}</span>
+            </>}
           </h1>
 
           <p className="shv-hero-lead-text">
-            {slide.subtitle} <br />
-            {slide.description}
+            {slide.subtitle} {slide.description && <><br />{slide.description}</>}
           </p>
 
           <div className="shv-hero-button-group">
             <Link to={slide.link} className="shv-btn-shop-collection">
-              <span>SHOP COLLECTION</span>
+              <span>{slide.ctaText || 'SHOP COLLECTION'}</span>
               <ArrowRight size={17} className="shv-btn-arrow" />
             </Link>
 

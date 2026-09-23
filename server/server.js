@@ -31,7 +31,6 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 app.use('/api/contact', contactRoutes);
 
-
 // Health check route
 app.get('/api/health', (req, res) => {
   res.json({status: 'ok',brand: 'Shveraa',timestamp: new Date().toISOString()});

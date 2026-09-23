@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Globe,
   BellRing,
@@ -21,14 +21,21 @@ import {
 import { getSettings, saveSettings } from '../services/storeService';
 import { compressImageFile } from '../utils/imageUpload';
 
-const AdminCMS = ({ onRefresh }) => {
-  const currentSettings = getSettings();
+const AdminCMS = ({ onRefresh, settings: currentSettings }) => {
   const heroFileInputRef = useRef(null);
   const [activeTab, setActiveTab] = useState('announcements'); // 'announcements' | 'hero' | 'contact' | 'policies'
   const [settings, setLocalSettings] = useState(currentSettings);
   const [savedAlert, setSavedAlert] = useState(false);
   const [newAnnouncement, setNewAnnouncement] = useState('');
+  const [editingAnnouncement, setEditingAnnouncement] = useState(null);
+  const [activeHeroIndex, setActiveHeroIndex] = useState(0);
   const [heroUploading, setHeroUploading] = useState(false);
+  const heroBanners = settings.heroBanners?.length ? settings.heroBanners : [settings.heroBanner || {}];
+  const activeHeroBanner = heroBanners[activeHeroIndex] || heroBanners[0] || {};
+
+  useEffect(() => {
+    setLocalSettings(currentSettings || getSettings());
+  }, [currentSettings]);
 
   // Handle device hero image upload
   const handleHeroFileUpload = async (e) => {
@@ -37,7 +44,7 @@ const AdminCMS = ({ onRefresh }) => {
     try {
       setHeroUploading(true);
       const dataUrl = await compressImageFile(file, { maxWidth: 1920, maxHeight: 1080, quality: 0.85 });
-      updateNested('heroBanner', 'image', dataUrl);
+      updateHeroBannerField('image', dataUrl);
     } catch (err) {
       console.error('Hero image upload error:', err);
       alert('Failed to process image. Please choose another photo.');
@@ -47,19 +54,33 @@ const AdminCMS = ({ onRefresh }) => {
     }
   };
 
-  // Handle nested update
-  const updateNested = (parent, field, value) => {
-    setLocalSettings((prev) => ({
-      ...prev,
-      [parent]: {
-        ...prev[parent],
-        [field]: value,
-      },
-    }));
+  const updateHeroBannerField = (field, value) => {
+    setLocalSettings((prev) => {
+      const banners = prev.heroBanners?.length ? [...prev.heroBanners] : [{ ...(prev.heroBanner || {}) }];
+      const idx = Math.min(activeHeroIndex, banners.length - 1);
+      banners[idx] = { ...banners[idx], [field]: value };
+      return { ...prev, heroBanners: banners, heroBanner: banners[0] };
+    });
+  };
+
+  const addHeroBanner = () => {
+    const banners = [...heroBanners, { badge: '', title: '', subtitle: '', ctaText: 'Explore Collection', ctaLink: '/shop', image: '' }];
+    setLocalSettings({ ...settings, heroBanners: banners, heroBanner: banners[0] });
+    setActiveHeroIndex(banners.length - 1);
+  };
+
+  const deleteHeroBanner = (index) => {
+    if (heroBanners.length <= 1) {
+      alert('At least one homepage hero banner is required.');
+      return;
+    }
+    const banners = heroBanners.filter((_, idx) => idx !== index);
+    setLocalSettings({ ...settings, heroBanners: banners, heroBanner: banners[0] });
+    setActiveHeroIndex(Math.min(index, banners.length - 1));
   };
 
   // Add announcement to rotating list
-  const handleAddAnnouncement = (e) => {
+  const handleAddAnnouncement = async (e) => {
     e.preventDefault();
     if (!newAnnouncement.trim()) return;
     const currentList = settings.announcements || [settings.announcementText];
@@ -70,14 +91,14 @@ const AdminCMS = ({ onRefresh }) => {
       announcementText: updatedList[0],
     };
     setLocalSettings(updated);
-    saveSettings(updated);
+    try { await saveSettings(updated); } catch (err) { alert(err.message || 'Could not save announcement to database.'); return; }
     setNewAnnouncement('');
     triggerSuccess();
     onRefresh && onRefresh();
   };
 
   // Remove announcement from list
-  const handleRemoveAnnouncement = (index) => {
+  const handleRemoveAnnouncement = async (index) => {
     const currentList = settings.announcements || [settings.announcementText];
     if (currentList.length <= 1) {
       alert('Must maintain at least one announcement.');
@@ -90,14 +111,27 @@ const AdminCMS = ({ onRefresh }) => {
       announcementText: updatedList[0],
     };
     setLocalSettings(updated);
-    saveSettings(updated);
+    try { await saveSettings(updated); } catch (err) { alert(err.message || 'Could not save announcement to database.'); return; }
     triggerSuccess();
     onRefresh && onRefresh();
   };
 
-  const handleSaveAll = (e) => {
+  const handleUpdateAnnouncement = async (e) => {
+    e.preventDefault();
+    if (!editingAnnouncement?.text.trim()) return;
+    const currentList = settings.announcements || [settings.announcementText];
+    const updatedList = currentList.map((item, idx) => idx === editingAnnouncement.index ? editingAnnouncement.text.trim() : item);
+    const updated = { ...settings, announcements: updatedList, announcementText: updatedList[0] };
+    setLocalSettings(updated);
+    try { await saveSettings(updated); } catch (err) { alert(err.message || 'Could not save announcement to database.'); return; }
+    setEditingAnnouncement(null);
+    triggerSuccess();
+    onRefresh && onRefresh();
+  };
+
+  const handleSaveAll = async (e) => {
     e?.preventDefault();
-    saveSettings(settings);
+    try { await saveSettings(settings); } catch (err) { alert(err.message || 'Could not save CMS changes to database.'); return; }
     triggerSuccess();
     onRefresh && onRefresh();
   };
@@ -191,10 +225,10 @@ const AdminCMS = ({ onRefresh }) => {
               <input
                 type="checkbox"
                 checked={settings.announcementEnabled !== false}
-                onChange={(e) => {
+                onChange={async (e) => {
                   const updated = { ...settings, announcementEnabled: e.target.checked };
                   setLocalSettings(updated);
-                  saveSettings(updated);
+                  try { await saveSettings(updated); } catch (err) { alert(err.message || 'Could not save announcement setting to database.'); return; }
                   triggerSuccess();
                 }}
               />
@@ -222,7 +256,14 @@ const AdminCMS = ({ onRefresh }) => {
             {(settings.announcements || [settings.announcementText]).map((item, index) => (
               <div key={index} className="shv-cms-announcement-row">
                 <div className="shv-cms-announcement-num">#{index + 1}</div>
-                <div className="shv-cms-announcement-text">{item}</div>
+                {editingAnnouncement?.index === index ? (
+                  <form onSubmit={handleUpdateAnnouncement} style={{ display: 'flex', gap: '0.5rem', flex: 1 }}>
+                    <input aria-label={`Edit announcement ${index + 1}`} autoFocus value={editingAnnouncement.text} onChange={(e) => setEditingAnnouncement({ ...editingAnnouncement, text: e.target.value })} />
+                    <button type="submit" className="shv-btn-primary">Save</button>
+                    <button type="button" className="shv-table-filter-btn" onClick={() => setEditingAnnouncement(null)}>Cancel</button>
+                  </form>
+                ) : <div className="shv-cms-announcement-text">{item}</div>}
+                {editingAnnouncement?.index !== index && <button type="button" className="shv-table-filter-btn" onClick={() => setEditingAnnouncement({ index, text: item })} aria-label={`Edit announcement ${index + 1}`}>Edit</button>}
                 <button
                   type="button"
                   onClick={() => handleRemoveAnnouncement(index)}
@@ -243,8 +284,20 @@ const AdminCMS = ({ onRefresh }) => {
           <div className="shv-cms-card-header">
             <div>
               <h3>Homepage Hero Campaign</h3>
-              <p>The primary visual banner greeted by connoisseurs entering Shveraa Fine Jewellery.</p>
+              <p>Add multiple homepage banners. They rotate automatically on the storefront.</p>
             </div>
+            <button type="button" className="shv-btn-primary" onClick={addHeroBanner}><Plus size={16} /> Add Banner</button>
+          </div>
+
+          <div className="shv-cms-announcement-list" style={{ marginBottom: '1.25rem' }}>
+            {heroBanners.map((banner, index) => (
+              <div key={index} className="shv-cms-announcement-row" style={{ cursor: 'pointer' }} onClick={() => setActiveHeroIndex(index)}>
+                <div className="shv-cms-announcement-num">#{index + 1}</div>
+                <div className="shv-cms-announcement-text">{banner.title || 'Untitled banner'}</div>
+                <button type="button" className="shv-table-filter-btn" onClick={(e) => { e.stopPropagation(); setActiveHeroIndex(index); }} aria-label={`Edit banner ${index + 1}`}>Edit</button>
+                <button type="button" className="shv-cms-delete-icon" onClick={(e) => { e.stopPropagation(); deleteHeroBanner(index); }} title="Delete banner"><Trash2 size={16} /></button>
+              </div>
+            ))}
           </div>
 
           <div className="shv-editor-fields-grid">
@@ -252,8 +305,8 @@ const AdminCMS = ({ onRefresh }) => {
               <label>Top Collection Badge</label>
               <input
                 type="text"
-                value={settings.heroBanner?.badge || 'NEW ATELIER COLLECTION 2026'}
-                onChange={(e) => updateNested('heroBanner', 'badge', e.target.value)}
+                value={activeHeroBanner.badge || ''}
+                onChange={(e) => updateHeroBannerField('badge', e.target.value)}
                 placeholder="NEW ATELIER COLLECTION 2026"
               />
             </div>
@@ -262,8 +315,8 @@ const AdminCMS = ({ onRefresh }) => {
               <label>Headline / Main Title</label>
               <input
                 type="text"
-                value={settings.heroBanner?.title || 'Pure 925 Silver. Pure Emotion.'}
-                onChange={(e) => updateNested('heroBanner', 'title', e.target.value)}
+                value={activeHeroBanner.title || ''}
+                onChange={(e) => updateHeroBannerField('title', e.target.value)}
                 placeholder="Pure 925 Silver. Pure Emotion."
               />
             </div>
@@ -272,8 +325,8 @@ const AdminCMS = ({ onRefresh }) => {
               <label>Subheadline / Atelier Poetry</label>
               <textarea
                 rows={3}
-                value={settings.heroBanner?.subtitle || 'Handcrafted in BIS certified sterling silver, mirror platinum rhodium and pure light.'}
-                onChange={(e) => updateNested('heroBanner', 'subtitle', e.target.value)}
+                value={activeHeroBanner.subtitle || ''}
+                onChange={(e) => updateHeroBannerField('subtitle', e.target.value)}
               />
             </div>
 
@@ -281,8 +334,8 @@ const AdminCMS = ({ onRefresh }) => {
               <label>Button Call-to-Action (CTA) Label</label>
               <input
                 type="text"
-                value={settings.heroBanner?.ctaText || 'Explore Atelier Creations'}
-                onChange={(e) => updateNested('heroBanner', 'ctaText', e.target.value)}
+                value={activeHeroBanner.ctaText || ''}
+                onChange={(e) => updateHeroBannerField('ctaText', e.target.value)}
                 placeholder="Explore Atelier Creations"
               />
             </div>
@@ -291,8 +344,8 @@ const AdminCMS = ({ onRefresh }) => {
               <label>Button Target URL</label>
               <input
                 type="text"
-                value={settings.heroBanner?.ctaLink || '/shop'}
-                onChange={(e) => updateNested('heroBanner', 'ctaLink', e.target.value)}
+                value={activeHeroBanner.ctaLink || ''}
+                onChange={(e) => updateHeroBannerField('ctaLink', e.target.value)}
                 placeholder="/shop"
               />
             </div>
@@ -329,10 +382,10 @@ const AdminCMS = ({ onRefresh }) => {
                 </div>
               </div>
 
-              {settings.heroBanner?.image && (
+              {activeHeroBanner.image && (
                 <div style={{ marginTop: '0.85rem', position: 'relative', height: '150px', borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--admin-border)' }}>
                   <img
-                    src={settings.heroBanner.image}
+                    src={activeHeroBanner.image}
                     alt="Hero banner preview"
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
@@ -357,13 +410,13 @@ const AdminCMS = ({ onRefresh }) => {
         </div>
       )}
 
-      {/* TAB 3: CONTACT & CONCIERGE HOTLINE */}
+      {/* Admin managed contact settings */}
       {activeTab === 'contact' && (
         <div className="shv-cms-content-card">
           <div className="shv-cms-card-header">
             <div>
               <h3>Atelier Contact &amp; Concierge Details</h3>
-              <p>Immediately syncs across the Navbar, Footer, and Contact page for client inquiries.</p>
+              <p>Manage atelier contact and concierge details from the admin panel.</p>
             </div>
           </div>
 

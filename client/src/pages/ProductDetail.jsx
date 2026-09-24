@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { fetchProductById, fetchProducts } from '../services/api';
+import { fetchProductById, fetchProducts, apiCheckPincodeDetails } from '../services/api';
 import { getProductColors } from '../services/storeService';
 import ProductCard from '../components/ProductCard';
 import Loader from '../components/Loader';
@@ -102,6 +102,7 @@ const ProductDetail = () => {
   const [pincode, setPincode] = useState('');
   const [deliveryResult, setDeliveryResult] = useState(null);
   const [pincodeError, setPincodeError] = useState('');
+  const [pincodeLoading, setPincodeLoading] = useState(false);
 
   // Reviews State
   const [reviews, setReviews] = useState([]);
@@ -372,28 +373,42 @@ const ProductDetail = () => {
   };
 
   // Pincode Delivery Check
-  const handleCheckPincode = (e) => {
+  const handleCheckPincode = async (e) => {
     e.preventDefault();
     setPincodeError('');
+    setDeliveryResult(null);
     if (!/^\d{6}$/.test(pincode.trim())) {
       setPincodeError('Please enter a valid 6-digit Indian PIN code.');
-      setDeliveryResult(null);
       return;
     }
 
-    const today = new Date();
-    const estDate = new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000);
-    const dayStr = estDate.toLocaleDateString('en-IN', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'short',
-    });
+    setPincodeLoading(true);
+    try {
+      const response = await apiCheckPincodeDetails(pincode.trim());
+      const info = response.data;
 
-    setDeliveryResult({
-      date: dayStr,
-      pincode: pincode.trim(),
-      carrier: 'BlueDart Air Express',
-    });
+      const today = new Date();
+      const estDate = new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000);
+      const dayStr = estDate.toLocaleDateString('en-IN', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'short',
+      });
+
+      setDeliveryResult({
+        pincode: info.pincode,
+        city: info.city,
+        state_code: info.state_code,
+        is_cod_available: info.is_cod_available,
+        is_prepaid_available: info.is_prepaid_available,
+        is_pickup_available: info.is_pickup_available,
+        date: dayStr,
+      });
+    } catch (err) {
+      setPincodeError(err.message || 'Unable to fetch delivery details. Please try again.');
+    } finally {
+      setPincodeLoading(false);
+    }
   };
 
   // Reviews Filtering
@@ -768,8 +783,8 @@ const ProductDetail = () => {
                   onChange={(e) => setPincode(e.target.value.replace(/\D/g, ''))}
                   className="shv-pdp-pincode-input"
                 />
-                <button type="submit" className="shv-pdp-pincode-btn">
-                  Check
+                <button type="submit" className="shv-pdp-pincode-btn" disabled={pincodeLoading}>
+                  {pincodeLoading ? 'Checking...' : 'Check'}
                 </button>
               </form>
               {pincodeError && (
@@ -781,8 +796,12 @@ const ProductDetail = () => {
                 <div className="shv-pdp-delivery-result">
                   <CheckCircle2 size={16} />
                   <span>
-                    Express Air Delivery to <strong>{deliveryResult.pincode}</strong> by{' '}
-                    <strong>{deliveryResult.date}</strong> via BlueDart. Cash on Delivery available.
+                    Delivery to <strong>{deliveryResult.pincode} – {deliveryResult.city}, {deliveryResult.state_code}</strong> by{' '}
+                    <strong>{deliveryResult.date}</strong>.{' '}
+                    {deliveryResult.is_cod_available
+                      ? 'Cash on Delivery available.'
+                      : 'Cash on Delivery not available.'}{' '}
+                    {deliveryResult.is_prepaid_available && 'Prepaid available.'}
                   </span>
                 </div>
               )}

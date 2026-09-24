@@ -62,7 +62,7 @@ const API_BASE_URL = '/api';
 // Image URL Helper (prepends backend URL if relative /uploads path)
 export const getImageUrl = (url) => {
   if (!url) return '';
-  if (url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('http://') || url.startsWith('https://')) {
+  if (url.startsWith('http://') || url.startsWith('https://')) {
     return url;
   }
   const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
@@ -519,6 +519,17 @@ export const apiAdminGetCoupons = async () => {
   return data;
 };
 
+export const apiDeleteUploadedImage = async (url) => {
+  const token = localStorage.getItem('shveraa_admin_token');
+  const res = await apiFetch('/api/v1/admin/upload', {
+    method: 'DELETE',
+    body: JSON.stringify({ url }),
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Image cleanup failed');
+};
+
 export const apiGetStoreSettings = async () => {
   const res = await apiFetch('/api/v1/admin/store-settings');
   const data = await res.json();
@@ -527,6 +538,13 @@ export const apiGetStoreSettings = async () => {
 };
 
 export const apiAdminSaveStoreSettings = async (settings) => {
+  const imageValues = [
+    ...(Array.isArray(settings.heroBanners) ? settings.heroBanners.map((banner) => banner?.image) : []),
+    settings.heroBanner?.image,
+  ];
+  if (imageValues.some((image) => typeof image === 'string' && /^data:image\//i.test(image))) {
+    throw new Error('Base64 images are not supported. Upload the image file first.');
+  }
   const res = await apiFetch('/api/v1/admin/store-settings', {
     method: 'PUT',
     body: JSON.stringify({ settings }),
@@ -688,3 +706,17 @@ export const apiToggleWishlist = async (productId) => {
   if (!res.ok) throw new Error(data.message || 'Failed to toggle wishlist');
   return data;
 };
+
+/* ==========================================================================
+   DELHIVERY PINCODE DETAILS API
+   ========================================================================== */
+export const apiCheckPincodeDetails = async (pincode) => {
+  const res = await apiFetch(`/api/v1/user/delhivery/get-pincode-details/${encodeURIComponent(pincode)}`);
+  const data = await res.json();
+  if (!res.ok || data.success === false) {
+    throw new Error(data.message || 'No delivery information available for the given pincode');
+  }
+  return data;
+};
+
+

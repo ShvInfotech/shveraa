@@ -17,7 +17,10 @@ import {
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { apiGetUserAddresses, getImageUrl } from '../services/api';
+import {
+  apiGetUserAddresses,
+  getImageUrl,
+} from '../services/api';
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -96,8 +99,27 @@ const Checkout = () => {
   const codSurcharge = paymentMethod === 'cod' ? 99 : 0;
   const finalPayable = cartTotal + deliverySurcharge + codSurcharge;
 
-  const handlePlaceOrder = (e) => {
-    console.log(cart)
+  const cachePlacedOrder = (orderData) => {
+    try {
+      localStorage.setItem('shveraa_last_order', JSON.stringify(orderData));
+      const existingOrdersStr = localStorage.getItem('shveraa_orders');
+      const existingOrders = existingOrdersStr ? JSON.parse(existingOrdersStr) : [];
+      const updatedOrders = [orderData, ...existingOrders.filter((o) => o.orderId !== orderData.orderId)];
+      localStorage.setItem('shveraa_orders', JSON.stringify(updatedOrders));
+      window.dispatchEvent(new CustomEvent('shveraa_store_updated', { detail: { action: 'ORDER_PLACED', data: updatedOrders } }));
+    } catch (err) {
+      console.warn('Could not cache order in storage:', err);
+    }
+  };
+
+  const finishOrder = async (orderData) => {
+    cachePlacedOrder(orderData);
+    await clearCart();
+    setIsPlacingOrder(false);
+    navigate('/order-success', { state: { order: orderData } });
+  };
+
+  const handlePlaceOrder = async (e) => {
     e.preventDefault();
     setFormError('');
 
@@ -114,62 +136,43 @@ const Checkout = () => {
 
     setIsPlacingOrder(true);
 
-    const generatedOrderId = `SHV-${Math.floor(100000 + Math.random() * 900000)}`;
+    const orderId = `SHV-${Math.floor(100000 + Math.random() * 900000)}`;
+    const now = new Date();
+    const items = cart.map((item) => ({
+      id: item.productId || item._id || item.slug || item.id,
+      name: item.name,
+      image: item.image || (item.images && item.images[0]) || '/hero-ring-banner.jpg',
+      price: Number(item.price || 0),
+      qty: Number(item.quantity || 1),
+      size: item.size || item.selectedSize || 'Standard',
+    }));
     const orderData = {
-      orderId: generatedOrderId,
-      displayId: `#${generatedOrderId}`,
-      date: new Date().toLocaleDateString('en-IN', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      }),
+      orderId,
+      displayId: `#${orderId}`,
       customer: {
         fullName,
         email,
         phone,
-        address: `${address}, ${apartment ? apartment + ', ' : ''}${city}, ${stateName} - ${pincode}`,
+        address: `${address}${apartment ? `, ${apartment}` : ''}`,
+        city: `${city}${stateName ? `, ${stateName}` : ''}`,
+        pincode,
       },
-      items: cart.map((item) => ({
-        id: item._id || item.slug || item.id,
-        name: item.name,
-        image: item.image || (item.images && item.images[0]) || '/hero-ring-banner.jpg',
-        price: item.price,
-        quantity: item.quantity,
-        size: item.size || 'Standard',
-      })),
+      items,
       pricing: {
         subtotal: cartSubtotal,
         discount: discountAmount,
         shipping: shippingCost === 0 ? 'FREE' : `₹${shippingCost}`,
-        deliverySurcharge,
-        codSurcharge,
         total: finalPayable,
       },
-      deliveryOption,
-      paymentMethod,
-      paymentStatus: paymentMethod === 'cod' ? 'Pending (COD)' : 'Paid',
+      paymentMethod: paymentMethod === 'cod' ? 'Cash on Delivery (COD)' : `${paymentMethod.toUpperCase()} (Demo)`,
+      paymentStatus: paymentMethod === 'cod' ? 'Pending On Delivery' : 'Demo — Not Charged',
       status: 'Scheduled',
+      date: now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+      estimatedDelivery: '2–4 Business Days',
       carrier: 'BlueDart Air Express',
-      trackingNumber: `BD-${Math.floor(10000000 + Math.random() * 90000000)}`,
-      estimatedDelivery: '2–4 Business Days (Insured Air Express)',
+      trackingNumber: 'N/A',
     };
-
-    try {
-      localStorage.setItem('shveraa_last_order', JSON.stringify(orderData));
-      const existingOrdersStr = localStorage.getItem('shveraa_orders');
-      const existingOrders = existingOrdersStr ? JSON.parse(existingOrdersStr) : [];
-      const updatedOrders = [orderData, ...existingOrders.filter((o) => o.orderId !== orderData.orderId)];
-      localStorage.setItem('shveraa_orders', JSON.stringify(updatedOrders));
-      window.dispatchEvent(new CustomEvent('shveraa_store_updated', { detail: { action: 'ORDER_PLACED', data: updatedOrders } }));
-    } catch (err) {
-      console.warn('Could not cache order in storage:', err);
-    }
-
-    setTimeout(() => {
-      clearCart();
-      setIsPlacingOrder(false);
-      navigate('/order-success', { state: { order: orderData } });
-    }, 900);
+    finishOrder(orderData);
   };
 
   if (cart.length === 0 && !isPlacingOrder) {

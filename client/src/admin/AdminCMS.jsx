@@ -19,7 +19,17 @@ import {
   Upload,
 } from 'lucide-react';
 import { getSettings, saveSettings } from '../services/storeService';
-import { compressImageFile } from '../utils/imageUpload';
+import { apiUploadImage, apiDeleteUploadedImage, getImageUrl } from '../services/api';
+
+const dataUrlToImageFile = (dataUrl, index) => {
+  const match = /^data:(image\/[^;,]+);base64,([\s\S]+)$/i.exec(dataUrl);
+  if (!match) throw new Error('A hero image has an invalid legacy image value. Please choose it again.');
+  const binary = atob(match[2]);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  const extension = match[1].split('/')[1].replace(/[^a-z0-9]/gi, '') || 'jpg';
+  return new File([bytes], `hero-banner-${index + 1}.${extension}`, { type: match[1] });
+};
 
 const AdminCMS = ({ onRefresh, settings: currentSettings }) => {
   const heroFileInputRef = useRef(null);
@@ -30,6 +40,7 @@ const AdminCMS = ({ onRefresh, settings: currentSettings }) => {
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [activeHeroIndex, setActiveHeroIndex] = useState(0);
   const [heroUploading, setHeroUploading] = useState(false);
+  const [pendingHeroFiles, setPendingHeroFiles] = useState({});
   const heroBanners = settings.heroBanners?.length ? settings.heroBanners : [settings.heroBanner || {}];
   const activeHeroBanner = heroBanners[activeHeroIndex] || heroBanners[0] || {};
 
@@ -37,21 +48,15 @@ const AdminCMS = ({ onRefresh, settings: currentSettings }) => {
     setLocalSettings(currentSettings || getSettings());
   }, [currentSettings]);
 
-  // Handle device hero image upload
-  const handleHeroFileUpload = async (e) => {
+  // Keep selected files in the browser until the CMS form is submitted.
+  const handleHeroFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    try {
-      setHeroUploading(true);
-      const dataUrl = await compressImageFile(file, { maxWidth: 1920, maxHeight: 1080, quality: 0.85 });
-      updateHeroBannerField('image', dataUrl);
-    } catch (err) {
-      console.error('Hero image upload error:', err);
-      alert('Failed to process image. Please choose another photo.');
-    } finally {
-      setHeroUploading(false);
-      if (heroFileInputRef.current) heroFileInputRef.current.value = '';
-    }
+    const previous = pendingHeroFiles[activeHeroIndex];
+    if (previous?.previewUrl) URL.revokeObjectURL(previous.previewUrl);
+    const previewUrl = URL.createObjectURL(file);
+    setPendingHeroFiles((prev) => ({ ...prev, [activeHeroIndex]: { file, previewUrl } }));
+    if (heroFileInputRef.current) heroFileInputRef.current.value = '';
   };
 
   const updateHeroBannerField = (field, value) => {
@@ -75,6 +80,9 @@ const AdminCMS = ({ onRefresh, settings: currentSettings }) => {
       return;
     }
     const banners = heroBanners.filter((_, idx) => idx !== index);
+    setPendingHeroFiles((prev) => Object.fromEntries(Object.entries(prev)
+      .filter(([key]) => Number(key) !== index)
+      .map(([key, file]) => [Number(key) > index ? Number(key) - 1 : Number(key), file])));
     setLocalSettings({ ...settings, heroBanners: banners, heroBanner: banners[0] });
     setActiveHeroIndex(Math.min(index, banners.length - 1));
   };
@@ -131,9 +139,35 @@ const AdminCMS = ({ onRefresh, settings: currentSettings }) => {
 
   const handleSaveAll = async (e) => {
     e?.preventDefault();
-    try { await saveSettings(settings); } catch (err) { alert(err.message || 'Could not save CMS changes to database.'); return; }
-    triggerSuccess();
-    onRefresh && onRefresh();
+    const uploadedPaths = [];
+    try {
+      setHeroUploading(true);
+      let banners = settings.heroBanners?.length ? [...settings.heroBanners] : [{ ...(settings.heroBanner || {}) }];
+      for (let index = 0; index < banners.length; index += 1) {
+        const pending = pendingHeroFiles[index];
+        const currentImage = banners[index]?.image;
+        const file = pending?.file || (typeof currentImage === 'string' && /^data:image\//i.test(currentImage)
+          ? dataUrlToImageFile(currentImage, index)
+          : null);
+        if (file) {
+          const imagePath = await apiUploadImage(file);
+          uploadedPaths.push(imagePath);
+          banners[Number(index)] = { ...banners[Number(index)], image: imagePath };
+        }
+      }
+      const updated = { ...settings, heroBanners: banners, heroBanner: banners[0] };
+      await saveSettings(updated);
+      setLocalSettings(updated);
+      Object.values(pendingHeroFiles).forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
+      setPendingHeroFiles({});
+      triggerSuccess();
+      onRefresh && onRefresh();
+    } catch (err) {
+      await Promise.all(uploadedPaths.map((imagePath) => apiDeleteUploadedImage(imagePath).catch(() => {})));
+      alert(err.message || 'Could not save CMS changes to database.');
+    } finally {
+      setHeroUploading(false);
+    }
   };
 
   const triggerSuccess = () => {
@@ -165,11 +199,12 @@ const AdminCMS = ({ onRefresh, settings: currentSettings }) => {
           <button
             type="button"
             onClick={handleSaveAll}
+            disabled={heroUploading}
             className="shv-btn-primary"
             style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
           >
             <Save size={16} />
-            <span>Save Changes</span>
+            <span>{heroUploading ? 'Saving changes…' : 'Save Changes'}</span>
           </button>
         </div>
       </div>
@@ -374,7 +409,7 @@ const AdminCMS = ({ onRefresh, settings: currentSettings }) => {
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
                   <Upload size={26} color="#1E2229" />
                   <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#1E2229' }}>
-                    {heroUploading ? 'Optimizing & uploading photo...' : 'Click to select hero photo from device'}
+                    {pendingHeroFiles[activeHeroIndex] ? 'Photo selected — upload on Save Changes' : 'Click to select hero photo from device'}
                   </span>
                   <span style={{ fontSize: '0.76rem', color: '#64748B' }}>
                     Supports high-resolution JPG, PNG, WEBP from your computer or phone
@@ -382,10 +417,10 @@ const AdminCMS = ({ onRefresh, settings: currentSettings }) => {
                 </div>
               </div>
 
-              {activeHeroBanner.image && (
+              {(pendingHeroFiles[activeHeroIndex] || activeHeroBanner.image) && (
                 <div style={{ marginTop: '0.85rem', position: 'relative', height: '150px', borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--admin-border)' }}>
                   <img
-                    src={activeHeroBanner.image}
+                    src={pendingHeroFiles[activeHeroIndex] ? pendingHeroFiles[activeHeroIndex].previewUrl : getImageUrl(activeHeroBanner.image)}
                     alt="Hero banner preview"
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />

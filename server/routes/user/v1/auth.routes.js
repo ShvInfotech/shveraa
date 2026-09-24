@@ -12,6 +12,10 @@ router.post('/register', UserRegister)
 router.post('/login', UserLogin)
 
 router.patch('/update', verifyjwtAccessToken, UserUpdateProfile)
+router.post('/logout', verifyjwtAccessToken, UserLogout)
+router.post('/forgot-password', UserForgotPassword)
+router.post('/reset-password/:token', ResetPassword)
+
 
 // Address Routes
 router.get('/addresses', verifyjwtAccessToken, GetUserAddresses)
@@ -32,8 +36,7 @@ router.delete('/cart', verifyjwtAccessToken, ClearCart)
 router.get('/wishlist', verifyjwtAccessToken, GetWishlist)
 router.post('/wishlist/toggle', verifyjwtAccessToken, ToggleWishlist)
 
-router.post('/logout', verifyjwtAccessToken, UserLogout)
-router.post('/forgot-password', UserForgotPassword)
-router.post('/reset-password/:token', ResetPassword)
+
+
 
 export default router

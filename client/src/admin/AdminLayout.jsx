@@ -32,7 +32,6 @@ const AdminLayout = () => {
   const { categories, products, coupons, settings, refreshStore } = useDynamicStore();
   const [orders, setOrders] = useState([]);
 
-  // Load initial orders and listen for live updates & 401 unauthorized expiry
   useEffect(() => {
     setOrders(getAdminOrders());
     const handleOrderUpdate = () => setOrders(getAdminOrders());
@@ -47,10 +46,8 @@ const AdminLayout = () => {
     };
   }, []);
 
-  // Update order status handler
   const handleUpdateOrderStatus = (orderId, newStatus) => {
-    const updated = updateAdminOrderStatus(orderId, newStatus);
-    setOrders([...updated]);
+    setOrders(updateAdminOrderStatus(orderId, newStatus));
   };
 
   // Dedicated Product Studio Opener

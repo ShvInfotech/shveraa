@@ -80,7 +80,7 @@ const TrackOrder = () => {
     ],
   };
 
-  const handleTrackSubmit = (e) => {
+  const handleTrackSubmit = async (e) => {
     e?.preventDefault();
     const query = (orderIdInput || '').trim().toUpperCase();
 
@@ -92,49 +92,46 @@ const TrackOrder = () => {
     setLoading(true);
     setErrorMsg('');
 
-    setTimeout(() => {
-      setLoading(false);
-      try {
-        // 1. Check localStorage orders
-        const storedStr = localStorage.getItem('shveraa_orders');
-        const storedOrders = storedStr ? JSON.parse(storedStr) : [];
-        const match = storedOrders.find(
-          (o) => o.orderId?.toUpperCase() === query
-        );
+    try {
+      const storedStr = localStorage.getItem('shveraa_orders');
+      const storedOrders = storedStr ? JSON.parse(storedStr) : [];
+      const match = storedOrders.find(
+        (o) => o.orderId?.toUpperCase() === query
+      );
 
-        if (match) {
-          setSearchedOrder({
-            orderId: match.orderId,
-            date: match.date || 'Recent',
-            status: match.status || 'Dispatched — In Transit',
-            carrier: match.carrier || 'BlueDart Air Express (Insured)',
-            awbNumber: match.trackingNumber || 'BD-84920491',
-            estimatedDelivery: match.estimatedDelivery || '2–4 Business Days',
-            destination: match.customer?.address || 'Customer Delivery Address',
-            customerName: match.customer?.fullName || 'Valued Patron',
-            items: match.items || demoOrder.items,
-            totalPaid: match.pricing?.total || 3198,
-            timelineSteps: demoOrder.timelineSteps,
-          });
-          return;
-        }
-
-        // 2. Check if query matches demo order
-        if (query === 'SHV-856726' || query.startsWith('SHV-')) {
-          setSearchedOrder({
-            ...demoOrder,
-            orderId: query,
-          });
-          return;
-        }
-
-        setErrorMsg(
-          `No active consignment found for "${query}". Please verify your Order Reference or use demo order SHV-856726.`
-        );
-      } catch (err) {
-        setSearchedOrder(demoOrder);
+      if (match) {
+        setSearchedOrder({
+          orderId: match.orderId,
+          date: match.date || 'Recent',
+          status: match.status || 'Dispatched — In Transit',
+          carrier: match.carrier || 'BlueDart Air Express (Insured)',
+          awbNumber: match.trackingNumber || 'BD-84920491',
+          estimatedDelivery: match.estimatedDelivery || '2–4 Business Days',
+          destination: match.customer?.address || 'Customer Delivery Address',
+          customerName: match.customer?.fullName || 'Valued Patron',
+          items: match.items || demoOrder.items,
+          totalPaid: match.pricing?.total || 3198,
+          timelineSteps: demoOrder.timelineSteps,
+        });
+        return;
       }
-    }, 450);
+
+      if (query === 'SHV-856726' || query.startsWith('SHV-')) {
+        setSearchedOrder({
+          ...demoOrder,
+          orderId: query,
+        });
+        return;
+      }
+
+      setErrorMsg(
+        `No active consignment found for "${query}". Please verify your Order Reference or use demo order SHV-856726.`
+      );
+    } catch {
+      setSearchedOrder(demoOrder);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Auto-run if orderId is in query params

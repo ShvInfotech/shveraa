@@ -44,7 +44,6 @@ const productSchema = new mongoose.Schema(
     dimensions: { type: String, default: '' },
     careInstructions: { type: String, default: '' },
     badge: { type: String, default: '' },
-    images: [{ type: String }], // Main images array
     featured: { type: Boolean, default: false },
     bestseller: { type: Boolean, default: false },
     inStock: { type: Boolean, default: true },

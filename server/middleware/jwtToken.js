@@ -92,4 +92,6 @@ const checkRole = (...roles) => {
 
 
 
-export  {generateJwtToken,ForgotgenerateJwtToken,  generatehashToken, verifyjwtAccessToken, checkRole }
+
+
+export  {generateJwtToken,ForgotgenerateJwtToken,  generatehashToken, verifyjwtAccessToken, checkRole}

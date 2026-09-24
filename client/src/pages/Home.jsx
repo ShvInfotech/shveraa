@@ -18,7 +18,7 @@ import Newsletter from '../components/Newsletter';
 import Loader from '../components/Loader';
 import PromoPopup from '../components/PromoPopup';
 import TieredOfferSection from '../components/TieredOfferSection';
-import { fetchProducts } from '../services/api';
+import { fetchProducts, getImageUrl } from '../services/api';
 import { useDynamicStore } from '../services/storeService';
 
 const InstagramIcon = ({ size = 18, className = '' }) => (
@@ -221,7 +221,7 @@ const Home = () => {
             tagline: banner.badge || 'SHVERAA ATELIER',
             title: banner.title || 'Pure 925 Silver. Pure Emotion.',
             subtitle: banner.subtitle || '',
-            image: banner.image || '/hero-ring-banner.jpg',
+            image: getImageUrl(banner.image || '/hero-ring-banner.jpg'),
             link: banner.ctaLink || '/shop',
             ctaText: banner.ctaText || 'SHOP COLLECTION',
             isCms: true,

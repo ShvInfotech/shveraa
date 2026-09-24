@@ -168,21 +168,20 @@ const Account = () => {
   const [orders, setOrders] = useState([]);
 
   useEffect(() => {
-    try {
-      const storedOrders = localStorage.getItem('shveraa_orders');
-      if (storedOrders) {
-        setOrders(JSON.parse(storedOrders));
-      } else {
-        const lastOrderStr = localStorage.getItem('shveraa_last_order');
-        if (lastOrderStr) {
-          setOrders([JSON.parse(lastOrderStr)]);
+      try {
+        const storedOrders = localStorage.getItem('shveraa_orders');
+        if (storedOrders) {
+          setOrders(JSON.parse(storedOrders));
+        } else {
+          const lastOrderStr = localStorage.getItem('shveraa_last_order');
+          if (lastOrderStr) {
+            setOrders([JSON.parse(lastOrderStr)]);
+          }
         }
-        // No fallback fake data — show empty state if no real orders
+      } catch (e) {
+        console.error('Error parsing stored orders:', e);
       }
-    } catch (e) {
-      console.error('Error parsing stored orders:', e);
-    }
-  }, [user]);
+  }, []);
 
   const handleTabChange = (tabName) => {
     setActiveTab(tabName);

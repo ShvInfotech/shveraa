@@ -209,11 +209,12 @@ export const CartProvider = ({ children }) => {
 
   // ─── CLEAR CART ───────────────────────────────────────────────────────────
   const clearCart = async () => {
+    setCart([]);
+    setAppliedCoupon(null);
     if (!isLoggedIn()) return;
     try {
       const response = await apiClearCart();
       setCart(Array.isArray(response?.cart) ? response.cart : []);
-      setAppliedCoupon(null);
     } catch (error) {
       showToast(error.message || 'Unable to clear your bag');
     }

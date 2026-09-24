@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import {
   Star,
@@ -10,6 +10,8 @@ import {
   Heart,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   ArrowLeft,
   Check,
   Award,
@@ -114,6 +116,21 @@ const ProductDetail = () => {
   const [newReviewTitle, setNewReviewTitle] = useState('');
   const [newReviewComment, setNewReviewComment] = useState('');
   const [helpfulVotes, setHelpfulVotes] = useState({});
+
+  const thumbnailsRef = useRef(null);
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
+
+  // Keep thumbnail centered into view when active image changes
+  useEffect(() => {
+    if (thumbnailsRef.current && thumbnailsRef.current.children[selectedImageIndex]) {
+      thumbnailsRef.current.children[selectedImageIndex].scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center',
+      });
+    }
+  }, [selectedImageIndex]);
 
   // Verify whether the logged in user has purchased this specific product
   const hasPurchasedProduct = React.useMemo(() => {
@@ -368,6 +385,36 @@ const ProductDetail = () => {
   };
 
 
+  const handleNextImage = () => {
+    if (!images || images.length <= 1) return;
+    setSelectedImageIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const handlePrevImage = () => {
+    if (!images || images.length <= 1) return;
+    setSelectedImageIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    const diff = touchStartX.current - touchEndX.current;
+    if (Math.abs(diff) > 40 && images.length > 1) {
+      if (diff > 0) {
+        handleNextImage();
+      } else {
+        handlePrevImage();
+      }
+    }
+  };
+
   const toggleSection = (sectionKey) => {
     setOpenSection((prev) => (prev === sectionKey ? '' : sectionKey));
   };
@@ -474,7 +521,7 @@ const ProductDetail = () => {
   };
 
   return (
-    <div className="section" style={{ paddingTop: '1.5rem', paddingBottom: '5rem' }}>
+    <div className="section product-detail-page-section">
       <div className="container">
         {/* 1. Breadcrumbs Bar */}
         <div className="shv-pdp-breadcrumbs">
@@ -493,12 +540,49 @@ const ProductDetail = () => {
         <div className="product-detail-layout">
           {/* Left: Gallery */}
           <div className="product-gallery">
-            <div className="product-main-gallery-img">
+            <div
+              className="product-main-gallery-img"
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            >
               {images.length > 0 ? (
                 <img src={images[selectedImageIndex]} alt={product.name} />
               ) : (
                 <div className="product-image-empty" aria-label="Product image unavailable" />
               )}
+
+              {/* Prev & Next Image Navigation Arrows */}
+              {images.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    className="product-gallery-nav-btn product-gallery-prev"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePrevImage();
+                    }}
+                    aria-label="Previous image"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  <button
+                    type="button"
+                    className="product-gallery-nav-btn product-gallery-next"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleNextImage();
+                    }}
+                    aria-label="Next image"
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                  <div className="product-gallery-indicator">
+                    {selectedImageIndex + 1} / {images.length}
+                  </div>
+                </>
+              )}
+
               {product.badge && (
                 <span className="product-badge product-badge-silver" style={{ top: '16px', left: '16px' }}>
                   {product.badge}
@@ -507,7 +591,7 @@ const ProductDetail = () => {
             </div>
 
             {images.length > 1 && (
-              <div className="product-thumbnails">
+              <div className="product-thumbnails" ref={thumbnailsRef}>
                 {images.map((img, idx) => (
                   <button
                     key={idx}
@@ -719,12 +803,11 @@ const ProductDetail = () => {
             </div>
 
             {/* Primary Action Buttons */}
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '1.5rem' }}>
+            <div className="product-detail-actions-row">
               <button
                 type="button"
                 onClick={handleAddToCart}
-                className="btn btn-primary btn-lg"
-                style={{ flex: 1 }}
+                className="btn btn-primary btn-lg product-add-bag-btn"
               >
                 <ShoppingBag size={18} />
                 <span>Add to Bag</span>
@@ -733,14 +816,7 @@ const ProductDetail = () => {
               <button
                 type="button"
                 onClick={handleBuyNow}
-                className="btn btn-outline btn-lg"
-                style={{
-                  background: '#FAF8F5',
-                  borderColor: '#1A1612',
-                  color: '#1A1612',
-                  fontWeight: 600,
-                  padding: '0 20px',
-                }}
+                className="btn btn-outline btn-lg product-buy-now-btn"
               >
                 <Zap size={16} fill="currentColor" />
                 <span>Buy Now</span>
@@ -749,16 +825,8 @@ const ProductDetail = () => {
               <button
                 type="button"
                 onClick={() => toggleWishlist(product)}
-                className={`action-btn action-btn-lg ${isWishlisted ? 'wishlisted' : ''}`}
+                className={`action-btn action-btn-lg product-wishlist-btn ${isWishlisted ? 'wishlisted' : ''}`}
                 aria-label="Save to Wishlist"
-                style={{
-                  width: '52px',
-                  height: '52px',
-                  borderRadius: 'var(--radius-xs)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
               >
                 <Heart
                   size={20}
@@ -1178,10 +1246,18 @@ const ProductDetail = () => {
       {/* 5. Mobile Sticky Bottom Action Bar */}
       <div className="shv-mobile-sticky-bar">
         <div className="shv-mobile-sticky-info">
-          <img src={images[0]} alt={product.name} className="shv-mobile-sticky-img" />
+          <img
+            src={images[selectedImageIndex] || images[0] || '/hero-ring-banner.jpg'}
+            alt={product.name}
+            className="shv-mobile-sticky-img"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = '/hero-ring-banner.jpg';
+            }}
+          />
           <div className="shv-mobile-sticky-text">
             <div className="shv-mobile-sticky-title">{product.name}</div>
-            <div className="shv-mobile-sticky-price">₹{product.price?.toLocaleString('en-IN')}</div>
+            <div className="shv-mobile-sticky-price">₹{displayPrice?.toLocaleString('en-IN')}</div>
           </div>
         </div>
         <button

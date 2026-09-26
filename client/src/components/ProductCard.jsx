@@ -1,11 +1,71 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, ShoppingBag, Star } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { getProductColors } from '../services/storeService';
 
+const getColorVisuals = (colorName) => {
+  const c = (colorName || '').toLowerCase().trim();
+  if (c.includes('green') || c.includes('emerald')) {
+    return {
+      hex: '#059669',
+      gradient: 'linear-gradient(135deg, #34D399 0%, #059669 50%, #065F46 100%)',
+      border: '#047857',
+    };
+  }
+  if (c.includes('ruby') || c.includes('red') || c.includes('maroon') || c.includes('garnet')) {
+    return {
+      hex: '#DC2626',
+      gradient: 'linear-gradient(135deg, #F87171 0%, #DC2626 50%, #991B1B 100%)',
+      border: '#B91C1C',
+    };
+  }
+  if (c.includes('blue') || c.includes('sapphire')) {
+    return {
+      hex: '#2563EB',
+      gradient: 'linear-gradient(135deg, #60A5FA 0%, #2563EB 50%, #1E40AF 100%)',
+      border: '#1D4ED8',
+    };
+  }
+  if (c.includes('pink') || c.includes('tourmaline')) {
+    return {
+      hex: '#EC4899',
+      gradient: 'linear-gradient(135deg, #F472B6 0%, #EC4899 50%, #BE185D 100%)',
+      border: '#DB2777',
+    };
+  }
+  if (c.includes('gold') && !c.includes('rose')) {
+    return {
+      hex: '#E5C158',
+      gradient: 'linear-gradient(135deg, #FFF0B3 0%, #E5C158 50%, #B8860B 100%)',
+      border: '#D4AF37',
+    };
+  }
+  if (c.includes('rose')) {
+    return {
+      hex: '#E8A598',
+      gradient: 'linear-gradient(135deg, #FFE4DE 0%, #E8A598 50%, #B76E79 100%)',
+      border: '#C57E70',
+    };
+  }
+  if (c.includes('oxid') || c.includes('black') || c.includes('dark')) {
+    return {
+      hex: '#334155',
+      gradient: 'linear-gradient(135deg, #64748B 0%, #334155 50%, #0F172A 100%)',
+      border: '#1E293B',
+    };
+  }
+  return {
+    hex: '#DDE2E8',
+    gradient: 'linear-gradient(135deg, #FFFFFF 0%, #D4D9E2 50%, #9DA6B2 100%)',
+    border: '#CBD5E1',
+  };
+};
+
 const ProductCard = ({ product }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const [isSwatchHovering, setIsSwatchHovering] = useState(false);
+  const touchMovedRef = useRef(false);
   const { addToCart, toggleWishlist, isInWishlist } = useCart();
 
   if (!product) return null;
@@ -14,18 +74,17 @@ const ProductCard = ({ product }) => {
   const hasVariants = product.variants && Array.isArray(product.variants) && product.variants.length > 0;
   
   const availableColors = hasVariants
-    ? product.variants.map((v) => ({
-        id: v.color.toLowerCase().replace(/\s+/g, '-'),
-        name: v.color,
-        shortName: v.color,
-        hex: v.color.toLowerCase().includes('gold') && !v.color.toLowerCase().includes('rose') ? '#E5C158' : v.color.toLowerCase().includes('rose') ? '#E8A598' : '#DDE2E8',
-        gradient: v.color.toLowerCase().includes('gold') && !v.color.toLowerCase().includes('rose')
-          ? 'linear-gradient(135deg, #FFF0B3 0%, #E5C158 50%, #B8860B 100%)'
-          : v.color.toLowerCase().includes('rose')
-          ? 'linear-gradient(135deg, #FFE4DE 0%, #E8A598 50%, #B76E79 100%)'
-          : 'linear-gradient(135deg, #FFFFFF 0%, #D4D9E2 50%, #9DA6B2 100%)',
-        border: '#CBD5E1',
-      }))
+    ? product.variants.map((v) => {
+        const visuals = getColorVisuals(v.color);
+        return {
+          id: (v.color || 'variant').toLowerCase().replace(/\s+/g, '-'),
+          name: v.color,
+          shortName: v.color,
+          hex: visuals.hex,
+          gradient: visuals.gradient,
+          border: visuals.border,
+        };
+      })
     : getProductColors(product);
 
   const [selectedColor, setSelectedColor] = useState(availableColors[0]?.name || 'Pure 925 Silver');
@@ -35,7 +94,9 @@ const ProductCard = ({ product }) => {
     : null;
 
   const primaryImage = (activeVariant?.images || product.images || []).filter(Boolean)[0] || product.image || '';
-  const secondaryImage = (activeVariant?.images || product.images || []).filter(Boolean)[1] || product.secondaryImage || '';
+  const secondaryImage = hasVariants
+    ? (activeVariant?.images || []).filter(Boolean)[1] || ''
+    : (product.images || []).filter(Boolean)[1] || product.secondaryImage || '';
 
   // Compute price if variant size has dynamic price
   const displayPrice = activeVariant?.sizes?.[0]?.price || product.price;
@@ -52,18 +113,32 @@ const ProductCard = ({ product }) => {
     });
   };
 
-
   const handleWishlistClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
     toggleWishlist(product);
   };
 
+  const handleVariantHover = (colorName) => {
+    setSelectedColor(colorName);
+  };
+
+  const handleVariantSelect = (e, colorName) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setSelectedColor(colorName);
+  };
+
   return (
     <div
-      className="product-card"
+      className={`product-card ${isSwatchHovering ? 'swatch-hovering' : ''}`}
       onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        setIsSwatchHovering(false);
+      }}
     >
       <Link
         to={`/product/${id}?color=${encodeURIComponent(selectedColor)}`}
@@ -83,7 +158,7 @@ const ProductCard = ({ product }) => {
             ) : (
               <div className="product-image-empty" aria-label="Product image unavailable" />
             )}
-            {secondaryImage && secondaryImage !== primaryImage && (
+            {secondaryImage && secondaryImage !== primaryImage && !isSwatchHovering && (
               <img
                 src={secondaryImage}
                 alt={`${product.name} Alternate View`}
@@ -93,9 +168,9 @@ const ProductCard = ({ product }) => {
             )}
           </div>
 
-          {/* Badge */}
+          {/* Badge: Remove Atelier Edit badge per user request */}
           <div className="product-badges-stack">
-            {product.badge && (
+            {product.badge && !/atelier/i.test(product.badge) && (
               <span className="product-badge product-badge-silver">
                 {product.badge}
               </span>
@@ -150,8 +225,13 @@ const ProductCard = ({ product }) => {
           {/* Color Variation Swatches */}
           <div
             className="product-card-colors-row"
+            onMouseEnter={() => setIsSwatchHovering(true)}
+            onMouseLeave={() => setIsSwatchHovering(false)}
             onClick={(e) => {
               e.preventDefault();
+              e.stopPropagation();
+            }}
+            onTouchEnd={(e) => {
               e.stopPropagation();
             }}
           >
@@ -162,10 +242,18 @@ const ProductCard = ({ product }) => {
                   <button
                     key={color.id || color.name}
                     type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setSelectedColor(color.name);
+                    onMouseEnter={() => handleVariantHover(color.name)}
+                    onClick={(e) => handleVariantSelect(e, color.name)}
+                    onTouchStart={() => {
+                      touchMovedRef.current = false;
+                    }}
+                    onTouchMove={() => {
+                      touchMovedRef.current = true;
+                    }}
+                    onTouchEnd={(e) => {
+                      if (!touchMovedRef.current) {
+                        handleVariantSelect(e, color.name);
+                      }
                     }}
                     className={`product-color-swatch-dot ${isActive ? 'active' : ''}`}
                     style={{
@@ -186,15 +274,17 @@ const ProductCard = ({ product }) => {
           </div>
 
           <div className="product-price-row">
-            <span className="product-price">₹{displayPrice}</span>
-            {product.originalPrice && product.originalPrice > displayPrice && (
-              <span className="product-original-price">₹{product.originalPrice}</span>
-            )}
-            {product.originalPrice && product.originalPrice > displayPrice && (
-              <span className="product-save-percent">
-                Save {Math.round(((product.originalPrice - displayPrice) / product.originalPrice) * 100)}%
-              </span>
-            )}
+            <span className="product-price">₹{Number(displayPrice || 0).toLocaleString('en-IN')}</span>
+            {Boolean(product.originalPrice && Number(product.originalPrice) > Number(displayPrice)) ? (
+              <>
+                <span className="product-original-price">
+                  ₹{Number(product.originalPrice).toLocaleString('en-IN')}
+                </span>
+                <span className="product-save-percent">
+                  Save {Math.round(((Number(product.originalPrice) - Number(displayPrice)) / Number(product.originalPrice)) * 100)}%
+                </span>
+              </>
+            ) : null}
           </div>
         </div>
       </Link>

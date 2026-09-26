@@ -109,6 +109,9 @@ const Footer = () => {
               <li>
                 <Link to="/cart" className="footer-link">View Shopping Bag</Link>
               </li>
+              <li>
+                <Link to="/shipping" className="footer-link">Shipping &amp; Cancellation</Link>
+              </li>
             </ul>
           </div>
 
@@ -141,8 +144,6 @@ const Footer = () => {
             <Link to="/about" className="footer-legal-link">About Us</Link>
             <span className="footer-legal-sep">•</span>
             <Link to="/contact" className="footer-legal-link">Contact Concierge</Link>
-            <span className="footer-legal-sep">•</span>
-            <Link to="/admin" className="footer-legal-link" style={{ color: '#A07E52', fontWeight: 600 }}>✦ Atelier Admin</Link>
           </div>
         </div>
 

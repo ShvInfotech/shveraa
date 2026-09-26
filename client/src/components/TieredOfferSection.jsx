@@ -55,6 +55,7 @@ const TIER_OFFERS = [
 ];
 
 const TieredOfferSection = () => {
+  return null; // Hidden per request
   const [copiedCode, setCopiedCode] = useState(null);
   const { addToast } = useCart();
   const navigate = useNavigate();

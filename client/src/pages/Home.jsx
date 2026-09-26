@@ -18,6 +18,7 @@ import Newsletter from '../components/Newsletter';
 import Loader from '../components/Loader';
 import PromoPopup from '../components/PromoPopup';
 import TieredOfferSection from '../components/TieredOfferSection';
+import ShopByCollection from '../components/ShopByCollection';
 import { fetchProducts, getImageUrl } from '../services/api';
 import { useDynamicStore } from '../services/storeService';
 
@@ -37,6 +38,60 @@ const InstagramIcon = ({ size = 18, className = '' }) => (
     <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
     <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
   </svg>
+);
+
+const LeafOutlineIcon = ({ size = 18, className = '' }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    style={{ flexShrink: 0 }}
+  >
+    <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
+    <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
+  </svg>
+);
+
+const TICKER_ITEMS = [
+  'Hallmarked 925 Silver',
+  'Everyday Wear Friendly',
+  'Quality Checked',
+  'Trusted by Thousands',
+];
+
+const BrandTickerRibbon = () => (
+  <div className="shv-brand-ticker-bar" aria-label="Brand Assurance Highlights">
+    <div className="shv-ticker-track">
+      {/* First track */}
+      <div className="shv-ticker-content">
+        {[...TICKER_ITEMS, ...TICKER_ITEMS].map((text, idx) => (
+          <div key={`track1-${idx}`} className="shv-ticker-item">
+            <span className="shv-ticker-text">{text}</span>
+            <span className="shv-ticker-icon">
+              <LeafOutlineIcon size={18} />
+            </span>
+          </div>
+        ))}
+      </div>
+      {/* Second identical track for seamless infinite marquee loop */}
+      <div className="shv-ticker-content" aria-hidden="true">
+        {[...TICKER_ITEMS, ...TICKER_ITEMS].map((text, idx) => (
+          <div key={`track2-${idx}`} className="shv-ticker-item">
+            <span className="shv-ticker-text">{text}</span>
+            <span className="shv-ticker-icon">
+              <LeafOutlineIcon size={18} />
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
 );
 
 const UGC_POSTS = [
@@ -120,7 +175,6 @@ const REVIEWS = [
 const Home = () => {
   const { categories, settings } = useDynamicStore();
   const [bestsellers, setBestsellers] = useState([]);
-  const [activeTab, setActiveTab] = useState('bestsellers'); // 'bestsellers' | 'new' | 'all'
   const [loading, setLoading] = useState(true);
   const [reloadTrigger, setReloadTrigger] = useState(0);
 
@@ -172,19 +226,16 @@ const Home = () => {
     loadHomeData();
   }, [reloadTrigger]);
 
-  // Display 8 pieces (2 rows of 4)
-  const filteredProducts = bestsellers.filter((p) => {
-    if (activeTab === 'bestsellers') return p.bestseller;
-    if (activeTab === 'new') return p.featured || p.badge === 'New';
-    return true;
-  });
-
-  let displayedProducts = filteredProducts.slice(0, 8);
-  if (displayedProducts.length < 8 && bestsellers.length >= 8) {
+  // Top 8 trending products (bestsellers, featured, or trending badge)
+  const trendingProducts = bestsellers.filter(
+    (p) => p.bestseller || p.badge === 'Trending' || p.featured
+  );
+  let displayedTrending = trendingProducts.slice(0, 8);
+  if (displayedTrending.length < 8 && bestsellers.length >= 8) {
     const remaining = bestsellers.filter(
-      (p) => !displayedProducts.some((d) => (d._id || d.slug) === (p._id || p.slug))
+      (p) => !displayedTrending.some((d) => (d._id || d.slug) === (p._id || p.slug))
     );
-    displayedProducts = [...displayedProducts, ...remaining.slice(0, 8 - displayedProducts.length)];
+    displayedTrending = [...displayedTrending, ...remaining.slice(0, 8 - displayedTrending.length)];
   }
 
   const [showPromoPopup, setShowPromoPopup] = useState(false);
@@ -293,7 +344,52 @@ const Home = () => {
         </div>
       </section>
 
-      {/* 3. Shop by Category — Curated Silhouettes */}
+      {/* 3. Trending Products Section (Directly after Hero/Trust Ribbon) */}
+      <section className="section-products shv-products-section shv-trending-section">
+        <div className="container">
+          <div className="shv-section-editorial-header">
+            <div className="shv-trending-live-pill">
+              <span className="shv-trending-pulse" />
+              <Sparkles size={12} />
+              <span>TRENDING NOW</span>
+            </div>
+            <h2 className="shv-section-heading">Trending 925 Silver Pieces</h2>
+            <p className="shv-section-lead">
+              Discover the most-coveted silhouettes turning heads this season, cast in certified solid silver.
+            </p>
+            <div className="shv-header-flourish">
+              <span className="shv-flourish-line" />
+              <span className="shv-flourish-star">✦</span>
+              <span className="shv-flourish-line" />
+            </div>
+          </div>
+
+          {loading ? (
+            <Loader text="Loading trending 925 silver collection..." />
+          ) : (
+            <div className="shv-shop-products-grid col-4">
+              {displayedTrending.map((product) => (
+                <ProductCard
+                  key={product._id || product.slug}
+                  product={{
+                    ...product,
+                    badge: product.badge || 'Trending',
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
+          <div className="shv-products-footer-cta">
+            <Link to="/shop?sort=bestselling" className="shv-btn-editorial-outline">
+              <span>EXPLORE ALL TRENDING PIECES</span>
+              <ArrowRight size={15} />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. Shop by Category — Curated Silhouettes */}
       <section className="section-categories shv-categories-section">
         <div className="container">
           <div className="shv-section-editorial-header">
@@ -317,65 +413,11 @@ const Home = () => {
         </div>
       </section>
 
-      {/* 4. Tiered Spend & Save Privilege Offer Cards (Sparkle More, Spend Less) */}
-      <TieredOfferSection />
+      {/* 5. Tiered Spend & Save Privilege Offer Cards (Sparkle More, Spend Less) - Hidden per request */}
+      {/* <TieredOfferSection /> */}
 
-      {/* 5. Featured / Bestseller Products with Warm Tab Filtering */}
-      <section className="section-products shv-products-section">
-        <div className="container">
-          <div className="shv-products-header-wrap">
-            <div className="shv-products-heading-col">
-              <span className="shv-script-eyebrow">Most Coveted Pieces</span>
-              <h2 className="shv-section-heading">The Silver Bestsellers</h2>
-              <p className="shv-products-subtext">
-                Iconic creations celebrated for their luminous purity and everyday grace.
-              </p>
-            </div>
-
-            {/* Warm Refined Tab Filter */}
-            <div className="shv-warm-tab-group">
-              <button
-                type="button"
-                className={`shv-warm-tab-btn ${activeTab === 'bestsellers' ? 'active' : ''}`}
-                onClick={() => setActiveTab('bestsellers')}
-              >
-                <span>Bestsellers</span>
-              </button>
-              <button
-                type="button"
-                className={`shv-warm-tab-btn ${activeTab === 'new' ? 'active' : ''}`}
-                onClick={() => setActiveTab('new')}
-              >
-                <span>New Releases</span>
-              </button>
-              <button
-                type="button"
-                className={`shv-warm-tab-btn ${activeTab === 'all' ? 'active' : ''}`}
-                onClick={() => setActiveTab('all')}
-              >
-                <span>All 925 Silver</span>
-              </button>
-            </div>
-          </div>
-
-          {loading ? (
-            <Loader text="Loading 925 silver collection..." />
-          ) : (
-            <div className="shv-shop-products-grid col-4">
-              {displayedProducts.map((product) => (
-                <ProductCard key={product._id || product.slug} product={product} />
-              ))}
-            </div>
-          )}
-
-          <div className="shv-products-footer-cta">
-            <Link to="/shop" className="shv-btn-editorial-outline">
-              <span>EXPLORE ALL PIECES</span>
-              <ArrowRight size={15} />
-            </Link>
-          </div>
-        </div>
-      </section>
+      {/* 6. Shop by Collection — Signature Silversmithing Stories with Live Product List */}
+      <ShopByCollection products={bestsellers} loading={loading} />
 
       {/* 5. The Atelier Philosophy — Authentic Master Silversmithing Story (NO AI Tabs) */}
       <section className="shv-atelier-story-section">
@@ -488,6 +530,9 @@ const Home = () => {
           </div>
         </div>
       </section>
+
+      {/* Brand Assurance Full-Screen Marquee Ticker Carousel */}
+      <BrandTickerRibbon />
 
       {/* 6. Customer Reviews — Loved by Modern Muses */}
       <section className="reviews-section shv-reviews-editorial">

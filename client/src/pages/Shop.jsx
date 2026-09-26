@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
 import Loader from '../components/Loader';
-import { fetchProducts, FALLBACK_PRODUCTS } from '../services/api';
+import { fetchProducts, FALLBACK_PRODUCTS, getImageUrl } from '../services/api';
 import { useCart } from '../context/CartContext';
 import { useDynamicStore, JEWELRY_COLORS } from '../services/storeService';
 
@@ -28,48 +28,56 @@ const CATEGORY_EDITORIAL = {
     subtitle:
       'Hand-sculpted in Jaipur with certified 92.5% silver purity. Triple-dipped in mirror rhodium for water-resistant radiance that defies time.',
     eyebrow: 'Artisan Silversmithing Jaipur • 92.5% Purity',
+    bgImage: '/promo-model.jpg',
   },
   rings: {
     title: 'Sculpted Silver Bands & Solitaires',
     subtitle:
       'From fluid molten wave bands to architectural moissanite solitaires, cast for everyday tactile weight and timeless grace.',
     eyebrow: 'Heirloom Hand Finishes',
+    bgImage: '/ring.jpeg',
   },
   necklaces: {
     title: 'Liquid Chains & Luminous Pendants',
     subtitle:
       'Italian-engineered herringbone ribbons, paperclip links, and medallion talismans that reflect light with every gesture.',
     eyebrow: 'Platinum-Luster Chains',
+    bgImage: '/nackalce.jpeg',
   },
   earrings: {
     title: 'Architectural Hoops & Sculptural Drops',
     subtitle:
       'Featherweight hollow teardrops and micro-pavé huggies designed for all-day comfort with hypoallergenic security.',
     eyebrow: 'Featherweight Atelier Grace',
+    bgImage: '/earring.jpeg',
   },
   bracelets: {
     title: 'Fluid Cuffs & Bezel Tennis Silhouettes',
     subtitle:
       'Contoured open wrists and flawless bezel-articulated links finished with hand-burnished 925 hallmarks.',
     eyebrow: 'Molten Silver Silhouettes',
+    bgImage: '/braclate.jpeg',
   },
   personalised: {
     title: 'Laser-Carved Bespoke Heirlooms',
     subtitle:
       'Custom nameplates, initial signets, and cherished dates laser-cut into heavy 925 silver for personal keepsakes.',
     eyebrow: 'Custom Atelier Craft',
+    bgImage: '/atelier-hallmark.jpg',
   },
   anklets: {
     title: 'Waterproof Chains & Faceted Beads',
     subtitle:
       'Beach-safe, shower-safe silver chains featuring satellite beads and facet drops for effortless summer shimmer.',
     eyebrow: 'Ocean-Ready Durability',
+    bgImage: '/category-bracelet.jpg',
   },
   wishlist: {
     title: 'Your Saved Atelier Creations',
     subtitle:
       'Pieces you have bookmarked for your personal collection or upcoming milestone celebrations.',
     eyebrow: 'Curated by You',
+    bgImage: '/muse-rings.jpg',
   },
 };
 
@@ -216,6 +224,24 @@ const Shop = () => {
   const editorial = wishlistOnly
     ? CATEGORY_EDITORIAL.wishlist
     : CATEGORY_EDITORIAL[selectedCategory] || CATEGORY_EDITORIAL.all;
+
+  const CATEGORY_HERO_MAP = {
+    rings: '/ring.jpeg',
+    ring: '/ring.jpeg',
+    necklaces: '/nackalce.jpeg',
+    necklace: '/nackalce.jpeg',
+    earrings: '/earring.jpeg',
+    earring: '/earring.jpeg',
+    bracelets: '/braclate.jpeg',
+    bracelet: '/braclate.jpeg',
+  };
+
+  const catKey = (selectedCategory || '').toLowerCase();
+  const activeBannerBg =
+    CATEGORY_HERO_MAP[catKey] ||
+    editorial?.bgImage ||
+    (currentCategoryData?.image ? getImageUrl(currentCategoryData.image) : null) ||
+    '/promo-model.jpg';
 
   const activeFiltersCount =
     (selectedCategory !== 'all' ? 1 : 0) +
@@ -459,54 +485,39 @@ const Shop = () => {
   );
 
   return (
-    <div className="shv-shop-page">
+    <div className="shv-shop-page" style={{ backgroundColor: '#FFFFFF', minHeight: '100vh' }}>
       {/* 1. Shop Editorial Hero Header Banner */}
-      <section className="shv-shop-hero-banner">
+      <section
+        className="shv-shop-hero-banner"
+        style={{
+          backgroundImage: `url(${activeBannerBg})`,
+        }}
+      >
         <div className="container">
-          <nav className="shv-shop-breadcrumbs" aria-label="Breadcrumb">
-            <Link to="/">Home</Link>
-            <span className="shv-bc-sep">/</span>
-            <Link to="/shop" onClick={clearAllFilters}>
-              Collections
-            </Link>
-            <span className="shv-bc-sep">/</span>
-            <span className="shv-bc-current">
-              {wishlistOnly
-                ? 'Saved Wishlist'
-                : selectedCategory === 'all'
-                ? 'All 925 Silver'
-                : selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)}
-            </span>
-          </nav>
-
           <div className="shv-shop-banner-content">
-            <span className="shv-script-eyebrow">{editorial.eyebrow}</span>
             <h1 className="shv-shop-title">{editorial.title}</h1>
-            <p className="shv-shop-subtitle">{editorial.subtitle}</p>
-
-            {/* Hallmark Assurance Strip */}
-            <div className="shv-shop-guarantee-bar">
-              <span className="shv-guarantee-pill">
-                <span className="shv-guarantee-star">✦</span> BIS 925 Hallmarked
-              </span>
-              <span className="shv-guarantee-divider" />
-              <span className="shv-guarantee-pill">
-                <span className="shv-guarantee-star">✦</span> Triple-Dipped Rhodium Shield
-              </span>
-              <span className="shv-guarantee-divider" />
-              <span className="shv-guarantee-pill">
-                <span className="shv-guarantee-star">✦</span> 100% Skin Friendly
-              </span>
-              <span className="shv-guarantee-divider" />
-              <span className="shv-guarantee-pill">
-                <span className="shv-guarantee-star">✦</span> Insured Delivery &gt; ₹999
-              </span>
-            </div>
           </div>
         </div>
       </section>
 
       <div className="container shv-shop-main-container">
+        {/* Breadcrumb Navigation cleanly positioned below hero banner */}
+        <nav className="shv-shop-breadcrumbs" aria-label="Breadcrumb">
+          <Link to="/">Home</Link>
+          <span className="shv-bc-sep">/</span>
+          <Link to="/shop" onClick={clearAllFilters}>
+            Collections
+          </Link>
+          <span className="shv-bc-sep">/</span>
+          <span className="shv-bc-current">
+            {wishlistOnly
+              ? 'Saved Wishlist'
+              : selectedCategory === 'all'
+              ? 'All 925 Silver'
+              : selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)}
+          </span>
+        </nav>
+
         <div className="shv-shop-layout">
           {/* Left: Minimalist Reference Sidebar Filter on Desktop */}
           <aside className="shv-shop-sidebar" aria-label="Filters">

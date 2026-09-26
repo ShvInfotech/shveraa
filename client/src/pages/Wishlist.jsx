@@ -138,7 +138,7 @@ const Wishlist = () => {
             <span className="shv-script-eyebrow" style={{ fontSize: '1.2rem', color: '#A07E52' }}>
               The Vault is Waiting
             </span>
-            <h2 style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', fontSize: '2rem', marginTop: '4px', marginBottom: '8px', color: '#1A1612' }}>
+            <h2 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '2rem', marginTop: '4px', marginBottom: '8px', color: '#1A1612' }}>
               Your Personal Curation is Empty
             </h2>
             <p style={{ maxWidth: '520px', margin: '0 auto 1.75rem', color: '#72685C', fontSize: '0.92rem', lineHeight: 1.6 }}>
@@ -158,7 +158,7 @@ const Wishlist = () => {
             {bestsellers.length > 0 && (
               <div style={{ marginTop: '4.5rem', textAlign: 'left', borderTop: '1px solid rgba(160, 126, 82, 0.2)', paddingTop: '2.5rem' }}>
                 <span className="section-subtitle">Recommended for You</span>
-                <h3 style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', fontSize: '1.75rem', marginBottom: '1.5rem', color: '#1A1612' }}>
+                <h3 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '1.75rem', marginBottom: '1.5rem', color: '#1A1612' }}>
                   Treasury Bestsellers to Spark Your Inspiration
                 </h3>
                 <div className="shv-shop-products-grid col-4">
@@ -262,7 +262,7 @@ const Wishlist = () => {
 
                       {/* Hallmarks Badge Stack */}
                       <div className="product-badges-stack">
-                        {product.badge && (
+                        {product.badge && !/atelier/i.test(product.badge) && (
                           <span className="product-badge product-badge-silver">
                             {product.badge}
                           </span>
@@ -288,22 +288,22 @@ const Wishlist = () => {
                           <span className="shv-wishlist-price">
                             ₹{product.price?.toLocaleString('en-IN')}
                           </span>
-                          {product.originalPrice && product.originalPrice > product.price && (
+                          {Boolean(product.originalPrice && Number(product.originalPrice) > Number(product.price)) ? (
                             <>
                               <span className="shv-wishlist-orig-price">
-                                ₹{product.originalPrice?.toLocaleString('en-IN')}
+                                ₹{Number(product.originalPrice)?.toLocaleString('en-IN')}
                               </span>
                               <span className="shv-wishlist-save-badge">
                                 Save{' '}
                                 {Math.round(
-                                  ((product.originalPrice - product.price) /
-                                    product.originalPrice) *
+                                  ((Number(product.originalPrice) - Number(product.price)) /
+                                    Number(product.originalPrice)) *
                                     100
                                 )}
                                 %
                               </span>
                             </>
-                          )}
+                          ) : null}
                         </div>
                       </div>
 

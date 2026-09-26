@@ -122,7 +122,7 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
     stockCount: product?.stockCount || 24,
     bestseller: Boolean(product?.bestseller),
     featured: Boolean(product?.featured),
-    badge: product?.badge || (product?.bestseller ? 'Bestseller' : 'Atelier Edit'),
+    badge: product?.badge && !/atelier/i.test(product.badge) ? product.badge : (product?.bestseller ? 'Bestseller' : ''),
     metaTitle: product?.metaTitle || '',
     metaDescription: product?.metaDescription || '',
     packing: {

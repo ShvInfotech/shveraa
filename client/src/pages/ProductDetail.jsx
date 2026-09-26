@@ -31,6 +31,89 @@ import { getProductColors } from '../services/storeService';
 import ProductCard from '../components/ProductCard';
 import Loader from '../components/Loader';
 
+// 5-Badge Atelier Assurance Custom SVGs (Genuine 925, Lifetime Plating, 7 Day Return, 6-Month Warranty, BIS Hallmark)
+const IngotIcon = ({ size = 28, color = '#2E3156' }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="12,5 19,2.5 25,5.5 18,8" />
+    <polygon points="12,5 18,8 18,12 12,9" />
+    <polygon points="18,8 25,5.5 25,9.5 18,12" />
+    <polygon points="6,15 13,12 19,15 12,18" />
+    <polygon points="6,15 12,18 12,22 6,19" />
+    <polygon points="12,18 19,15 19,19 12,22" />
+    <polygon points="15,17 22,14 28,17 21,20" />
+    <polygon points="15,17 21,20 21,24 15,21" />
+    <polygon points="21,20 28,17 28,21 21,24" />
+  </svg>
+);
+
+const LifetimePlatingIcon = ({ size = 28, color = '#2E3156' }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 6C11 3.5 6.5 4 4.5 7.5c-2.5 4-1 9.5 3 13.5l6.5 6 1.5-1.4" />
+    <path d="M14 6c2.5-2.2 6.8-2 9 1.5 2 3.2 1.8 7.5.2 10.5" />
+    <circle cx="21" cy="20.5" r="6" />
+    <polyline points="21,17 21,20.5 23.5,22" />
+  </svg>
+);
+
+const EasyReturnIcon = ({ size = 28, color = '#2E3156' }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="14,4 23,8 16,12 7,8" />
+    <polygon points="7,8 16,12 16,22 7,18" />
+    <polygon points="16,12 23,8 23,17" />
+    <path d="M20 15c3 1.2 5 3.5 5 6.2 0 3.2-2.5 5.2-6 5.2" />
+    <polyline points="23,24 19,26.5 23,29" />
+  </svg>
+);
+
+const WarrantyShieldIcon = ({ size = 28, color = '#2E3156' }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 3L6 7v8c0 7.5 4.3 12.8 10 14.5 5.7-1.7 10-7 10-14.5V7L16 3z" />
+    <circle cx="16" cy="15" r="4.5" />
+    <polyline points="14.2,15 15.6,16.4 18,13.8" />
+  </svg>
+);
+
+const BisHallmarkIcon = ({ size = 28, color = '#2E3156' }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="16,5 4,24 28,24" />
+    <path d="M9 19h14" />
+    <circle cx="16" cy="14" r="2.5" fill={color} />
+  </svg>
+);
+
+const PDP_ASSURANCE_ITEMS = [
+  {
+    id: 'silver',
+    title: 'Genuine 925',
+    subtitle: 'Sterling Silver',
+    Icon: IngotIcon,
+  },
+  {
+    id: 'plating',
+    title: 'Lifetime Plating',
+    subtitle: '',
+    Icon: LifetimePlatingIcon,
+  },
+  {
+    id: 'return',
+    title: 'Easy 7 Day Return',
+    subtitle: '',
+    Icon: EasyReturnIcon,
+  },
+  {
+    id: 'warranty',
+    title: '6-Month Warranty',
+    subtitle: '',
+    Icon: WarrantyShieldIcon,
+  },
+  {
+    id: 'hallmark',
+    title: 'BIS Hallmark',
+    subtitle: '',
+    Icon: BisHallmarkIcon,
+  },
+];
+
 const SEED_REVIEWS = [
   {
     id: 'rev-1',
@@ -521,8 +604,8 @@ const ProductDetail = () => {
   };
 
   return (
-    <div className="section product-detail-page-section">
-      <div className="container">
+    <div className="section product-detail-page-section" style={{ backgroundColor: '#FFFFFF', minHeight: '100vh' }}>
+      <div className="container" style={{ backgroundColor: '#FFFFFF' }}>
         {/* 1. Breadcrumbs Bar */}
         <div className="shv-pdp-breadcrumbs">
           <Link to="/">Home</Link>
@@ -583,7 +666,7 @@ const ProductDetail = () => {
                 </>
               )}
 
-              {product.badge && (
+              {product.badge && !/atelier/i.test(product.badge) && (
                 <span className="product-badge product-badge-silver" style={{ top: '16px', left: '16px' }}>
                   {product.badge}
                 </span>
@@ -631,15 +714,15 @@ const ProductDetail = () => {
 
             {/* Price Row */}
             <div className="product-detail-price-row">
-              <span className="product-detail-price">₹{displayPrice?.toLocaleString('en-IN')}</span>
-              {product.originalPrice && product.originalPrice > displayPrice && (
+              <span className="product-detail-price">₹{Number(displayPrice || 0)?.toLocaleString('en-IN')}</span>
+              {Boolean(product.originalPrice && Number(product.originalPrice) > Number(displayPrice)) ? (
                 <>
-                  <span className="product-detail-orig-price">₹{product.originalPrice?.toLocaleString('en-IN')}</span>
+                  <span className="product-detail-orig-price">₹{Number(product.originalPrice)?.toLocaleString('en-IN')}</span>
                   <span className="product-detail-save-badge">
-                    Save {Math.round(((product.originalPrice - displayPrice) / product.originalPrice) * 100)}%
+                    Save {Math.round(((Number(product.originalPrice) - Number(displayPrice)) / Number(product.originalPrice)) * 100)}%
                   </span>
                 </>
-              )}
+              ) : null}
             </div>
 
             {/* Rating Summary Header */}
@@ -875,31 +958,27 @@ const ProductDetail = () => {
               )}
             </div>
 
-            {/* Trust Assurance Strip */}
-            <div className="product-trust-card">
-              <div className="product-trust-item">
-                <ShieldCheck size={18} color="#A07E52" />
-                <div>
-                  <strong>Certified Pure 925 Sterling Silver</strong>
-                  <p>Hallmarked with BIS standard laser certification stamp.</p>
-                </div>
-              </div>
-
-              <div className="product-trust-item">
-                <Truck size={18} color="#A07E52" />
-                <div>
-                  <strong>Free Insured Express Air Delivery</strong>
-                  <p>Complimentary express shipping on all orders over ₹999.</p>
-                </div>
-              </div>
-
-              <div className="product-trust-item">
-                <RotateCcw size={18} color="#A07E52" />
-                <div>
-                  <strong>30-Day Hassle-Free Returns &amp; Exchanges</strong>
-                  <p>Doorstep collection with 100% money-back guarantee.</p>
-                </div>
-              </div>
+            {/* 5-Badge Atelier Assurance Strip (Genuine 925, Lifetime Plating, Easy 7 Day Return, 6-Month Warranty, BIS Hallmark) */}
+            <div className="shv-pdp-assurance-grid">
+              {PDP_ASSURANCE_ITEMS.map((item) => {
+                const IconComponent = item.Icon;
+                return (
+                  <div key={item.id} className="shv-pdp-assurance-card">
+                    <div className="shv-pdp-assurance-icon">
+                      <IconComponent size={28} color="#2E3156" />
+                    </div>
+                    <span className="shv-pdp-assurance-text">
+                      {item.title}
+                      {item.subtitle && (
+                        <>
+                          <br />
+                          {item.subtitle}
+                        </>
+                      )}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
 
             {/* Detailed Specifications & Inclusions Cards */}

@@ -280,7 +280,7 @@ const Search = () => {
             {popularBestsellers.length > 0 && (
               <div style={{ marginTop: '3.5rem', textAlign: 'left', borderTop: '1px solid rgba(160,126,82,0.2)', paddingTop: '2rem' }}>
                 <span className="section-subtitle">Trending Highlights</span>
-                <h4 style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', fontSize: '1.6rem', marginBottom: '1.5rem', color: '#1A1612' }}>
+                <h4 style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '1.6rem', marginBottom: '1.5rem', color: '#1A1612' }}>
                   Popular Atelier Bestsellers
                 </h4>
                 <div className="shv-shop-products-grid col-4">

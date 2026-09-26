@@ -11,11 +11,18 @@ const CATEGORY_TAGS = {
   personalised: { badge: 'Bespoke', priceHint: 'From ₹1,999' },
 };
 
-const CategoryCard = ({ category }) => {
+const CategoryCard = ({ category, onSelect }) => {
   const meta = CATEGORY_TAGS[category.slug] || { badge: '925 Silver', priceHint: 'From ₹999' };
 
+  const handleClick = (e) => {
+    if (onSelect) {
+      e.preventDefault();
+      onSelect(category.slug);
+    }
+  };
+
   return (
-    <Link to={`/shop?category=${category.slug}`} className="category-tile-card">
+    <Link to={`/shop?category=${category.slug}`} className="category-tile-card" onClick={handleClick}>
       <div className="category-tile-media">
         <img
           src={getImageUrl(category.image) || '/hero-ring-banner.jpg'}

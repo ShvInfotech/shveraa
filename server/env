@@ -1,0 +1,22 @@
+PORT=5000
+HOST=192.168.29.73
+BACKEND_DOMIN_URL=http://192.168.29.73:5000
+MONGO_URI=mongodb://localhost:27017/shveraa
+NODE_ENV=development
+JWT_SECRET=development
+FORGOT_PASSWORD_JWT_SECRET=paswworddevelopment
+
+NODEMAILER_EMAIL_USER=darshikshekhada07@gmail.com
+NODEMAILER_EMAIL_PASS=jvql snte vqkd xjlh
+
+
+# company keys 
+# RAZORPAY_API_KEY=rzp_test_MJ6kGUsiZlv1c9
+# RAZORPAY_API_SECRET=YZGXEHknNwrD7bxKrfPNHywb
+
+RAZORPAY_API_KEY=rzp_test_TVSL7tlw4NS59L
+RAZORPAY_API_SECRET=31mfw2tjA1S4jrB65TTc2VEJ
+RAZORPAY_WEBHOOK_SECRET=abcxtezf106
+
+FIERBASESDK={"type": "service_account","project_id": "nehdo-23bd4","private_key_id": "fcc5b818f920820fddf8d51a4e7f1fa60e33fab6","private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCsz7/YgWtxcEDP\nOH/6FHgYlAn5DVjiwO1O98wFiHOKdHejruRK5EIR9w0dlQiM9Z1KYvidM49pInn/\nyuVlNYIm+nBGy/FbtFSw3FKrm0XTpU5DcjgJv7L48c90/oc87cY0AwRkAjQl8gJK\nhEvJWYNcQEBrphkIpalR5dFEY7lxDP3CQ9l+VrRwiebBuvIFvH8DcdGo39sfPg69\nIPNvBqKjDoGSnKIr+E9a8VRnSmdBwyCcjz5kcsAEv5js/b5BI592Zkicg3Cj9M+h\nMBnwqzWrwFv8YUaTd9n11oj//Yar+H1tsqc2tBouDEf+0QCf26h5XyI7RxHyCuU4\nfAhWbHvFAgMBAAECggEAUmAVixbmKITh3+WG26a2OMEYn+eE31InzOTCFEEfEnjC\nLvxHRovYEsg5MEjCcq8B81uKNyVEz1Dn5s7I2p3PFNV8f8Lnolcrp8LehX7WojTC\nQdRIch03KwPZaGOMA7c0K8bkaOfEA/KAtRSrK6fHvknCa44ZkM2nEKsEPh1rYD+Q\niSRzJ7IPeSYtsBfs4lR7S3YnzuCpj9MHw5637H9t7kr+5HJ40nuKuWl2HQT1AAfL\ntXsfQJFxLeKWvXjlxDwj4/C8Tdg3jJMWEJhbMGRZmAxLYYfpoeN6lFHCrCII7Dml\nyFho32bCrvXRynqjnI1ar59gwxygPZxgNhOyHGp2YQKBgQDV94DBNfiFgKQzdRlg\ncG5dJOMX/g17DPaTOSvBkvKvOL3Uq0JpapOm+/hCgBjEa5R5ohO/rbUzF3mibS1V\nammt/RsnDkNLHwVDO/1Rc9Ltu4XKlGq5vyKMAGpyYtI1/Nk9uyxR+JSOVeCoPhWl\nSL5eMasdwIES7cE3Ad2fEOchzwKBgQDOwobQEgtCtYFXmWr8B36IZqRVD8aSSLgt\npROVi6US94RsROQcQ1tfGm58gt3WdGXBSgM5hV7ObH0O85c3oQUBRbpQTzaYuqu9\nqfsHWcaQeVNi0BsrqMLx2k/GptVDUx/jT638JvwQF23DzocwaDeE6a11afJZy3pG\nrcT1CcLSKwKBgHszkEewM/FrKSEYBAyrsGChpMFj349C35fWC4PigSqzmVqjYhIg\n8/PqkgB4kcpHx65hzM1J0FQi6D7GbpwIMeGlI8VRSR4wNm+IU0xbTNDmcRs8aleZ\n3uKOOryyeifr94q8A8EPSTrL6Bf3567MPBEwuD7hYXDsxZxOzrWQngWxAoGACmLD\nGtiNMEClypyuPxKxTHC7eHpeYyK7/a75GN324MkGIdokCzdm85QEUMTSF9+o7Nim\n6NDGPmA8t++MfQLdmX7DKR2RhIJ79f7/2RKtYrx1b9U8SCkmAbgRocznkYYvZ9+s\nwanDp5tFrDxHlirl/wst52P3BIOwFLTN2/EtlBkCgYBSlhB6OxAPdJ6j4pmrTqFU\nPHJwUE0C4+ZgL870mqGRecdClYTPOIHWc+97Fv5trZM81xZk2TgFAYVKITvL8v3P\nKRBU0ZhNRXQMiOx/e0hNtfHj3liH7Zv8e/xm19waJ7wn+MeTmakbbVJ113D30Y+w\n7wtotu+RLqPJCwOc6YQEYg==\n-----END PRIVATE KEY-----\n","client_email": "firebase-adminsdk-fbsvc@nehdo-23bd4.iam.gserviceaccount.com","client_id": "113567816697247044384","auth_uri": "https://accounts.google.com/o/oauth2/auth","token_uri": "https://oauth2.googleapis.com/token","auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs","client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40nehdo-23bd4.iam.gserviceaccount.com","universe_domain": "googleapis.com"}
+

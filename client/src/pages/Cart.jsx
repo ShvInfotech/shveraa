@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ShoppingBag,
@@ -12,15 +12,18 @@ import {
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import CartItem from '../components/CartItem';
+import { apiCheckShippingDetails, apiGetUserAddresses } from '../services/api';
 
 const Cart = () => {
   const {
     cart,
+    isCartOpen,
     cartCount,
     cartSubtotal,
     cartTotal,
     discountAmount,
     shippingCost,
+    setShippingCost,
     appliedCoupon,
     couponError,
     applyCoupon,
@@ -33,6 +36,7 @@ const Cart = () => {
 
   const [couponInput, setCouponInput] = useState('');
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
+  const [pincode, setPincode] = useState('');
 
   const handleApplyCoupon = async (e) => {
     e.preventDefault();
@@ -42,6 +46,11 @@ const Cart = () => {
     }
   };
 
+console.log(shippingCost)
+
+
+
+ 
   return (
     <div className="section" style={{ minHeight: '75vh', paddingTop: '2rem' }}>
       <div className="container">

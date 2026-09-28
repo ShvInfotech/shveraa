@@ -719,4 +719,89 @@ export const apiCheckPincodeDetails = async (pincode) => {
   return data;
 };
 
+export const apiGetShopBanners = async (category = 'all') => {
+  const query = new URLSearchParams({ category }).toString();
+  const res = await apiFetch(`/api/v1/user/shop-banners?${query}`);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to fetch shop banners');
+  return data.banners || [];
+};
+
+export const apiAdminGetShopBanners = async () => {
+  const res = await apiFetch('/api/v1/admin/shop-banners/all');
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to fetch shop banners');
+  return data.banners || [];
+};
+
+export const apiAdminSaveShopBanner = async (banner, imageFile, bannerId = null) => {
+  const body = new FormData();
+  Object.entries(banner).forEach(([key, value]) => body.append(key, value ?? ''));
+  if (imageFile) body.append('image', imageFile);
+  const endpoint = bannerId
+    ? `/api/v1/admin/shop-banners/update/${bannerId}`
+    : '/api/v1/admin/shop-banners/add';
+  const res = await apiFetch(endpoint, { method: bannerId ? 'PUT' : 'POST', body });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to save shop banner');
+  return data.banner;
+};
+
+export const apiAdminDeleteShopBanner = async (bannerId) => {
+  const res = await apiFetch(`/api/v1/admin/shop-banners/delete/${bannerId}`, { method: 'DELETE' });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to delete shop banner');
+  return data;
+};
+
+export const apiCheckShippingDetails = async (cartIds, pincode, payment_method = 'Pre-paid', codAmount = 0) => {
+  const res = await apiFetch('/api/v1/user/delhivery/check-shipping-charges', {
+    method: 'POST',
+    body: JSON.stringify({ cartIds, pincode, payment_method, codAmount }),
+  });
+  const data = await res.json();
+  if (!res.ok || data.success === false) {
+    throw new Error(data.message || 'No delivery information available for the given pincode');
+  }
+  return data;
+};
+
+/* ==========================================================================
+   ORDER & RAZORPAY APIs
+   ========================================================================== */
+export const apiCreatePaymentOrder = async ({ cartIds, couponId }) => {
+  const res = await apiFetch('/api/v1/user/order/create-payment-order', {
+    method: 'POST',
+    body: JSON.stringify({ cartIds, couponId: couponId || '' }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to create payment order');
+  return data;
+};
+
+export const apiVerifyPaymentPlaceOrder = async ({
+  razorpay_order_id,
+  razorpay_payment_id,
+  razorpay_signature,
+  cartIds,
+  couponId,
+  addressId,
+}) => {
+  const res = await apiFetch('/api/v1/user/order/verify-payment-placeorder', {
+    method: 'POST',
+    body: JSON.stringify({
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+      cartIds,
+      couponId: couponId || '',
+      addressId: addressId || '',
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Payment verification failed');
+  return data;
+};
+
+
 

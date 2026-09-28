@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   X,
@@ -14,7 +14,7 @@ import {
   Check,
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { getImageUrl } from '../services/api';
+import { apiCheckShippingDetails, apiGetUserAddresses, getImageUrl } from '../services/api';
 
 const CartDrawer = () => {
   const {
@@ -28,6 +28,7 @@ const CartDrawer = () => {
     cartTotal,
     discountAmount,
     shippingCost,
+    setShippingCost,
     appliedCoupon,
     couponError,
     applyCoupon,
@@ -39,9 +40,73 @@ const CartDrawer = () => {
   } = useCart();
 
   const [couponInput, setCouponInput] = useState('');
+  const [pincode, setPincode] = useState('');
+
   const navigate = useNavigate();
 
+
+
+
+
+  
+
+
+  useEffect(() => {
+    if (isCartOpen) {
+      const fetchAddresses = async () => {
+        try {
+          const data = await apiGetUserAddresses();
+          if (data?.addresses?.length) {
+            const def = data.addresses.find((a) => a.isDefault) || data.addresses[0];
+
+            if (def) {
+              setPincode(def.pincode);
+            };
+          } else {
+            setSelectedAddrId('__new__');
+          }
+        } catch (_) {
+        }
+      };
+      fetchAddresses();
+
+    }
+  }, [isCartOpen]);
+
+
+
+
+
+  useEffect(() => {
+    if (!cart.length || !/^\d{6}$/.test(pincode)) return;
+
+    const cartIds = cart.map((item) => item._id).filter(Boolean);
+    if (!cartIds.length) return;
+
+
+    apiCheckShippingDetails(cartIds, pincode)
+      .then((data) => {
+        if (data?.shippingCharges !== undefined) {
+          setShippingCost(Number(data.shippingCharges) || 0);
+        }
+      })
+      .catch((error) => {
+
+        console.error('Error checking checkout shipping charges:', error);
+
+      });
+
+
+  }, [cart, pincode]);
+
+
+
+
+
+
   if (!isCartOpen) return null;
+
+
 
   const handleApplyCoupon = (e) => {
     e.preventDefault();
@@ -69,6 +134,12 @@ const CartDrawer = () => {
       { silent: true }
     );
   };
+
+
+
+
+
+
 
   const handleCheckoutClick = () => {
     closeCart();

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   ShieldCheck,
@@ -19,8 +19,26 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import {
   apiGetUserAddresses,
+  apiAddUserAddress,
+  apiCheckShippingDetails,
+  apiCreatePaymentOrder,
+  apiVerifyPaymentPlaceOrder,
   getImageUrl,
 } from '../services/api';
+
+const loadRazorpayScript = () => {
+  return new Promise((resolve) => {
+    if (typeof window !== 'undefined' && window.Razorpay) {
+      resolve(true);
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -31,6 +49,7 @@ const Checkout = () => {
     cartTotal,
     discountAmount,
     shippingCost,
+    setShippingCost,
     appliedCoupon,
     clearCart,
   } = useCart();
@@ -50,6 +69,8 @@ const Checkout = () => {
   // Saved addresses
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [selectedAddrId, setSelectedAddrId] = useState(null);
+  const [isSavingAddress, setIsSavingAddress] = useState(false);
+  const [addressNotice, setAddressNotice] = useState('');
 
   useEffect(() => {
     const fetchAddresses = async () => {
@@ -60,6 +81,8 @@ const Checkout = () => {
           // Auto-fill default address
           const def = data.addresses.find((a) => a.isDefault) || data.addresses[0];
           if (def) applyAddress(def);
+        } else {
+          setSelectedAddrId('__new__');
         }
       } catch (_) {
         // Not logged in or network error – ignore
@@ -80,6 +103,41 @@ const Checkout = () => {
     setPincode(addr.pincode || '');
   };
 
+  const handleSaveAddress = async () => {
+    setAddressNotice('');
+    if (!user) {
+      setAddressNotice('Please sign in to save this address to your account.');
+      return;
+    }
+    if (!fullName.trim() || !phone.trim() || !address.trim() || !city.trim() || !pincode.trim()) {
+      setAddressNotice('Please fill in your name, phone, street, city, and PIN code before saving.');
+      return;
+    }
+
+    setIsSavingAddress(true);
+    try {
+      const result = await apiAddUserAddress({
+        fullName: fullName.trim(),
+        phone: phone.trim(),
+        street: address.trim(),
+        locality: apartment.trim(),
+        city: city.trim(),
+        state: stateName,
+        pincode: pincode.trim(),
+        label: 'Home',
+        isDefault: savedAddresses.length === 0,
+      });
+      const updatedAddresses = result?.addresses || (result?.address ? [...savedAddresses, result.address] : []);
+      setSavedAddresses(updatedAddresses);
+      if (result?.address) applyAddress(result.address);
+      setAddressNotice('Address saved to your account.');
+    } catch (err) {
+      setAddressNotice(err.message || 'Could not save this address. Please try again.');
+    } finally {
+      setIsSavingAddress(false);
+    }
+  };
+
   // Delivery Option State: 'express' or 'whiteglove'
   const [deliveryOption, setDeliveryOption] = useState('express');
 
@@ -93,11 +151,37 @@ const Checkout = () => {
 
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [formError, setFormError] = useState('');
+  const shippingRequestId = useRef(0);
 
   // Calculate final grand total including white-glove option or COD fee
   const deliverySurcharge = deliveryOption === 'whiteglove' ? 249 : 0;
   const codSurcharge = paymentMethod === 'cod' ? 99 : 0;
   const finalPayable = cartTotal + deliverySurcharge + codSurcharge;
+
+  useEffect(() => {
+    if (!cart.length || !/^\d{6}$/.test(pincode)) return;
+
+    const cartIds = cart.map((item) => item._id).filter(Boolean);
+    if (!cartIds.length) return;
+
+    const requestId = ++shippingRequestId.current;
+    const isCod = paymentMethod === 'cod';
+    apiCheckShippingDetails(cartIds,pincode,isCod ? 'COD' : 'Pre-paid',isCod ? Math.max(0, cartSubtotal - discountAmount) : 0,)
+      .then((data) => {
+        if (requestId === shippingRequestId.current && data?.shippingCharges !== undefined) {
+          setShippingCost(Number(data.shippingCharges) || 0);
+        }
+      })
+      .catch((error) => {
+        if (requestId === shippingRequestId.current) {
+          console.error('Error checking checkout shipping charges:', error);
+        }
+      });
+
+    return () => {
+      shippingRequestId.current += 1;
+    };
+  }, [cart, pincode, paymentMethod, cartSubtotal, discountAmount, setShippingCost]);
 
   const cachePlacedOrder = (orderData) => {
     try {
@@ -119,6 +203,138 @@ const Checkout = () => {
     navigate('/order-success', { state: { order: orderData } });
   };
 
+  const handleCodOrder = () => {
+    console.log('this is cod order');
+  };
+
+  const handleRazorpayPayment = async () => {
+    const cartIds = cart.map((item) => item._id || item.id).filter(Boolean);
+    if (!cartIds.length) {
+      setFormError('No valid cart items found to create order.');
+      return;
+    }
+
+    const isLoaded = await loadRazorpayScript();
+    if (!isLoaded) {
+      setFormError('Could not load Razorpay payment SDK. Please check your internet connection.');
+      return;
+    }
+
+    setIsPlacingOrder(true);
+    setFormError('');
+
+    try {
+      const couponId = appliedCoupon?._id || appliedCoupon?.id || '';
+      const data = await apiCreatePaymentOrder({
+        cartIds,
+        couponId,
+      });
+
+      const order = data?.order;
+      if (!order || !order.id) {
+        throw new Error('Failed to create Razorpay payment order from server.');
+      }
+
+      const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TVSL7tlw4NS59L';
+
+      const options = {
+        key: razorpayKey,
+        amount: order.amount,
+        currency: order.currency || 'INR',
+        name: 'SHVERAA',
+        description: 'Fine 925 Sterling Silver Order',
+        image: '/logo.png',
+        order_id: order.id,
+        handler: async function (response) {
+          try {
+            setIsPlacingOrder(true);
+            const addressId = selectedAddrId && selectedAddrId !== '__new__' ? selectedAddrId : '';
+
+            const verifyRes = await apiVerifyPaymentPlaceOrder({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              cartIds,
+              couponId,
+              addressId,
+            });
+
+            const orderNumber = verifyRes?.orderData?.orderNumber || `SHV-${Math.floor(100000 + Math.random() * 900000)}`;
+            const now = new Date();
+            const items = cart.map((item) => ({
+              id: item.productId || item._id || item.slug || item.id,
+              name: item.name,
+              image: item.image || (item.images && item.images[0]) || '/hero-ring-banner.jpg',
+              price: Number(item.price || 0),
+              qty: Number(item.quantity || 1),
+              size: item.size || item.selectedSize || 'Standard',
+            }));
+
+            const placedOrderData = {
+              orderId: orderNumber,
+              displayId: `#${orderNumber}`,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              customer: {
+                fullName,
+                email,
+                phone,
+                address: `${address}${apartment ? `, ${apartment}` : ''}`,
+                city: `${city}${stateName ? `, ${stateName}` : ''}`,
+                pincode,
+              },
+              items,
+              pricing: {
+                subtotal: cartSubtotal,
+                discount: discountAmount,
+                shipping: shippingCost === 0 ? 'FREE' : `₹${shippingCost}`,
+                total: order.amount ? order.amount / 100 : finalPayable,
+              },
+              paymentMethod: 'Razorpay Secure (Online)',
+              paymentStatus: 'Paid',
+              status: 'Confirmed',
+              date: now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+              estimatedDelivery: '2–4 Business Days',
+              carrier: 'BlueDart Air Express',
+              trackingNumber: 'N/A',
+            };
+
+            await finishOrder(placedOrderData);
+          } catch (verifyErr) {
+            console.error('Payment verification failed:', verifyErr);
+            setFormError(verifyErr.message || 'Payment verification failed. Please try again or contact support.');
+            setIsPlacingOrder(false);
+          }
+        },
+        prefill: {
+          name: fullName,
+          email: email,
+          contact: phone,
+        },
+        theme: {
+          color: '#1a1a1a',
+        },
+        modal: {
+          ondismiss: function () {
+            setIsPlacingOrder(false);
+          },
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function (resp) {
+        console.error('Razorpay payment failed:', resp.error);
+        setFormError(resp.error?.description || 'Payment failed or cancelled.');
+        setIsPlacingOrder(false);
+      });
+      rzp.open();
+    } catch (err) {
+      console.error('Error creating payment order:', err);
+      setFormError(err.message || 'Could not initiate payment. Please try again.');
+      setIsPlacingOrder(false);
+    }
+  };
+
   const handlePlaceOrder = async (e) => {
     e.preventDefault();
     setFormError('');
@@ -129,50 +345,19 @@ const Checkout = () => {
       return;
     }
 
-    if (cartCount === 0) {
+    if (cartCount === 0 || cart.length === 0) {
       setFormError('Your cart is empty.');
       return;
     }
 
-    setIsPlacingOrder(true);
+    // When COD is selected: only print "this is cod order" and do not open Razorpay
+    if (paymentMethod === 'cod') {
+      handleCodOrder();
+      return;
+    }
 
-    const orderId = `SHV-${Math.floor(100000 + Math.random() * 900000)}`;
-    const now = new Date();
-    const items = cart.map((item) => ({
-      id: item.productId || item._id || item.slug || item.id,
-      name: item.name,
-      image: item.image || (item.images && item.images[0]) || '/hero-ring-banner.jpg',
-      price: Number(item.price || 0),
-      qty: Number(item.quantity || 1),
-      size: item.size || item.selectedSize || 'Standard',
-    }));
-    const orderData = {
-      orderId,
-      displayId: `#${orderId}`,
-      customer: {
-        fullName,
-        email,
-        phone,
-        address: `${address}${apartment ? `, ${apartment}` : ''}`,
-        city: `${city}${stateName ? `, ${stateName}` : ''}`,
-        pincode,
-      },
-      items,
-      pricing: {
-        subtotal: cartSubtotal,
-        discount: discountAmount,
-        shipping: shippingCost === 0 ? 'FREE' : `₹${shippingCost}`,
-        total: finalPayable,
-      },
-      paymentMethod: paymentMethod === 'cod' ? 'Cash on Delivery (COD)' : `${paymentMethod.toUpperCase()} (Demo)`,
-      paymentStatus: paymentMethod === 'cod' ? 'Pending On Delivery' : 'Demo — Not Charged',
-      status: 'Scheduled',
-      date: now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
-      estimatedDelivery: '2–4 Business Days',
-      carrier: 'BlueDart Air Express',
-      trackingNumber: 'N/A',
-    };
-    finishOrder(orderData);
+    // When COD is not selected: open Razorpay and verify payment
+    await handleRazorpayPayment();
   };
 
   if (cart.length === 0 && !isPlacingOrder) {
@@ -280,7 +465,7 @@ const Checkout = () => {
                       ))}
                       <label
                         className={`shv-saved-addr-row${selectedAddrId === '__new__' ? ' active' : ''}`}
-                        onClick={() => { setSelectedAddrId('__new__'); setFullName(''); setPhone(''); setAddress(''); setApartment(''); setCity(''); setStateName('Maharashtra'); setPincode(''); }}
+                        onClick={() => { setSelectedAddrId('__new__'); setAddressNotice(''); setFullName(user?.name || ''); setPhone(user?.phone || ''); setAddress(''); setApartment(''); setCity(''); setStateName('Maharashtra'); setPincode(''); }}
                       >
                         <input type="radio" name="savedAddr" checked={selectedAddrId === '__new__'} onChange={() => {}} />
                         <div className="shv-saved-addr-info">
@@ -382,6 +567,19 @@ const Checkout = () => {
                       />
                     </div>
                   </div>
+                  {(selectedAddrId === '__new__' || savedAddresses.length === 0) && (
+                    <div className="shv-address-save-actions">
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={handleSaveAddress}
+                        disabled={isSavingAddress}
+                      >
+                        {isSavingAddress ? 'Saving address...' : 'Save this address'}
+                      </button>
+                      {addressNotice && <p role="status" className="shv-address-save-notice">{addressNotice}</p>}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -609,8 +807,10 @@ const Checkout = () => {
                   <Lock size={16} />
                   <span>
                     {isPlacingOrder
-                      ? 'Securing Atelier Order...'
-                      : `Complete Purchase • ₹${finalPayable}`}
+                      ? 'Processing Order...'
+                      : paymentMethod === 'cod'
+                      ? `Place COD Order • ₹${finalPayable}`
+                      : `Pay with Razorpay • ₹${finalPayable}`}
                   </span>
                   <ArrowRight size={16} />
                 </button>

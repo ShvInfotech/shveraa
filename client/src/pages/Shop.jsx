@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
 import Loader from '../components/Loader';
-import { fetchProducts, FALLBACK_PRODUCTS, getImageUrl } from '../services/api';
+import { fetchProducts, FALLBACK_PRODUCTS, getImageUrl, apiGetShopBanners } from '../services/api';
 import { useCart } from '../context/CartContext';
 import { useDynamicStore, JEWELRY_COLORS } from '../services/storeService';
 
@@ -99,6 +99,7 @@ const Shop = () => {
   const [gridCols, setGridCols] = useState(4); // 4 or 3 columns on desktop
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [reloadTrigger, setReloadTrigger] = useState(0);
+  const [shopBanner, setShopBanner] = useState(null);
   const { wishlist } = useCart();
 
   const [collapsedSections, setCollapsedSections] = useState({
@@ -123,6 +124,19 @@ const Shop = () => {
   const wishlistOnly = searchParams.get('wishlist') === 'true';
   const maxPriceParam = searchParams.get('maxPrice') || '';
   const selectedColorParam = searchParams.get('color') || 'all';
+
+  useEffect(() => {
+    let active = true;
+    apiGetShopBanners(selectedCategory)
+      .then((banners) => { if (active) setShopBanner(banners[0] || null); })
+      .catch((error) => {
+        if (active) {
+          setShopBanner(null);
+          console.error('Error fetching shop category banner:', error);
+        }
+      });
+    return () => { active = false; };
+  }, [selectedCategory, reloadTrigger]);
 
   useEffect(() => {
     const handleStoreUpdate = () => setReloadTrigger((prev) => prev + 1);
@@ -238,6 +252,7 @@ const Shop = () => {
 
   const catKey = (selectedCategory || '').toLowerCase();
   const activeBannerBg =
+    (shopBanner?.image ? getImageUrl(shopBanner.image) : null) ||
     CATEGORY_HERO_MAP[catKey] ||
     editorial?.bgImage ||
     (currentCategoryData?.image ? getImageUrl(currentCategoryData.image) : null) ||
@@ -495,7 +510,8 @@ const Shop = () => {
       >
         <div className="container">
           <div className="shv-shop-banner-content">
-            <h1 className="shv-shop-title">{editorial.title}</h1>
+            <h1 className="shv-shop-title">{shopBanner?.title || editorial.title}</h1>
+            {shopBanner?.subtitle && <p className="shv-shop-banner-subtitle">{shopBanner.subtitle}</p>}
           </div>
         </div>
       </section>

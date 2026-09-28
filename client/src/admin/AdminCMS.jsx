@@ -19,7 +19,15 @@ import {
   Upload,
 } from 'lucide-react';
 import { getSettings, saveSettings } from '../services/storeService';
-import { apiUploadImage, apiDeleteUploadedImage, getImageUrl } from '../services/api';
+import {
+  apiUploadImage,
+  apiDeleteUploadedImage,
+  getImageUrl,
+  apiAdminGetCategories,
+  apiAdminGetShopBanners,
+  apiAdminSaveShopBanner,
+  apiAdminDeleteShopBanner,
+} from '../services/api';
 
 const dataUrlToImageFile = (dataUrl, index) => {
   const match = /^data:(image\/[^;,]+);base64,([\s\S]+)$/i.exec(dataUrl);
@@ -33,6 +41,7 @@ const dataUrlToImageFile = (dataUrl, index) => {
 
 const AdminCMS = ({ onRefresh, settings: currentSettings }) => {
   const heroFileInputRef = useRef(null);
+  const shopBannerFileRef = useRef(null);
   const [activeTab, setActiveTab] = useState('announcements'); // 'announcements' | 'hero' | 'contact' | 'policies'
   const [settings, setLocalSettings] = useState(currentSettings);
   const [savedAlert, setSavedAlert] = useState(false);
@@ -41,12 +50,79 @@ const AdminCMS = ({ onRefresh, settings: currentSettings }) => {
   const [activeHeroIndex, setActiveHeroIndex] = useState(0);
   const [heroUploading, setHeroUploading] = useState(false);
   const [pendingHeroFiles, setPendingHeroFiles] = useState({});
+  const [shopBanners, setShopBanners] = useState([]);
+  const [shopCategories, setShopCategories] = useState([]);
+  const [shopBannerForm, setShopBannerForm] = useState({ title: '', subtitle: '', category: 'all', isActive: true });
+  const [shopBannerId, setShopBannerId] = useState(null);
+  const [shopBannerFile, setShopBannerFile] = useState(null);
+  const [shopBannerPreview, setShopBannerPreview] = useState('');
+  const [shopBannerSaving, setShopBannerSaving] = useState(false);
   const heroBanners = settings.heroBanners?.length ? settings.heroBanners : [settings.heroBanner || {}];
   const activeHeroBanner = heroBanners[activeHeroIndex] || heroBanners[0] || {};
 
   useEffect(() => {
     setLocalSettings(currentSettings || getSettings());
   }, [currentSettings]);
+
+  useEffect(() => {
+    Promise.all([apiAdminGetShopBanners(), apiAdminGetCategories()])
+      .then(([banners, categoryData]) => {
+        setShopBanners(banners);
+        setShopCategories(categoryData?.categories || []);
+      })
+      .catch((error) => console.error('Failed to load shop banner data:', error));
+  }, []);
+
+  useEffect(() => () => {
+    if (shopBannerPreview.startsWith('blob:')) URL.revokeObjectURL(shopBannerPreview);
+  }, [shopBannerPreview]);
+
+  const startNewShopBanner = () => {
+    setShopBannerId(null);
+    setShopBannerForm({ title: '', subtitle: '', category: 'all', isActive: true });
+    setShopBannerFile(null);
+    setShopBannerPreview('');
+  };
+
+  const editShopBanner = (banner) => {
+    setShopBannerId(banner._id);
+    setShopBannerForm({ title: banner.title || '', subtitle: banner.subtitle || '', category: banner.category || 'all', isActive: banner.isActive !== false });
+    setShopBannerFile(null);
+    setShopBannerPreview(banner.image || '');
+  };
+
+  const saveShopBanner = async (e) => {
+    e.preventDefault();
+    if (!shopBannerId && !shopBannerFile) {
+      alert('Please choose a banner image.');
+      return;
+    }
+    setShopBannerSaving(true);
+    try {
+      const saved = await apiAdminSaveShopBanner(shopBannerForm, shopBannerFile, shopBannerId);
+      setShopBanners((prev) => shopBannerId ? prev.map((item) => item._id === saved._id ? saved : item) : [saved, ...prev]);
+      startNewShopBanner();
+      triggerSuccess();
+      onRefresh?.();
+    } catch (error) {
+      alert(error.message || 'Could not save shop banner.');
+    } finally {
+      setShopBannerSaving(false);
+    }
+  };
+
+  const removeShopBanner = async (banner) => {
+    if (!window.confirm('Delete this shop banner?')) return;
+    try {
+      await apiAdminDeleteShopBanner(banner._id);
+      setShopBanners((prev) => prev.filter((item) => item._id !== banner._id));
+      if (shopBannerId === banner._id) startNewShopBanner();
+      triggerSuccess();
+      onRefresh?.();
+    } catch (error) {
+      alert(error.message || 'Could not delete shop banner.');
+    }
+  };
 
   // Keep selected files in the browser until the CMS form is submitted.
   const handleHeroFileUpload = (e) => {
@@ -227,6 +303,15 @@ const AdminCMS = ({ onRefresh, settings: currentSettings }) => {
         >
           <Sparkles size={16} />
           <span>Homepage Hero Banner</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('shop-banners')}
+          className={`shv-cms-tab-btn ${activeTab === 'shop-banners' ? 'active' : ''}`}
+        >
+          <ImageIcon size={16} />
+          <span>Shop Category Banners</span>
         </button>
 
         <button
@@ -442,6 +527,68 @@ const AdminCMS = ({ onRefresh, settings: currentSettings }) => {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {activeTab === 'shop-banners' && (
+        <div className="shv-cms-content-card">
+          <div className="shv-cms-card-header">
+            <div>
+              <h3>Shop Page Category Banners</h3>
+              <p>Upload one banner per category. The shop page displays the active banner for its selected category.</p>
+            </div>
+            <button type="button" className="shv-btn-primary" onClick={startNewShopBanner}><Plus size={16} /> Add Banner</button>
+          </div>
+
+          <div className="shv-cms-announcement-list" style={{ marginBottom: '1.25rem' }}>
+            {shopBanners.length === 0 && <p>No shop banners have been added yet.</p>}
+            {shopBanners.map((banner) => (
+              <div key={banner._id} className="shv-cms-announcement-row">
+                <div className="shv-cms-announcement-num">{banner.category}</div>
+                <div className="shv-cms-announcement-text">{banner.title || 'Untitled banner'}{!banner.isActive && ' (Inactive)'}</div>
+                <button type="button" className="shv-table-filter-btn" onClick={() => editShopBanner(banner)}>Edit</button>
+                <button type="button" className="shv-cms-delete-icon" onClick={() => removeShopBanner(banner)} title="Delete banner"><Trash2 size={16} /></button>
+              </div>
+            ))}
+          </div>
+
+          <form onSubmit={saveShopBanner}>
+            <div className="shv-editor-fields-grid">
+              <div className="shv-field half-width">
+                <label>Banner Title</label>
+                <input value={shopBannerForm.title} onChange={(e) => setShopBannerForm((prev) => ({ ...prev, title: e.target.value }))} placeholder="Category headline" />
+              </div>
+              <div className="shv-field half-width">
+                <label>Category</label>
+                <select value={shopBannerForm.category} onChange={(e) => setShopBannerForm((prev) => ({ ...prev, category: e.target.value }))}>
+                  <option value="all">All categories</option>
+                  {shopCategories.map((category) => <option key={category._id || category.slug} value={category.slug}>{category.name}</option>)}
+                </select>
+              </div>
+              <div className="shv-field full-width">
+                <label>Banner Subtitle</label>
+                <textarea rows={2} value={shopBannerForm.subtitle} onChange={(e) => setShopBannerForm((prev) => ({ ...prev, subtitle: e.target.value }))} placeholder="Optional supporting text" />
+              </div>
+              <div className="shv-field full-width">
+                <label>Banner Image (saved as a file in uploads, with only its path stored in the database)</label>
+                <input ref={shopBannerFileRef} type="file" accept="image/*" onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (shopBannerPreview.startsWith('blob:')) URL.revokeObjectURL(shopBannerPreview);
+                  setShopBannerFile(file);
+                  setShopBannerPreview(URL.createObjectURL(file));
+                }} />
+                {shopBannerPreview && <img src={shopBannerPreview.startsWith('blob:') ? shopBannerPreview : getImageUrl(shopBannerPreview)} alt="Shop banner preview" style={{ display: 'block', width: '100%', maxHeight: 220, objectFit: 'cover', marginTop: 12, borderRadius: 10 }} />}
+              </div>
+              <div className="shv-field full-width">
+                <label className="shv-editor-checkbox"><input type="checkbox" checked={shopBannerForm.isActive} onChange={(e) => setShopBannerForm((prev) => ({ ...prev, isActive: e.target.checked }))} /><span>Show this banner on the shop page</span></label>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+              <button type="submit" className="shv-btn-primary" disabled={shopBannerSaving}>{shopBannerSaving ? 'Saving...' : shopBannerId ? 'Update Banner' : 'Save Banner'}</button>
+              {shopBannerId && <button type="button" className="shv-table-filter-btn" onClick={startNewShopBanner}>Cancel Edit</button>}
+            </div>
+          </form>
         </div>
       )}
 

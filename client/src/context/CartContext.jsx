@@ -281,7 +281,8 @@ export const CartProvider = ({ children }) => {
   const freeShippingReached = cartSubtotal >= FREE_SHIPPING_THRESHOLD;
   const freeShippingProgress = Math.min(100, Math.round((cartSubtotal / FREE_SHIPPING_THRESHOLD) * 100));
   const amountNeededForFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - cartSubtotal);
-  const shippingCost = cartCount === 0 || freeShippingReached ? 0 : 99;
+  // const shippingCost = cartCount === 0 || freeShippingReached ? 0 : 99;
+const [shippingCost, setShippingCost] = useState(0);
   const cartTotal = Math.max(0, cartSubtotal - discountAmount + shippingCost);
 
   return (
@@ -298,6 +299,7 @@ export const CartProvider = ({ children }) => {
         cartTotal,
         discountAmount,
         shippingCost,
+        setShippingCost,
         appliedCoupon,
         couponError,
         applyCoupon,

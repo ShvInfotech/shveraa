@@ -2762,13 +2762,16 @@ h4 { font-size: 1.15rem; }
   border-radius: var(--radius-sm);
   overflow: hidden;
   border: 1px solid rgba(160, 126, 82, 0.16);
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s ease, border-color 0.28s ease;
   display: flex;
   flex-direction: column;
+  content-visibility: auto;
+  contain-intrinsic-size: 280px 420px;
+  transform: translateZ(0);
 }
 
 .product-card:hover {
-  transform: translateY(-4px);
+  transform: translateY(-4px) translateZ(0);
   box-shadow: 0 10px 28px rgba(60, 48, 36, 0.08);
   border-color: rgba(176, 141, 87, 0.4);
 }
@@ -2784,6 +2787,7 @@ h4 { font-size: 1.15rem; }
   aspect-ratio: 1 / 1.18;
   background-color: #F8FAFC;
   overflow: hidden;
+  transform: translateZ(0);
 }
 
 .product-image-stack {
@@ -2796,7 +2800,8 @@ h4 { font-size: 1.15rem; }
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
+  transform: translateZ(0);
 }
 
 .product-image-empty {
@@ -2814,10 +2819,11 @@ h4 { font-size: 1.15rem; }
   object-fit: cover;
   opacity: 0;
   pointer-events: none;
+  transform: translateZ(0);
 }
 
 .product-card:hover .product-main-img {
-  transform: scale(1.05);
+  transform: scale(1.04) translateZ(0);
 }
 
 .product-card:hover .product-img-secondary {
@@ -2852,8 +2858,7 @@ h4 { font-size: 1.15rem; }
 }
 
 .product-hallmark-tag {
-  background: rgba(31, 27, 23, 0.85);
-  backdrop-filter: blur(8px);
+  background: rgba(26, 22, 19, 0.94);
   color: #E2D4C3;
   font-size: 0.58rem;
   font-weight: 700;

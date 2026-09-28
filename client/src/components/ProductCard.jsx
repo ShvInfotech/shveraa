@@ -153,16 +153,18 @@ const ProductCard = ({ product }) => {
                 src={primaryImage}
                 alt={product.name}
                 loading="lazy"
+                decoding="async"
                 className="product-main-img product-img-primary"
               />
             ) : (
               <div className="product-image-empty" aria-label="Product image unavailable" />
             )}
-            {secondaryImage && secondaryImage !== primaryImage && !isSwatchHovering && (
+            {isHovered && secondaryImage && secondaryImage !== primaryImage && !isSwatchHovering && (
               <img
                 src={secondaryImage}
                 alt={`${product.name} Alternate View`}
                 loading="lazy"
+                decoding="async"
                 className="product-main-img product-img-secondary"
               />
             )}

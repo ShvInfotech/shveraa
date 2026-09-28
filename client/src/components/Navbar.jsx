@@ -83,16 +83,20 @@ const Navbar = () => {
   const currentCategory = new URLSearchParams(location.search).get('category');
   const [isScrolled, setIsScrolled] = useState(false);
 
-  // Detect scroll to transition from transparent floating to frosted glass
+  // Detect scroll to transition from transparent floating to frosted glass with passive listener
   useEffect(() => {
+    let ticking = false;
     const handleScroll = () => {
-      if (window.scrollY > 30) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const scrolled = window.scrollY > 30;
+          setIsScrolled((prev) => (prev !== scrolled ? scrolled : prev));
+          ticking = false;
+        });
+        ticking = true;
       }
     };
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 

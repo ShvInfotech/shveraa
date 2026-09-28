@@ -147,16 +147,25 @@ const AppContent = () => {
     }
   }, [search, pathname]);
 
-  // Awwwards-Style Silky Smooth Momentum Scrolling for Storefront (bypassed on Admin for fixed SaaS layout)
+  // Silky Smooth Scrolling for Storefront (bypassed on Admin and touch/mobile devices for native 120Hz physics)
   useEffect(() => {
     if (isAdmin || !isBypassed) return;
 
+    // On mobile and touch devices, native kinetic compositor scrolling is far smoother than JS interpolation
+    const isTouchDevice =
+      typeof window !== 'undefined' &&
+      ('ontouchstart' in window || navigator.maxTouchPoints > 0 || window.matchMedia('(pointer: coarse)').matches);
+
+    if (isTouchDevice) {
+      return;
+    }
+
     const lenis = new Lenis({
-      duration: 1.2,
+      duration: 0.75,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       smoothWheel: true,
       wheelMultiplier: 1.0,
-      touchMultiplier: 1.5,
+      syncTouch: false,
     });
 
     let rafId;
@@ -170,7 +179,7 @@ const AppContent = () => {
       cancelAnimationFrame(rafId);
       lenis.destroy();
     };
-  }, [isAdmin]);
+  }, [isAdmin, isBypassed]);
 
   if (isAdmin) {
     return (

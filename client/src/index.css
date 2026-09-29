@@ -4017,16 +4017,19 @@ h4 { font-size: 1.15rem; }
 
 .product-gallery {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 16px;
 }
 
 .product-main-gallery-img {
+  flex: 1;
+  min-width: 0;
   position: relative;
   aspect-ratio: 1 / 1.15;
   border-radius: var(--radius-sm);
   overflow: hidden;
-  background-color: #F1F5F9;
+  background-color: #FAF8F5;
   border: 1px solid var(--color-border);
   touch-action: pan-y;
   user-select: none;
@@ -4034,6 +4037,10 @@ h4 { font-size: 1.15rem; }
 }
 
 @media (max-width: 640px) {
+  .product-gallery {
+    gap: 10px;
+  }
+
   .product-main-gallery-img {
     aspect-ratio: 1 / 1.08;
     border-radius: 12px;
@@ -4132,28 +4139,33 @@ h4 { font-size: 1.15rem; }
 
 .product-thumbnails {
   display: flex;
+  flex-direction: column;
   gap: 10px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: 560px;
   scrollbar-width: thin;
+  flex-shrink: 0;
+  width: 76px;
+  padding-right: 2px;
 }
 
 @media (max-width: 640px) {
   .product-thumbnails {
+    width: 56px;
     gap: 8px;
+    max-height: 420px;
   }
 }
 
 .product-thumb-btn {
-  width: 72px;
-  height: 72px;
+  width: 74px;
+  height: 74px;
   border-radius: var(--radius-xs);
   overflow: hidden;
-  border: 2px solid transparent;
+  border: 1.5px solid #EAE6DF;
   flex-shrink: 0;
-  background-color: #F1F5F9;
+  background-color: #FAF8F5;
   transition: border-color var(--transition-fast), transform var(--transition-fast);
   cursor: pointer;
   padding: 0;
@@ -4161,15 +4173,15 @@ h4 { font-size: 1.15rem; }
 
 @media (max-width: 640px) {
   .product-thumb-btn {
-    width: 60px;
-    height: 60px;
-    border-radius: 8px;
+    width: 54px;
+    height: 54px;
+    border-radius: 6px;
   }
 }
 
 .product-thumb-btn.active {
-  border-color: var(--color-text-main);
-  box-shadow: 0 0 0 1px var(--color-text-main);
+  border-color: #1A1612;
+  box-shadow: 0 0 0 1px #1A1612;
 }
 
 .product-thumb-btn img {
@@ -4657,88 +4669,196 @@ h4 { font-size: 1.15rem; }
 }
 
 /* ==========================================================
-   PDP 5-BADGE ATELIER ASSURANCE STRIP (GENUINE 925, PLATING,
-   7-DAY RETURN, 6-MONTH WARRANTY, BIS HALLMARK)
+   PDP SHARE & VALUE PROPOSITION BAR (IMAGE 2)
    ========================================================== */
-.shv-pdp-assurance-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 12px;
-  margin-top: 20px;
+.shv-pdp-share-warranty-block {
+  margin-top: 24px;
   margin-bottom: 24px;
 }
 
-.shv-pdp-assurance-card {
-  background: #F3F1F8;
-  border: 1px solid #E5E0F0;
-  border-radius: 12px;
-  padding: 18px 8px 16px;
+.shv-pdp-share-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 13px 0;
+  border-top: 1px solid #EAE6DF;
+  border-bottom: 1px solid #EAE6DF;
+}
+
+.shv-pdp-share-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #55504A;
+}
+
+.shv-pdp-share-divider {
+  color: #D6D0C7;
+  font-weight: 300;
+  user-select: none;
+}
+
+.shv-pdp-share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: transparent;
+  border: none;
+  font-size: 0.90rem;
+  color: #55504A;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+  transition: color 0.15s ease;
+}
+
+.shv-pdp-share-btn:hover {
+  color: #1A1612;
+}
+
+.shv-pdp-feature-badges-row {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 16px 0;
+  border-bottom: 1px solid #EAE6DF;
+  flex-wrap: wrap;
+}
+
+.shv-pdp-feature-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  color: #2D2924;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.shv-pdp-feature-check {
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  background-color: #E8F5E9;
+  color: #2E7D32;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .shv-pdp-feature-badges-row {
+    gap: 14px 18px;
+  }
+  .shv-pdp-feature-item {
+    font-size: 0.82rem;
+  }
+}
+
+/* ==========================================================
+   PDP 3 ACCORDIONS GROUP (IMAGE 3)
+   ========================================================== */
+.shv-pdp-accordions-group {
   display: flex;
   flex-direction: column;
+  margin-top: 12px;
+}
+
+.shv-pdp-accordion-item {
+  border-bottom: 1px solid #EAE6DF;
+}
+
+.shv-pdp-accordion-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  text-align: center;
-  gap: 12px;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 1px 3px rgba(35, 37, 59, 0.02);
+  padding: 18px 0;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 0.94rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #1A1612;
+  cursor: pointer;
+  text-align: left;
 }
 
-.shv-pdp-assurance-card:hover {
-  transform: translateY(-2px);
-  background: #EDE9F5;
-  border-color: #D6CFE6;
-  box-shadow: 0 6px 16px rgba(42, 45, 78, 0.08);
+.shv-pdp-accordion-toggle {
+  font-size: 1.25rem;
+  font-weight: 300;
+  color: #332E28;
+  line-height: 1;
+  user-select: none;
 }
 
-.shv-pdp-assurance-icon {
+.shv-pdp-accordion-body {
+  padding-bottom: 22px;
+}
+
+.shv-pdp-details-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.92rem;
+  color: #4A443D;
+  line-height: 1.6;
+}
+
+.shv-pdp-care-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.shv-pdp-care-row {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 16px;
+  align-items: center;
+}
+
+.shv-pdp-care-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 32px;
-  color: #2E3156;
+  width: 54px;
+  height: 54px;
+  flex-shrink: 0;
 }
 
-.shv-pdp-assurance-text {
-  font-size: 0.82rem;
+.shv-pdp-care-content h4 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #1A1612;
+  margin: 0 0 4px 0;
+}
+
+.shv-pdp-care-content p {
+  font-size: 0.88rem;
+  color: #4A443D;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.shv-pdp-shipping-text p {
+  font-size: 0.92rem;
+  color: #4A443D;
+  line-height: 1.65;
+  margin: 0;
+}
+
+.shv-pdp-inline-link {
+  color: #1A1612;
   font-weight: 600;
-  color: #23253B;
-  line-height: 1.25;
-  letter-spacing: -0.01em;
-  text-align: center;
-  display: block;
-}
-
-@media (max-width: 992px) {
-  .shv-pdp-assurance-grid {
-    gap: 8px;
-  }
-  .shv-pdp-assurance-card {
-    padding: 14px 4px 12px;
-    gap: 8px;
-  }
-  .shv-pdp-assurance-text {
-    font-size: 0.74rem;
-  }
-}
-
-@media (max-width: 580px) {
-  .shv-pdp-assurance-grid {
-    display: flex;
-    overflow-x: auto;
-    padding-bottom: 8px;
-    gap: 10px;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    -webkit-overflow-scrolling: touch;
-  }
-  .shv-pdp-assurance-grid::-webkit-scrollbar {
-    display: none;
-  }
-  .shv-pdp-assurance-card {
-    flex: 0 0 114px;
-    min-width: 114px;
-    padding: 16px 8px 14px;
-  }
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* Comprehensive Specs Table */

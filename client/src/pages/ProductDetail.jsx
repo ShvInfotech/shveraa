@@ -23,6 +23,8 @@ import {
   Share2,
   X,
   Zap,
+  Link2,
+  MessageCircle,
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -31,88 +33,52 @@ import { getProductColors } from '../services/storeService';
 import ProductCard from '../components/ProductCard';
 import Loader from '../components/Loader';
 
-// 5-Badge Atelier Assurance Custom SVGs (Genuine 925, Lifetime Plating, 7 Day Return, 6-Month Warranty, BIS Hallmark)
-const IngotIcon = ({ size = 28, color = '#2E3156' }) => (
-  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-    <polygon points="12,5 19,2.5 25,5.5 18,8" />
-    <polygon points="12,5 18,8 18,12 12,9" />
-    <polygon points="18,8 25,5.5 25,9.5 18,12" />
-    <polygon points="6,15 13,12 19,15 12,18" />
-    <polygon points="6,15 12,18 12,22 6,19" />
-    <polygon points="12,18 19,15 19,19 12,22" />
-    <polygon points="15,17 22,14 28,17 21,20" />
-    <polygon points="15,17 21,20 21,24 15,21" />
-    <polygon points="21,20 28,17 28,21 21,24" />
+// Product Care Icons (Image 3)
+const AvoidWaterIcon = ({ size = 52 }) => (
+  <svg width={size} height={size} viewBox="0 0 54 54" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="27" cy="27" r="23" stroke="#888077" strokeWidth="1.2" />
+    <path d="M14 24 C18 21, 22 27, 27 24 C32 21, 36 27, 40 24" stroke="#888077" strokeWidth="1.2" strokeLinecap="round" />
+    <path d="M14 30 C18 27, 22 33, 27 30 C32 27, 36 33, 40 30" stroke="#888077" strokeWidth="1.2" strokeLinecap="round" />
+    <line x1="11" y1="11" x2="43" y2="43" stroke="#888077" strokeWidth="1.2" />
   </svg>
 );
 
-const LifetimePlatingIcon = ({ size = 28, color = '#2E3156' }) => (
-  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M14 6C11 3.5 6.5 4 4.5 7.5c-2.5 4-1 9.5 3 13.5l6.5 6 1.5-1.4" />
-    <path d="M14 6c2.5-2.2 6.8-2 9 1.5 2 3.2 1.8 7.5.2 10.5" />
-    <circle cx="21" cy="20.5" r="6" />
-    <polyline points="21,17 21,20.5 23.5,22" />
+const AvoidCosmeticsIcon = ({ size = 52 }) => (
+  <svg width={size} height={size} viewBox="0 0 54 54" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="27" cy="27" r="23" stroke="#888077" strokeWidth="1.2" />
+    <circle cx="27" cy="33" r="9" stroke="#888077" strokeWidth="1.2" />
+    <rect x="24.5" y="21" width="5" height="3.5" stroke="#888077" strokeWidth="1.2" />
+    <path d="M22 21 H32" stroke="#888077" strokeWidth="1.2" />
+    <path d="M24 21 C22 17, 18 19, 17 21 C16 23, 17 25, 20 25" stroke="#888077" strokeWidth="1.2" strokeLinecap="round" />
+    <circle cx="34" cy="18" r="0.8" fill="#888077" />
+    <circle cx="37" cy="16" r="0.8" fill="#888077" />
+    <circle cx="38" cy="20" r="0.8" fill="#888077" />
+    <line x1="11" y1="11" x2="43" y2="43" stroke="#888077" strokeWidth="1.2" />
   </svg>
 );
 
-const EasyReturnIcon = ({ size = 28, color = '#2E3156' }) => (
-  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-    <polygon points="14,4 23,8 16,12 7,8" />
-    <polygon points="7,8 16,12 16,22 7,18" />
-    <polygon points="16,12 23,8 23,17" />
-    <path d="M20 15c3 1.2 5 3.5 5 6.2 0 3.2-2.5 5.2-6 5.2" />
-    <polyline points="23,24 19,26.5 23,29" />
+const StorageBoxIcon = ({ size = 52 }) => (
+  <svg width={size} height={size} viewBox="0 0 54 54" fill="none" xmlns="http://www.w3.org/2000/svg">
+    {/* Stacked 3 jewellery boxes */}
+    {/* Box 1 (Top) */}
+    <polygon points="21,12 37,12 43,18 27,18" stroke="#888077" strokeWidth="1.2" strokeLinejoin="round" />
+    <polygon points="21,12 27,18 27,23 21,17" stroke="#888077" strokeWidth="1.2" strokeLinejoin="round" />
+    <polygon points="27,18 43,18 43,23 27,23" stroke="#888077" strokeWidth="1.2" strokeLinejoin="round" />
+    <rect x="34" y="19.5" width="2.5" height="1.5" rx="0.3" fill="#888077" />
+
+    {/* Box 2 (Middle) */}
+    <polygon points="17,22 33,22 40,28 24,28" stroke="#888077" strokeWidth="1.2" strokeLinejoin="round" />
+    <polygon points="17,22 24,28 24,34 17,28" stroke="#888077" strokeWidth="1.2" strokeLinejoin="round" />
+    <polygon points="24,28 40,28 40,34 24,34" stroke="#888077" strokeWidth="1.2" strokeLinejoin="round" />
+    <rect x="31" y="30" width="2.5" height="1.5" rx="0.3" fill="#888077" />
+
+    {/* Box 3 (Bottom) */}
+    <polygon points="13,33 29,33 36,39 20,39" stroke="#888077" strokeWidth="1.2" strokeLinejoin="round" />
+    <polygon points="13,33 20,39 20,45 13,39" stroke="#888077" strokeWidth="1.2" strokeLinejoin="round" />
+    <polygon points="20,39 36,39 36,45 20,45" stroke="#888077" strokeWidth="1.2" strokeLinejoin="round" />
+    <rect x="27" y="41" width="2.5" height="1.5" rx="0.3" fill="#888077" />
   </svg>
 );
-
-const WarrantyShieldIcon = ({ size = 28, color = '#2E3156' }) => (
-  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M16 3L6 7v8c0 7.5 4.3 12.8 10 14.5 5.7-1.7 10-7 10-14.5V7L16 3z" />
-    <circle cx="16" cy="15" r="4.5" />
-    <polyline points="14.2,15 15.6,16.4 18,13.8" />
-  </svg>
-);
-
-const BisHallmarkIcon = ({ size = 28, color = '#2E3156' }) => (
-  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke={color} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-    <polygon points="16,5 4,24 28,24" />
-    <path d="M9 19h14" />
-    <circle cx="16" cy="14" r="2.5" fill={color} />
-  </svg>
-);
-
-const PDP_ASSURANCE_ITEMS = [
-  {
-    id: 'silver',
-    title: 'Genuine 925',
-    subtitle: 'Sterling Silver',
-    Icon: IngotIcon,
-  },
-  {
-    id: 'plating',
-    title: 'Lifetime Plating',
-    subtitle: '',
-    Icon: LifetimePlatingIcon,
-  },
-  {
-    id: 'return',
-    title: 'Easy 7 Day Return',
-    subtitle: '',
-    Icon: EasyReturnIcon,
-  },
-  {
-    id: 'warranty',
-    title: '6-Month Warranty',
-    subtitle: '',
-    Icon: WarrantyShieldIcon,
-  },
-  {
-    id: 'hallmark',
-    title: 'BIS Hallmark',
-    subtitle: '',
-    Icon: BisHallmarkIcon,
-  },
-];
 
 const SEED_REVIEWS = [
   {
@@ -181,7 +147,34 @@ const ProductDetail = () => {
   const [selectedColor, setSelectedColor] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [customEngraving, setCustomEngraving] = useState('');
-  const [openSection, setOpenSection] = useState('specs');
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [openAccordions, setOpenAccordions] = useState({
+    details: true,
+    care: true,
+    shipping: true,
+  });
+
+  const toggleAccordion = (section) => {
+    setOpenAccordions((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
+
+  const handleCopyLink = () => {
+    try {
+      navigator.clipboard.writeText(window.location.href);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2500);
+    } catch (err) {
+      console.error('Failed to copy link:', err);
+    }
+  };
+
+  const handleWhatsAppShare = () => {
+    const text = `Check out this 925 Sterling Silver jewellery: ${product?.name || ''} at Shveraa Jewels: ${window.location.href}`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+  };
 
   // Pincode Delivery Estimator
   const [pincode, setPincode] = useState('');
@@ -621,8 +614,24 @@ const ProductDetail = () => {
 
         {/* 2. Main Product Layout: Image Gallery + Sticky Info Column */}
         <div className="product-detail-layout">
-          {/* Left: Gallery */}
+          {/* Left: Gallery (Thumbnails on the left, Main image on the right) */}
           <div className="product-gallery">
+            {images.length > 1 && (
+              <div className="product-thumbnails" ref={thumbnailsRef}>
+                {images.map((img, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setSelectedImageIndex(idx)}
+                    className={`product-thumb-btn ${selectedImageIndex === idx ? 'active' : ''}`}
+                    aria-label={`Thumbnail ${idx + 1}`}
+                  >
+                    <img src={img} alt={`View ${idx + 1}`} />
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div
               className="product-main-gallery-img"
               onTouchStart={handleTouchStart}
@@ -672,44 +681,10 @@ const ProductDetail = () => {
                 </span>
               )}
             </div>
-
-            {images.length > 1 && (
-              <div className="product-thumbnails" ref={thumbnailsRef}>
-                {images.map((img, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setSelectedImageIndex(idx)}
-                    className={`product-thumb-btn ${selectedImageIndex === idx ? 'active' : ''}`}
-                    aria-label={`Thumbnail ${idx + 1}`}
-                  >
-                    <img src={img} alt={`View ${idx + 1}`} />
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Right: Product Purchase Details */}
           <div className="product-info-column">
-            {/* Hallmark & Purity Badges */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
-              {product.freeShipping !== false && (
-                <span className="product-hallmark-pill" style={{ background: '#ECFDF5', borderColor: '#10B981', color: '#047857' }}>
-                  <Truck size={13} color="#10B981" /> Complimentary Express Shipping
-                </span>
-              )}
-              <span className="product-hallmark-pill">
-                <ShieldCheck size={13} color="#A07E52" /> BIS 925 Hallmarked
-              </span>
-              <span className="product-hallmark-pill">
-                <Sparkles size={13} color="#A07E52" /> Triple Rhodium Shield
-              </span>
-              <span className="product-hallmark-pill">
-                <Award size={13} color="#A07E52" /> 100% Hypoallergenic
-              </span>
-            </div>
-
             <h1 className="product-detail-title">{product.name}</h1>
 
             {/* Price Row */}
@@ -723,22 +698,6 @@ const ProductDetail = () => {
                   </span>
                 </>
               ) : null}
-            </div>
-
-            {/* Rating Summary Header */}
-            <div className="product-detail-rating-row">
-              <div style={{ display: 'flex', gap: '2px' }}>
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} size={14} fill="#A07E52" color="#A07E52" />
-                ))}
-              </div>
-              <span style={{ fontSize: '0.88rem', fontWeight: 600 }}>{avgRating} / 5.0</span>
-              <a
-                href="#reviews-hub"
-                style={{ color: '#716960', fontSize: '0.85rem', textDecoration: 'underline', marginLeft: '4px' }}
-              >
-                ({totalReviews} collector reviews)
-              </a>
             </div>
 
             {/* Short Atelier Lead */}
@@ -958,141 +917,169 @@ const ProductDetail = () => {
               )}
             </div>
 
-            {/* 5-Badge Atelier Assurance Strip (Genuine 925, Lifetime Plating, Easy 7 Day Return, 6-Month Warranty, BIS Hallmark) */}
-            <div className="shv-pdp-assurance-grid">
-              {PDP_ASSURANCE_ITEMS.map((item) => {
-                const IconComponent = item.Icon;
-                return (
-                  <div key={item.id} className="shv-pdp-assurance-card">
-                    <div className="shv-pdp-assurance-icon">
-                      <IconComponent size={28} color="#2E3156" />
-                    </div>
-                    <span className="shv-pdp-assurance-text">
-                      {item.title}
-                      {item.subtitle && (
-                        <>
-                          <br />
-                          {item.subtitle}
-                        </>
-                      )}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Detailed Specifications & Inclusions Cards */}
-            <div className="product-accordions">
-              {/* Detailed Specs Tab */}
-              <div className="accordion-item">
+            {/* Share and Value Assurance Features (Image 2) */}
+            <div className="shv-pdp-share-warranty-block">
+              {/* Share Row */}
+              <div className="shv-pdp-share-row">
+                <span className="shv-pdp-share-label">SHARE</span>
+                <span className="shv-pdp-share-divider">|</span>
                 <button
                   type="button"
-                  onClick={() => toggleSection('specs')}
-                  className="accordion-header"
+                  className="shv-pdp-share-btn"
+                  onClick={handleCopyLink}
+                  title="Copy link"
                 >
-                  <span>Atelier Specifications &amp; Material Purity</span>
-                  {openSection === 'specs' ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                  <Link2 size={16} />
+                  <span>{copiedLink ? 'Link Copied!' : 'Copy Link'}</span>
                 </button>
-                {openSection === 'specs' && (
-                  <div className="accordion-body">
-                    <div className="shv-pdp-specs-grid">
-                      <div className="shv-pdp-spec-card">
-                        <span className="shv-pdp-spec-title">Precious Metal</span>
-                        <span className="shv-pdp-spec-value">{product.metalType || product.material || 'Solid 925 Sterling Silver'}</span>
-                      </div>
-                      <div className="shv-pdp-spec-card">
-                        <span className="shv-pdp-spec-title">Protective Plating</span>
-                        <span className="shv-pdp-spec-value">{product.finish || 'Triple Rhodium Mirror Luster'}</span>
-                      </div>
-                      <div className="shv-pdp-spec-card">
-                        <span className="shv-pdp-spec-title">Hallmark Stamp</span>
-                        <span className="shv-pdp-spec-value">{product.metalPurity || 'BIS 925 Laser Inscription'}</span>
-                      </div>
-                      <div className="shv-pdp-spec-card">
-                        <span className="shv-pdp-spec-title">Stone / Gem</span>
-                        <span className="shv-pdp-spec-value">{product.stone || '5A Brilliant Cubic Zirconia'}</span>
-                      </div>
-                      <div className="shv-pdp-spec-card">
-                        <span className="shv-pdp-spec-title">Gem Carat &amp; Cut</span>
-                        <span className="shv-pdp-spec-value">{product.stoneCarat || 'VVS1 Brilliant Cut'}</span>
-                      </div>
-                      <div className="shv-pdp-spec-card">
-                        <span className="shv-pdp-spec-title">Approx. Net Weight</span>
-                        <span className="shv-pdp-spec-value">{product.metalWeight || '~4.85g Solid Silver'}</span>
-                      </div>
-                    </div>
-
-                    {/* What's inside the box */}
-                    <div className="shv-pdp-inclusions-card">
-                      <div className="shv-pdp-inclusions-title">
-                        <Package size={16} color="#A07E52" />
-                        <span>What's Inside Your Milestone Unboxing</span>
-                      </div>
-                      <div className="shv-pdp-inclusions-list">
-                        <div className="shv-pdp-inclusion-item">
-                          <Check size={14} color="#059669" /> Shveraa Velvet Presentation Box
-                        </div>
-                        <div className="shv-pdp-inclusion-item">
-                          <Check size={14} color="#059669" /> Microfiber Silver Polishing Cloth
-                        </div>
-                        <div className="shv-pdp-inclusion-item">
-                          <Check size={14} color="#059669" /> Soft Satin Keepsake Pouch
-                        </div>
-                        <div className="shv-pdp-inclusion-item">
-                          <Check size={14} color="#059669" /> BIS 925 Authenticity Certificate
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                <button
+                  type="button"
+                  className="shv-pdp-share-btn"
+                  onClick={handleWhatsAppShare}
+                  title="Share on WhatsApp"
+                >
+                  <MessageCircle size={16} />
+                  <span>WhatsApp</span>
+                </button>
               </div>
 
-              {/* 925 Silver Care Guide */}
-              <div className="accordion-item">
+              {/* 4 Feature Badges Row */}
+              <div className="shv-pdp-feature-badges-row">
+                <div className="shv-pdp-feature-item">
+                  <span className="shv-pdp-feature-check">
+                    <Check size={12} strokeWidth={3} />
+                  </span>
+                  <span>1 Year Warranty</span>
+                </div>
+                <div className="shv-pdp-feature-item">
+                  <span className="shv-pdp-feature-check">
+                    <Check size={12} strokeWidth={3} />
+                  </span>
+                  <span>BIS Hallmarked</span>
+                </div>
+                <div className="shv-pdp-feature-item">
+                  <span className="shv-pdp-feature-check">
+                    <Check size={12} strokeWidth={3} />
+                  </span>
+                  <span>Free Shipping</span>
+                </div>
+                <div className="shv-pdp-feature-item">
+                  <span className="shv-pdp-feature-check">
+                    <Check size={12} strokeWidth={3} />
+                  </span>
+                  <span>COD Available</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 3 Product Accordions (Image 3) */}
+            <div className="shv-pdp-accordions-group">
+              {/* 1. PRODUCT DETAILS */}
+              <div className="shv-pdp-accordion-item">
                 <button
                   type="button"
-                  onClick={() => toggleSection('care')}
-                  className="accordion-header"
+                  className="shv-pdp-accordion-header"
+                  onClick={() => toggleAccordion('details')}
+                  aria-expanded={openAccordions.details}
                 >
-                  <span>925 Silver Care &amp; Longevity Routine</span>
-                  {openSection === 'care' ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                  <span>PRODUCT DETAILS</span>
+                  <span className="shv-pdp-accordion-toggle">
+                    {openAccordions.details ? '—' : '+'}
+                  </span>
                 </button>
-                {openSection === 'care' && (
-                  <div className="accordion-body">
-                    <p>
-                      Your Shveraa piece is crafted from genuine solid 925 sterling silver, fortified with an invisible
-                      triple-plated shield of precious rhodium. It is naturally tarnish-resistant and designed for daily wear.
-                    </p>
-                    <ul style={{ paddingLeft: '18px', marginTop: '8px', lineHeight: '1.7' }}>
-                      <li>To restore its mirror fire, gently buff with the included microfiber polishing cloth.</li>
-                      <li>Safe for everyday showering, hand washing, and light perfumes.</li>
-                      <li>Store in your Shveraa velvet pouch when not adorning your daily ritual.</li>
-                      <li>Zero base metal alloys — guaranteed safe for ultra-sensitive skin.</li>
+                {openAccordions.details && (
+                  <div className="shv-pdp-accordion-body">
+                    <ul className="shv-pdp-details-list">
+                      <li>· Base Metal: {product.metalType || product.material || '92.5 Sterling Silver'}</li>
+                      <li>· Plating: {product.plating || product.finish || 'Rhodium'}</li>
+                      <li>· Stone: {product.stone || 'Cubic Zirconia Crystals'}</li>
+                      <li>· Occasion: {product.occasion || 'Party'}</li>
                     </ul>
                   </div>
                 )}
               </div>
 
-              {/* Complimentary Shipping & Returns */}
-              <div className="accordion-item">
+              {/* 2. PRODUCT CARE */}
+              <div className="shv-pdp-accordion-item">
                 <button
                   type="button"
-                  onClick={() => toggleSection('shipping')}
-                  className="accordion-header"
+                  className="shv-pdp-accordion-header"
+                  onClick={() => toggleAccordion('care')}
+                  aria-expanded={openAccordions.care}
                 >
-                  <span>Complimentary Insured Shipping &amp; 30-Day Returns</span>
-                  {openSection === 'shipping' ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                  <span>PRODUCT CARE</span>
+                  <span className="shv-pdp-accordion-toggle">
+                    {openAccordions.care ? '—' : '+'}
+                  </span>
                 </button>
-                {openSection === 'shipping' && (
-                  <div className="accordion-body">
-                    <p>
-                      All orders above ₹999 qualify for complimentary insured Air Express shipping via BlueDart across India.
-                      Each parcel travels in a tamper-evident security docket.
-                    </p>
-                    <p style={{ marginTop: '8px' }}>
-                      Should you require a size adjustment or return, our customer support team arranges doorstep pickup within 30 days
-                      with immediate exchange or full refund.
-                    </p>
+                {openAccordions.care && (
+                  <div className="shv-pdp-accordion-body">
+                    <div className="shv-pdp-care-grid">
+                      <div className="shv-pdp-care-row">
+                        <div className="shv-pdp-care-icon">
+                          <AvoidWaterIcon size={52} />
+                        </div>
+                        <div className="shv-pdp-care-content">
+                          <h4>AVOID WATER</h4>
+                          <p>Avoid wearing silver jewellery in pools, hot tubs, at the beach, or while playing sports to prevent damage.</p>
+                        </div>
+                      </div>
+
+                      <div className="shv-pdp-care-row">
+                        <div className="shv-pdp-care-icon">
+                          <AvoidCosmeticsIcon size={52} />
+                        </div>
+                        <div className="shv-pdp-care-content">
+                          <h4>AVOID COSMETICS</h4>
+                          <p>Avoid contact with soap, cosmetics, fragrances, hairspray, and corrosive or solvent-based cleaning agents.</p>
+                        </div>
+                      </div>
+
+                      <div className="shv-pdp-care-row">
+                        <div className="shv-pdp-care-icon">
+                          <StorageBoxIcon size={52} />
+                        </div>
+                        <div className="shv-pdp-care-content">
+                          <h4>STORAGE</h4>
+                          <p>When not worn, we recommend keeping your jewellery in the provided packaging stored in a dry and dark place.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 3. SHIPPING & RETURNS */}
+              <div className="shv-pdp-accordion-item">
+                <button
+                  type="button"
+                  className="shv-pdp-accordion-header"
+                  onClick={() => toggleAccordion('shipping')}
+                  aria-expanded={openAccordions.shipping}
+                >
+                  <span>SHIPPING &amp; RETURNS</span>
+                  <span className="shv-pdp-accordion-toggle">
+                    {openAccordions.shipping ? '—' : '+'}
+                  </span>
+                </button>
+                {openAccordions.shipping && (
+                  <div className="shv-pdp-accordion-body">
+                    <div className="shv-pdp-shipping-text">
+                      <p>
+                        Free delivery across india on all orders. Shipping within Delhi/NCR will take 2-3 working days. To find out more, refer to our{' '}
+                        <Link to="/shipping" className="shv-pdp-inline-link">
+                          Shipping Policy
+                        </Link>
+                        .
+                      </p>
+                      <p style={{ marginTop: '14px' }}>
+                        For returns, item(s) must be returned within 3 working days of receipt and must include the invoice. The item(s) must also be in its original saleable condition with all labels/tags intact, refer to the{' '}
+                        <Link to="/return-policy" className="shv-pdp-inline-link">
+                          Return &amp; Refund Policy
+                        </Link>
+                        .
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>

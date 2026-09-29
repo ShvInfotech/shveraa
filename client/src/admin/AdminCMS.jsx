@@ -607,9 +607,9 @@ const AdminCMS = ({ onRefresh, settings: currentSettings }) => {
               <label>Priority Silversmith Phone Hotline</label>
               <input
                 type="text"
-                value={settings.conciergePhone || '+91 98765 43210'}
+                value={settings.conciergePhone || '+91 99980 46559'}
                 onChange={(e) => setLocalSettings({ ...settings, conciergePhone: e.target.value })}
-                placeholder="+91 98765 43210"
+                placeholder="+91 99980 46559"
               />
             </div>
 
@@ -617,9 +617,9 @@ const AdminCMS = ({ onRefresh, settings: currentSettings }) => {
               <label>Direct WhatsApp Channel</label>
               <input
                 type="text"
-                value={settings.conciergeWhatsApp || '+91 98765 43210'}
+                value={settings.conciergeWhatsApp || '+91 99980 46559'}
                 onChange={(e) => setLocalSettings({ ...settings, conciergeWhatsApp: e.target.value })}
-                placeholder="+91 98765 43210"
+                placeholder="+91 99980 46559"
               />
             </div>
 
@@ -627,9 +627,9 @@ const AdminCMS = ({ onRefresh, settings: currentSettings }) => {
               <label>Official Concierge Email</label>
               <input
                 type="email"
-                value={settings.conciergeEmail || 'concierge@shveraa.luxury'}
+                value={settings.conciergeEmail || 'shvera925@gmail.com'}
                 onChange={(e) => setLocalSettings({ ...settings, conciergeEmail: e.target.value })}
-                placeholder="concierge@shveraa.luxury"
+                placeholder="shvera925@gmail.com"
               />
             </div>
 
@@ -646,9 +646,9 @@ const AdminCMS = ({ onRefresh, settings: currentSettings }) => {
               <label>Physical Flagship Atelier Address</label>
               <input
                 type="text"
-                value={settings.atelierAddress || 'Shveraa Heritage Atelier, Luxury Arcade, Mumbai 400001'}
+                value={settings.atelierAddress || 'A/9, Maruti Nandan Society, Opp. Prime Arcade, Anand Mahal Road, Surat'}
                 onChange={(e) => setLocalSettings({ ...settings, atelierAddress: e.target.value })}
-                placeholder="Shveraa Heritage Atelier, Luxury Arcade, Mumbai 400001"
+                placeholder="A/9, Maruti Nandan Society, Opp. Prime Arcade, Anand Mahal Road, Surat"
               />
             </div>
           </div>

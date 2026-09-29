@@ -58,7 +58,12 @@ const Footer = () => {
             <p className="footer-desc">
               Modern fine silver jewellery meticulously sculpted from solid 925 sterling silver and high-fire rhodium. Designed for daily rituals and permanent milestones.
             </p>
-            <div className="footer-atelier-note">
+            <div className="footer-contact-info-block" style={{ fontSize: '0.82rem', color: '#B3AAA0', marginTop: '14px', lineHeight: '1.65' }}>
+              <div><strong>Helpline &amp; WhatsApp:</strong> <a href="https://wa.me/919998046559" target="_blank" rel="noopener noreferrer" style={{ color: '#E8A598', textDecoration: 'none', marginLeft: '4px' }}>+91 99980 46559</a></div>
+              <div><strong>Email:</strong> <a href="mailto:shvera925@gmail.com" style={{ color: '#E8A598', textDecoration: 'none', marginLeft: '4px' }}>shvera925@gmail.com</a></div>
+              <div style={{ marginTop: '2px' }}><strong>Address:</strong> A/9, Maruti Nandan Society, Opp. Prime Arcade, Anand Mahal Road, Surat</div>
+            </div>
+            <div className="footer-atelier-note" style={{ marginTop: '12px' }}>
               <Sparkles size={15} />
               <span>10,000+ Happy Customers Across India &amp; Worldwide</span>
             </div>
@@ -150,7 +155,7 @@ const Footer = () => {
         {/* Bottom Copyright & Badges */}
         <div className="footer-bottom">
           <div className="footer-copyright">
-            © {new Date().getFullYear()} SHVERAA Silver Atelier. All Rights Reserved. Crafted with care for the modern muse.
+            © {new Date().getFullYear()} Shveraa Jewels. All Rights Reserved. Crafted with care for the modern muse.
           </div>
           <div className="footer-payment-badges">
             <span className="payment-pill">UPI</span>

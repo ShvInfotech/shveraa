@@ -286,7 +286,7 @@ const OrderSuccess = () => {
                   <h5>Atelier WhatsApp Concierge</h5>
                   <p>Have special delivery instructions or gift engraving questions?</p>
                   <a
-                    href="https://wa.me/919876543210?text=Hello%20Shveraa%20Atelier,%20I%20have%20an%20inquiry%20regarding%20my%20order"
+                    href="https://wa.me/919998046559?text=Hello%20Shveraa%20Atelier,%20I%20have%20an%20inquiry%20regarding%20my%20order"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="shv-concierge-link"

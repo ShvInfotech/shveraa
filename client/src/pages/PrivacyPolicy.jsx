@@ -56,7 +56,7 @@ const PrivacyPolicy = () => {
           <section className="shv-legal-section">
             <h2>1. Scope &amp; Atelier Philosophy</h2>
             <p>
-              This Privacy Policy applies to all services, online interactions, concierge consultations, and purchases made via <strong>Shveraa Silver Atelier</strong> ("Shveraa", "we", "us", or "our"). When you explore our silver collections, register an account, or acquire our hallmarked jewellery, you entrust us with essential particulars. We honor that trust with strict transparency and adherence to India's <em>Digital Personal Data Protection (DPDP) Act</em>.
+              This Privacy Policy applies to all services, online interactions, concierge consultations, and purchases made via <strong>Shveraa Jewels</strong> ("Shveraa", "we", "us", or "our"). When you explore our silver collections, register an account, or acquire our hallmarked jewellery, you entrust us with essential particulars. We honor that trust with strict transparency and adherence to India's <em>Digital Personal Data Protection (DPDP) Act</em>.
             </p>
           </section>
 
@@ -103,11 +103,11 @@ const PrivacyPolicy = () => {
               In accordance with the Information Technology Act 2000 and the DPDP Act, the contact coordinates for our designated Grievance Redressal Officer are as follows:
             </p>
             <div className="shv-officer-card">
-              <strong>Atelier Data Protection Officer</strong>
-              <span>Shveraa Silver Atelier Private Limited</span>
-              <span>12, Silversmith District, MI Road, Jaipur, Rajasthan — 302001</span>
-              <span>Email: <a href="mailto:privacy@shveraa.luxury">privacy@shveraa.luxury</a></span>
-              <span>Direct Concierge: +91 98765 43210</span>
+              <strong>Shveraa Jewels Support &amp; Grievance Officer</strong>
+              <span>Shveraa Jewels</span>
+              <span>A/9, Maruti Nandan Society, Opp. Prime Arcade, Anand Mahal Road, Surat</span>
+              <span>Email: <a href="mailto:shvera925@gmail.com">shvera925@gmail.com</a></span>
+              <span>Direct Concierge: +91 99980 46559</span>
             </div>
           </section>
         </div>

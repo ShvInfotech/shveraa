@@ -199,7 +199,7 @@ const AdminLayout = () => {
                     </div>
                     <div>
                       <div style={{ fontWeight: 600 }}>Emergency Concierge Hotline</div>
-                      <div style={{ fontSize: '0.84rem', color: 'var(--admin-text-muted)' }}>+91 98765 43210 (24/7 Priority Silversmith Line)</div>
+                      <div style={{ fontSize: '0.84rem', color: 'var(--admin-text-muted)' }}>+91 99980 46559 (Priority Support Line)</div>
                     </div>
                   </div>
 
@@ -209,7 +209,7 @@ const AdminLayout = () => {
                     </div>
                     <div>
                       <div style={{ fontWeight: 600 }}>Technical Operations Desk</div>
-                      <div style={{ fontSize: '0.84rem', color: 'var(--admin-text-muted)' }}>concierge@shveraa.luxury</div>
+                      <div style={{ fontSize: '0.84rem', color: 'var(--admin-text-muted)' }}>shvera925@gmail.com</div>
                     </div>
                   </div>
 

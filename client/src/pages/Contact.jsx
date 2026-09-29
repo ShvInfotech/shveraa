@@ -17,10 +17,10 @@ const Contact = () => {
   const [submitted, setSubmitted] = useState(false);
   const [activeFaq, setActiveFaq] = useState(0);
 
-  const phone = settings?.conciergePhone || '+91 98765 43210';
-  const whatsapp = settings?.conciergeWhatsApp || '+91 98765 43210';
-  const email = settings?.conciergeEmail || 'concierge@shveraa.luxury';
-  const address = settings?.atelierAddress || 'Shveraa Heritage Atelier, Luxury Arcade, Mumbai 400001';
+  const phone = settings?.conciergePhone || '+91 99980 46559';
+  const whatsapp = settings?.conciergeWhatsApp || '+91 99980 46559';
+  const email = settings?.conciergeEmail || 'shvera925@gmail.com';
+  const address = settings?.atelierAddress || 'A/9, Maruti Nandan Society, Opp. Prime Arcade, Anand Mahal Road, Surat';
   const cleanWaNumber = whatsapp.replace(/[^0-9]/g, '');
 
   const faqs = [
@@ -114,7 +114,7 @@ const Contact = () => {
               <div className="shv-coord-row">
                 <MapPin size={18} className="shv-coord-icon" />
                 <div>
-                  <strong>Heritage Flagship Atelier</strong>
+                  <strong>Shveraa Jewels</strong>
                   <p>{address}</p>
                 </div>
               </div>
@@ -188,7 +188,7 @@ const Contact = () => {
                     <label>Mobile / WhatsApp Number</label>
                     <input
                       type="tel"
-                      placeholder="+91 98765 43210"
+                      placeholder="+91 99980 46559"
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     />

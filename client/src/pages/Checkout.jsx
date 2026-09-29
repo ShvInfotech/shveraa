@@ -427,7 +427,7 @@ const Checkout = () => {
                         id="chk-phone"
                         type="tel"
                         required
-                        placeholder="+91 98765 43210"
+                        placeholder="+91 99980 46559"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                       />

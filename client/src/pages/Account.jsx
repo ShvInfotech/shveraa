@@ -262,7 +262,7 @@ const Account = () => {
                   <Mail size={14} /> {user?.email || 'patron@shveraa.luxury'}
                 </span>
                 <span>
-                  <Phone size={14} /> {user?.phone || '+91 98765 43210'}
+                  <Phone size={14} /> {user?.phone || '+91 99980 46559'}
                 </span>
                 <span>
                   <ShieldCheck size={14} /> Certified 925 Patron
@@ -419,7 +419,7 @@ const Account = () => {
                           <span>Print Invoice</span>
                         </button>
                         <a
-                          href={`https://wa.me/919876543210?text=Hello%20Shveraa%20Concierge,%20I%20would%20like%20to%20check%20tracking%20for%20order%20${order.orderId}`}
+                          href={`https://wa.me/919998046559?text=Hello%20Shveraa%20Concierge,%20I%20would%20like%20to%20check%20tracking%20for%20order%20${order.orderId}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="shv-order-action-link"
@@ -742,7 +742,7 @@ const Account = () => {
                     <label>Mobile Number (For WhatsApp Consignment Tracking)</label>
                     <input
                       type="tel"
-                      defaultValue={user?.phone || '+91 98765 43210'}
+                      defaultValue={user?.phone || '+91 99980 46559'}
                       required
                     />
                   </div>

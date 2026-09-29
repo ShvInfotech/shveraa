@@ -12,7 +12,7 @@ const AdminSettings = () => {
     storeName: 'Shveraa Fine Jewellery Atelier',
     tagline: 'Pure 925 Sterling Silver & Contemporary Adornments',
     email: 'admin@shveraa.luxury',
-    whatsapp: '+91 98765 43210',
+    whatsapp: '+91 99980 46559',
     currency: '₹ (INR)',
     freeShippingMin: '999',
     returnWindowDays: '30',

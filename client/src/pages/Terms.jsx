@@ -56,7 +56,7 @@ const Terms = () => {
           <section className="shv-legal-section">
             <h2>1. Legal Acceptance &amp; Atelier Agreement</h2>
             <p>
-              By accessing, browsing, or executing a purchase on this digital atelier (operated by <strong>Shveraa Silver Atelier Private Limited</strong>), you acknowledge and agree to be bound by these Terms and Conditions in full. If you do not agree to any term herein, we respectfully request that you refrain from transacting on this platform.
+              By accessing, browsing, or executing a purchase on this digital atelier (operated by <strong>Shveraa Jewels</strong>), you acknowledge and agree to be bound by these Terms and Conditions in full. If you do not agree to any term herein, we respectfully request that you refrain from transacting on this platform.
             </p>
           </section>
 
@@ -106,14 +106,14 @@ const Terms = () => {
           <section className="shv-legal-section">
             <h2>6. Intellectual Property &amp; Silhouette Copyrights</h2>
             <p>
-              All design rights, jewellery silhouettes, photography, typographic styling, and visual hallmarks appearing on this domain are the exclusive intellectual property of Shveraa Silver Atelier Private Limited. Reproduction, imitation, or commercial duplication is strictly prohibited under Indian and international copyright conventions.
+              All design rights, jewellery silhouettes, photography, typographic styling, and visual hallmarks appearing on this domain are the exclusive intellectual property of Shveraa Jewels. Reproduction, imitation, or commercial duplication is strictly prohibited under Indian and international copyright conventions.
             </p>
           </section>
 
           <section className="shv-legal-section">
             <h2>7. Governing Law &amp; Jurisdiction</h2>
             <p>
-              These Terms and Conditions shall be governed by and construed in accordance with the substantive laws of the Republic of India. Any disputes arising hereunder shall be subject to the exclusive jurisdiction of the competent courts located in <strong>Jaipur, Rajasthan / Mumbai, Maharashtra</strong>.
+              These Terms and Conditions shall be governed by and construed in accordance with the substantive laws of the Republic of India. Any disputes arising hereunder shall be subject to the exclusive jurisdiction of the competent courts located in <strong>Surat, Gujarat, India</strong>.
             </p>
           </section>
         </div>

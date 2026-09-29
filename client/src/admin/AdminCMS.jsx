@@ -320,7 +320,7 @@ const AdminCMS = ({ onRefresh, settings: currentSettings }) => {
           className={`shv-cms-tab-btn ${activeTab === 'contact' ? 'active' : ''}`}
         >
           <Phone size={16} />
-          <span>Atelier Contact &amp; Concierge</span>
+          <span>Contact &amp; Customer Support</span>
         </button>
 
         <button
@@ -597,14 +597,14 @@ const AdminCMS = ({ onRefresh, settings: currentSettings }) => {
         <div className="shv-cms-content-card">
           <div className="shv-cms-card-header">
             <div>
-              <h3>Atelier Contact &amp; Concierge Details</h3>
-              <p>Manage atelier contact and concierge details from the admin panel.</p>
+              <h3>Contact &amp; Customer Support Details</h3>
+              <p>Manage contact and customer support details from the admin panel.</p>
             </div>
           </div>
 
           <div className="shv-editor-fields-grid">
             <div className="shv-field half-width">
-              <label>Priority Silversmith Phone Hotline</label>
+              <label>Customer Care Phone Helpline</label>
               <input
                 type="text"
                 value={settings.conciergePhone || '+91 99980 46559'}
@@ -614,7 +614,7 @@ const AdminCMS = ({ onRefresh, settings: currentSettings }) => {
             </div>
 
             <div className="shv-field half-width">
-              <label>Direct WhatsApp Channel</label>
+              <label>Direct Customer WhatsApp Helpline</label>
               <input
                 type="text"
                 value={settings.conciergeWhatsApp || '+91 99980 46559'}
@@ -624,7 +624,7 @@ const AdminCMS = ({ onRefresh, settings: currentSettings }) => {
             </div>
 
             <div className="shv-field half-width">
-              <label>Official Concierge Email</label>
+              <label>Official Customer Support Email</label>
               <input
                 type="email"
                 value={settings.conciergeEmail || 'shvera925@gmail.com'}

@@ -51,7 +51,7 @@ const AdminSettings = () => {
             Atelier Store &amp; E-Commerce Settings
           </h2>
           <p style={{ fontSize: '0.86rem', color: 'var(--admin-text-muted)' }}>
-            Configure precious metal credentials, delivery rules &amp; client concierge parameters.
+            Configure precious metal credentials, delivery rules &amp; customer support parameters.
           </p>
         </div>
       </div>
@@ -93,7 +93,7 @@ const AdminSettings = () => {
           </div>
 
           <div className="shv-form-group">
-            <label className="shv-form-label">WhatsApp Concierge Phone</label>
+            <label className="shv-form-label">WhatsApp Customer Support Phone</label>
             <input
               type="text"
               value={settings.whatsapp}

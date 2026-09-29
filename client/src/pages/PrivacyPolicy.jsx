@@ -56,7 +56,7 @@ const PrivacyPolicy = () => {
           <section className="shv-legal-section">
             <h2>1. Scope &amp; Atelier Philosophy</h2>
             <p>
-              This Privacy Policy applies to all services, online interactions, concierge consultations, and purchases made via <strong>Shveraa Jewels</strong> ("Shveraa", "we", "us", or "our"). When you explore our silver collections, register an account, or acquire our hallmarked jewellery, you entrust us with essential particulars. We honor that trust with strict transparency and adherence to India's <em>Digital Personal Data Protection (DPDP) Act</em>.
+              This Privacy Policy applies to all services, online interactions, customer support consultations, and purchases made via <strong>Shveraa Jewels</strong> ("Shveraa", "we", "us", or "our"). When you explore our silver collections, register an account, or acquire our hallmarked jewellery, you entrust us with essential particulars. We honor that trust with strict transparency and adherence to India's <em>Digital Personal Data Protection (DPDP) Act</em>.
             </p>
           </section>
 
@@ -98,7 +98,7 @@ const PrivacyPolicy = () => {
           </section>
 
           <section className="shv-legal-section">
-            <h2>6. Grievance Officer &amp; Atelier Concierge</h2>
+            <h2>6. Grievance Officer &amp; Customer Support</h2>
             <p>
               In accordance with the Information Technology Act 2000 and the DPDP Act, the contact coordinates for our designated Grievance Redressal Officer are as follows:
             </p>
@@ -107,7 +107,7 @@ const PrivacyPolicy = () => {
               <span>Shveraa Jewels</span>
               <span>A/9, Maruti Nandan Society, Opp. Prime Arcade, Anand Mahal Road, Surat</span>
               <span>Email: <a href="mailto:shvera925@gmail.com">shvera925@gmail.com</a></span>
-              <span>Direct Concierge: +91 99980 46559</span>
+              <span>Customer Care Helpline: +91 99980 46559</span>
             </div>
           </section>
         </div>
@@ -116,10 +116,10 @@ const PrivacyPolicy = () => {
         <div className="shv-legal-footer-banner">
           <div>
             <h3>Have specific questions regarding your data or orders?</h3>
-            <p>Our dedicated silversmith concierge is available 7 days a week.</p>
+            <p>Our dedicated customer support team is available 7 days a week.</p>
           </div>
           <Link to="/contact" className="btn btn-primary">
-            Speak to Concierge <ArrowRight size={15} />
+            Speak to Customer Care <ArrowRight size={15} />
           </Link>
         </div>
       </div>

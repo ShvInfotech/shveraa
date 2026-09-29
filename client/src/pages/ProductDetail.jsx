@@ -1090,7 +1090,7 @@ const ProductDetail = () => {
                       Each parcel travels in a tamper-evident security docket.
                     </p>
                     <p style={{ marginTop: '8px' }}>
-                      Should you require a size adjustment or return, our concierge arranges doorstep pickup within 30 days
+                      Should you require a size adjustment or return, our customer support team arranges doorstep pickup within 30 days
                       with immediate exchange or full refund.
                     </p>
                   </div>

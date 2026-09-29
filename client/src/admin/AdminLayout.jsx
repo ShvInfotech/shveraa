@@ -198,7 +198,7 @@ const AdminLayout = () => {
                       <Phone size={20} />
                     </div>
                     <div>
-                      <div style={{ fontWeight: 600 }}>Emergency Concierge Hotline</div>
+                      <div style={{ fontWeight: 600 }}>Customer Care Helpline</div>
                       <div style={{ fontSize: '0.84rem', color: 'var(--admin-text-muted)' }}>+91 99980 46559 (Priority Support Line)</div>
                     </div>
                   </div>

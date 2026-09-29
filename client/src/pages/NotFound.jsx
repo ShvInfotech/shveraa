@@ -84,8 +84,8 @@ const NotFound = () => {
               <Link to="/contact" className="shv-404-nav-card">
                 <div className="shv-404-nav-icon"><ShieldCheck size={18} /></div>
                 <div>
-                  <h4>Private Concierge</h4>
-                  <p>WhatsApp silversmith counsel</p>
+                  <h4>Customer Support</h4>
+                  <p>WhatsApp assistance &amp; care</p>
                 </div>
               </Link>
             </div>

@@ -30,7 +30,7 @@ const Contact = () => {
     },
     {
       q: 'How do I determine my exact ring or wrist size before ordering?',
-      a: 'We offer standard Indian & US sizes 5 through 9 across our collection. If you are between sizes, we recommend sizing up for wide sculpted bands and selecting your true size for solitaire rings. Our WhatsApp concierge can guide you through measuring at home in 2 minutes.',
+      a: 'We offer standard Indian & US sizes 5 through 9 across our collection. If you are between sizes, we recommend sizing up for wide sculpted bands and selecting your true size for solitaire rings. Our WhatsApp support team can guide you through measuring at home in 2 minutes.',
     },
     {
       q: 'What are the delivery timescales and insured shipping policies?',
@@ -75,7 +75,7 @@ const Contact = () => {
       <div className="container">
         {/* Header */}
         <div className="shv-contact-header">
-          <span className="shv-contact-eyebrow">The Jewellery Concierge</span>
+          <span className="shv-contact-eyebrow">Customer Care &amp; Support</span>
           <h1 className="shv-contact-title">Connect with the Atelier</h1>
           <p className="shv-contact-subtitle">
             Whether seeking bespoke sizing consultation, curating a milestone gift, or tracking an active consignment, our silversmith advisory team is here for you.
@@ -93,10 +93,10 @@ const Contact = () => {
               </div>
               <div className="shv-wa-details">
                 <span className="shv-wa-tag">Instant Silversmith Support</span>
-                <h3>Direct WhatsApp Concierge</h3>
+                <h3>Direct WhatsApp Support</h3>
                 <p>Chat with our styling team in real-time for sizing assistance, live videos of pieces, and urgent dispatch requests.</p>
                 <a
-                  href={`https://wa.me/${cleanWaNumber}?text=Hello%20Shveraa%20Concierge,%20I%20would%20like%20assistance%20with%20a%20silver%20curation.`}
+                  href={`https://wa.me/${cleanWaNumber}?text=Hello%20Shveraa%20Jewels,%20I%20would%20like%20assistance%20with%20a%20silver%20curation.`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn btn-primary btn-sm"
@@ -122,7 +122,7 @@ const Contact = () => {
               <div className="shv-coord-row">
                 <Phone size={18} className="shv-coord-icon" />
                 <div>
-                  <strong>Concierge Hotline</strong>
+                  <strong>Customer Care Hotline</strong>
                   <p>{phone}</p>
                 </div>
               </div>
@@ -157,7 +157,7 @@ const Contact = () => {
               <div className="shv-contact-success-state">
                 <CheckCircle2 size={44} color="#10B981" />
                 <h3>Your Inquiry Has Been Received</h3>
-                <p>Thank you for connecting with Shveraa. Our senior silversmith concierge will review your message and reach out shortly.</p>
+                <p>Thank you for connecting with Shveraa. Our customer support team will review your message and reach out shortly.</p>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="shv-contact-form">

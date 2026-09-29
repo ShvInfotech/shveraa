@@ -35,7 +35,7 @@ const Returns = () => {
               <RotateCcw size={20} />
             </div>
             <h3>Initiate Request</h3>
-            <p>Notify our atelier team via our WhatsApp Concierge or account portal within 30 days of receiving your silver parcel.</p>
+            <p>Notify our atelier team via our WhatsApp Support or account portal within 30 days of receiving your silver parcel.</p>
           </div>
 
           <div className="shv-process-step-card">
@@ -107,7 +107,7 @@ const Returns = () => {
             </p>
             <ul>
               <li><strong>Prepaid Orders (UPI / NetBanking / Cards):</strong> Funds are credited directly back to the originating bank account or card within <strong>2 to 4 business days</strong>, depending on your banking institution.</li>
-              <li><strong>Cash on Delivery (COD) Orders:</strong> Our concierge will request your verified UPI ID or NEFT bank particulars to initiate a direct digital transfer within 24 hours.</li>
+              <li><strong>Cash on Delivery (COD) Orders:</strong> Our support team will request your verified UPI ID or NEFT bank particulars to initiate a direct digital transfer within 24 hours.</li>
               <li><strong>Atelier Store Credits:</strong> Patrons opting for store credits receive an instant voucher with an additional <strong>5% celebratory bonus credit</strong> valid for 12 months.</li>
             </ul>
           </section>
@@ -124,16 +124,16 @@ const Returns = () => {
         <div className="shv-returns-cta-banner">
           <div className="shv-returns-cta-text">
             <h3>Need to exchange a ring size or initiate a return?</h3>
-            <p>Our dedicated concierge will coordinate your insured doorstep pickup in minutes.</p>
+            <p>Our dedicated customer support team will coordinate your insured doorstep pickup in minutes.</p>
           </div>
           <div className="shv-returns-cta-buttons">
             <a
-              href="https://wa.me/919998046559?text=Hello%20Shveraa%20Concierge,%20I%20would%20like%20to%20initiate%20a%20return%20or%20exchange%20for%20my%20order."
+              href="https://wa.me/919998046559?text=Hello%20Shveraa%20Jewels,%20I%20would%20like%20to%20initiate%20a%20return%20or%20exchange%20for%20my%20order."
               target="_blank"
               rel="noopener noreferrer"
               className="btn btn-primary"
             >
-              <MessageCircle size={16} /> WhatsApp Concierge
+              <MessageCircle size={16} /> WhatsApp Support
             </a>
             <Link to="/contact" className="btn btn-outline">
               Email Client Care <ArrowRight size={15} />

@@ -283,15 +283,15 @@ const OrderSuccess = () => {
                   <MessageCircle size={20} />
                 </div>
                 <div>
-                  <h5>Atelier WhatsApp Concierge</h5>
+                  <h5>Atelier WhatsApp Support</h5>
                   <p>Have special delivery instructions or gift engraving questions?</p>
                   <a
-                    href="https://wa.me/919998046559?text=Hello%20Shveraa%20Atelier,%20I%20have%20an%20inquiry%20regarding%20my%20order"
+                    href="https://wa.me/919998046559?text=Hello%20Shveraa%20Jewels,%20I%20have%20an%20inquiry%20regarding%20my%20order"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="shv-concierge-link"
                   >
-                    Chat with Silversmith Concierge →
+                    Chat with Customer Support →
                   </a>
                 </div>
               </div>

@@ -85,7 +85,7 @@ const Footer = () => {
 
           {/* Navigation & Services Col */}
           <div>
-            <h4 className="footer-col-title">About &amp; Concierge</h4>
+            <h4 className="footer-col-title">Customer Care &amp; Support</h4>
             <ul className="footer-links">
               <li>
                 <Link to="/about" className="footer-link">About Us (Our Story)</Link>
@@ -148,7 +148,7 @@ const Footer = () => {
             <span className="footer-legal-sep">•</span>
             <Link to="/about" className="footer-legal-link">About Us</Link>
             <span className="footer-legal-sep">•</span>
-            <Link to="/contact" className="footer-legal-link">Contact Concierge</Link>
+            <Link to="/contact" className="footer-legal-link">Customer Support</Link>
           </div>
         </div>
 

@@ -358,24 +358,27 @@ const ComingSoon = ({ onUnlock }) => {
               <X size={18} />
             </button>
 
-            <span className="shv-triada-modal-eyebrow">CONCIERGE & INQUIRIES</span>
-            <h3 className="shv-triada-modal-title">Contact Atelier</h3>
+            <span className="shv-triada-modal-eyebrow">SUPPORT &amp; INQUIRIES</span>
+            <h3 className="shv-triada-modal-title">Contact Us</h3>
             <p className="shv-triada-modal-desc">
-              For bespoke creations, atelier visits, or corporate gifting:
+              For bespoke creations, orders, or inquiries:
             </p>
             <div className="shv-triada-contact-info">
               <div>
-                <strong>Email:</strong> hello@shveraa.com
+                <strong>Email:</strong> shvera925@gmail.com
               </div>
               <div>
-                <strong>Atelier:</strong> Jaipur, Rajasthan, India
+                <strong>Phone / WhatsApp:</strong> +91 99980 46559
               </div>
               <div>
-                <strong>Client Care:</strong> Monday – Saturday, 10 AM – 7 PM IST
+                <strong>Address:</strong> A/9, Maruti Nandan Society, Opp. Prime Arcade, Anand Mahal Road, Surat
+              </div>
+              <div>
+                <strong>Support Hours:</strong> Monday – Saturday, 10 AM – 7 PM IST
               </div>
             </div>
             <a
-              href="mailto:hello@shveraa.com?subject=Atelier%20Inquiry%20-%20Shveraa"
+              href="mailto:shvera925@gmail.com?subject=Inquiry%20-%20Shveraa%20Jewels"
               className="shv-triada-modal-btn"
               style={{ marginTop: '16px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', textDecoration: 'none' }}
             >

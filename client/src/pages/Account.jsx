@@ -419,7 +419,7 @@ const Account = () => {
                           <span>Print Invoice</span>
                         </button>
                         <a
-                          href={`https://wa.me/919998046559?text=Hello%20Shveraa%20Concierge,%20I%20would%20like%20to%20check%20tracking%20for%20order%20${order.orderId}`}
+                          href={`https://wa.me/919998046559?text=Hello%20Shveraa%20Jewels,%20I%20would%20like%20to%20check%20tracking%20for%20order%20${order.orderId}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="shv-order-action-link"
@@ -785,7 +785,7 @@ const Account = () => {
 
             {/* Atelier Notifications */}
             <div className="shv-notifications-card">
-              <h3 className="shv-sec-title">Communication &amp; Concierge Alerts</h3>
+              <h3 className="shv-sec-title">Communication &amp; Support Alerts</h3>
               <div className="shv-pref-row">
                 <div>
                   <strong>WhatsApp Real-time Consignment Alerts</strong>

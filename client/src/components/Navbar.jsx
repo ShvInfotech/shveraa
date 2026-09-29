@@ -463,7 +463,7 @@ const Navbar = () => {
             Our Atelier Story
           </NavLink>
           <NavLink to="/contact" onClick={closeAllMenus} className="drawer-link">
-            Client Concierge
+            Contact &amp; Customer Care
           </NavLink>
           <NavLink to="/wishlist" onClick={closeAllMenus} className="drawer-link">
             My Wishlist ({wishlistCount})

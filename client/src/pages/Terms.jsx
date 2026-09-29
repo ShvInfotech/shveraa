@@ -88,7 +88,7 @@ const Terms = () => {
               All dispatches are handled through vetted insured courier partners (primarily BlueDart Express Air). 
             </p>
             <ul>
-              <li><strong>Tamper Ribbon Protocol:</strong> Every Shveraa order is sealed with our proprietary holographic tamper-evident ribbon. If the outer courier package appears breached, torn, or unsealed upon arrival, patrons must reject the consignment and immediately notify our concierge.</li>
+              <li><strong>Tamper Ribbon Protocol:</strong> Every Shveraa order is sealed with our proprietary holographic tamper-evident ribbon. If the outer courier package appears breached, torn, or unsealed upon arrival, patrons must reject the consignment and immediately notify our customer support team.</li>
               <li><strong>Transit Insurance:</strong> All risk of transit loss or theft is fully underwritten by Shveraa until signature confirmation is registered.</li>
             </ul>
           </section>
@@ -125,7 +125,7 @@ const Terms = () => {
             <p>Our client care advisory team is at your complete disposal.</p>
           </div>
           <Link to="/contact" className="btn btn-primary">
-            Contact Concierge <ArrowRight size={15} />
+            Contact Support <ArrowRight size={15} />
           </Link>
         </div>
       </div>

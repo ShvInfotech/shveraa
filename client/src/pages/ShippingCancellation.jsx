@@ -142,7 +142,7 @@ const ShippingCancellation = () => {
                 </h4>
                 <ul>
                   <li>Orders can be cancelled with zero penalty within <strong>12 hours</strong> of placement.</li>
-                  <li>Simply contact our Concierge via WhatsApp with your order reference number.</li>
+                  <li>Simply contact our Customer Support via WhatsApp with your order reference number.</li>
                   <li>100% of your payment is refunded immediately to your original payment mode within <strong>24–48 hours</strong>.</li>
                 </ul>
               </div>
@@ -179,16 +179,16 @@ const ShippingCancellation = () => {
         <div className="shv-returns-cta-banner">
           <div className="shv-returns-cta-text">
             <h3>Have a question regarding your dispatch or cancellation?</h3>
-            <p>Our dedicated Jaipur Atelier Concierge is available 7 days a week to assist you.</p>
+            <p>Our dedicated Customer Support team is available 7 days a week to assist you.</p>
           </div>
           <div className="shv-returns-cta-buttons">
             <a
-              href="https://wa.me/919998046559?text=Hello%20Shveraa%20Concierge,%20I%20have%20an%20inquiry%20regarding%20shipping%20or%20cancellation."
+              href="https://wa.me/919998046559?text=Hello%20Shveraa%20Jewels,%20I%20have%20an%20inquiry%20regarding%20shipping%20or%20cancellation."
               target="_blank"
               rel="noopener noreferrer"
               className="btn btn-primary"
             >
-              <MessageCircle size={16} /> WhatsApp Concierge
+              <MessageCircle size={16} /> WhatsApp Support
             </a>
             <Link to="/contact" className="btn btn-outline">
               Email Client Care <ArrowRight size={15} />

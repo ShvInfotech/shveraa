@@ -337,7 +337,7 @@ const TrackOrder = () => {
               </button>
 
               <a
-                href={`https://wa.me/919998046559?text=Hello%20Shveraa%20Concierge,%20I%20am%20tracking%20consignment%20${searchedOrder.orderId}%20and%20need%20assistance.`}
+                href={`https://wa.me/919998046559?text=Hello%20Shveraa%20Jewels,%20I%20am%20tracking%20consignment%20${searchedOrder.orderId}%20and%20need%20assistance.`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn btn-primary btn-sm"

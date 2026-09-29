@@ -253,7 +253,7 @@ const SizeGuide = () => {
           </div>
           <div className="shv-guide-cta-right">
             <a
-              href="https://wa.me/919998046559?text=Hello%20Shveraa%20Concierge,%20I%20would%20like%20assistance%20confirming%20my%20ring%20or%20wrist%20size."
+              href="https://wa.me/919998046559?text=Hello%20Shveraa%20Jewels,%20I%20would%20like%20assistance%20confirming%20my%20ring%20or%20wrist%20size."
               target="_blank"
               rel="noopener noreferrer"
               className="btn btn-primary"

@@ -149,6 +149,7 @@ const ProductDetail = () => {
   const [customEngraving, setCustomEngraving] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
   const [openAccordions, setOpenAccordions] = useState({
+    description: true,
     details: true,
     care: true,
     shipping: true,
@@ -700,12 +701,6 @@ const ProductDetail = () => {
               ) : null}
             </div>
 
-            {/* Short Atelier Lead */}
-            <p style={{ color: '#4A443D', fontSize: '0.92rem', lineHeight: '1.7', marginBottom: '1.5rem' }}>
-              {product.description ||
-                'Sculpted from certified solid 925 sterling silver and finished with triple platinum-rhodium mirror polish for everyday tarnish immunity.'}
-            </p>
-
             {/* Custom Engraving Input if Personalised */}
             {(product.isPersonalised || product.category === 'personalised') && (
               <div className="product-engraving-field">
@@ -972,9 +967,32 @@ const ProductDetail = () => {
               </div>
             </div>
 
-            {/* 3 Product Accordions (Image 3) */}
+            {/* Product Accordions */}
             <div className="shv-pdp-accordions-group">
-              {/* 1. PRODUCT DETAILS */}
+              {/* 1. DESCRIPTION */}
+              <div className="shv-pdp-accordion-item">
+                <button
+                  type="button"
+                  className="shv-pdp-accordion-header"
+                  onClick={() => toggleAccordion('description')}
+                  aria-expanded={openAccordions.description}
+                >
+                  <span>DESCRIPTION</span>
+                  <span className="shv-pdp-accordion-toggle">
+                    {openAccordions.description ? '—' : '+'}
+                  </span>
+                </button>
+                {openAccordions.description && (
+                  <div className="shv-pdp-accordion-body">
+                    <p style={{ color: '#4A443D', fontSize: '0.92rem', lineHeight: '1.7', margin: 0 }}>
+                      {product.description ||
+                        'Sculpted from certified solid 925 sterling silver and finished with triple platinum-rhodium mirror polish for everyday tarnish immunity.'}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* 2. PRODUCT DETAILS */}
               <div className="shv-pdp-accordion-item">
                 <button
                   type="button"

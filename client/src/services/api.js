@@ -903,6 +903,13 @@ export const apiAdminGetAllOrders = async ({ page = 1, limit = 100, status, sear
   return data; // { success, orders, total }
 };
 
-
-
-
+// Live Delhivery Track Order API
+export const apiTrackOrder = async (waybill) => {
+  const res = await apiFetch('/api/v1/user/order/track-order', {
+    method: 'POST',
+    body: JSON.stringify({ waybill }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to fetch tracking data');
+  return data; // { success, message, Scans, status }
+};

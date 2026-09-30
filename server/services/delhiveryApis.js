@@ -1,22 +1,22 @@
 const delhiveryURL = "https://staging-express.delhivery.com/";
 
-export const PincodeServiceability = async (pincode)=>{
-    try{
+export const PincodeServiceability = async (pincode) => {
+  try {
 
-        const response = await fetch(`${delhiveryURL}c/api/pin-codes/json/?filter_codes=${pincode}`, {
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Token ${process.env.DELHIVERY_AUTH_TOKEN}`,
-            },
-        });
+    const response = await fetch(`${delhiveryURL}c/api/pin-codes/json/?filter_codes=${pincode}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Token ${process.env.DELHIVERY_AUTH_TOKEN}`,
+      },
+    });
 
-        const data = await response.json();
-    
-        return data;
-    }catch(error){
-        throw error
-    }
+    const data = await response.json();
+
+    return data;
+  } catch (error) {
+    throw error
+  }
 
 }
 
@@ -41,7 +41,7 @@ export const CheckShippingChargesService = async (delhiveryData) => {
       },
     });
 
-   const data = await response.json();
+    const data = await response.json();
     return data;
   } catch (error) {
     console.error("CheckShippingChargesService Error:", error);
@@ -73,4 +73,25 @@ export const CreateShippingOrderService = async (shippingData) => {
     throw error;
   }
 };
+
+
+export const TrackShipmentService = async (waybill) => {
+  try {
+
+    const response = await fetch(`${delhiveryURL}api/v1/packages/json/?waybill=${waybill}&ref_ids=`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Token ${process.env.DELHIVERY_AUTH_TOKEN}`,
+      },
+    });
+
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Track Order Error:", error);
+    throw error;
+  }
+}
 

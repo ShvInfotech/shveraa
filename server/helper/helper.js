@@ -1,4 +1,4 @@
-import path from 'path'; 
+import path from 'path';
 import fs from 'fs'
 import bcrypt from 'bcrypt'
 import { getMessaging } from 'firebase-admin/messaging';
@@ -6,8 +6,8 @@ import firebaseadmin from '../config/firebase.js';
 import userModel from '../models/user.model.js';
 
 
-export const hashUserPassword = (password)=>{
-      return bcrypt.hash(password,12)
+export const hashUserPassword = (password) => {
+    return bcrypt.hash(password, 12)
 }
 
 
@@ -54,8 +54,7 @@ export const sendNotification = async (deviceTokens, title, body) => {
                 },
             },
         });
-        console.log("Success:", res.successCount);
-        console.log("Failed:", res.failureCount);
+
 
         // Invalid / expired tokens
         const invalidTokens = [];
@@ -69,7 +68,6 @@ export const sendNotification = async (deviceTokens, title, body) => {
             }
         });
 
-        console.log("Invalid tokens:", invalidTokens);
 
 
         if (invalidTokens && invalidTokens.length) {
@@ -89,6 +87,22 @@ export const sendNotification = async (deviceTokens, title, body) => {
 };
 
 
+
+export const SendWahtsappMessage = async (number, message) => {
+    try {
+        // http://localhost:3000/api/send?number=91XXXXXXXXXX&type=text&message=Hello&instance_id=7D5FAC65E40A7&access_token=f8ceca21b637dd9d54c28968
+
+        const response = await fetch(`http://localhost:3000/api/send?number=91${number}&type=text&message=${message}&instance_id=7D5FAC65E40A7&access_token=f8ceca21b637dd9d54c28968`, {
+            method: "GET",
+        });
+
+
+        const data = await response.json();
+        console.log(data)
+    } catch (error) {
+        console.log(error)
+    }
+}
 
 
 

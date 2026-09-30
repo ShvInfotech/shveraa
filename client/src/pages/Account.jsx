@@ -36,6 +36,7 @@ import {
   apiGetMyOrders,
   getImageUrl,
 } from '../services/api';
+import OrderTrackingModal from '../components/OrderTrackingModal';
 
 const Account = () => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -49,6 +50,15 @@ const Account = () => {
   const [copiedOrderId, setCopiedOrderId] = useState(null);
   const [addressSavedNotice, setAddressSavedNotice] = useState('');
   const [passwordSavedNotice, setPasswordSavedNotice] = useState(false);
+
+  // Live Track Order modal state
+  const [trackingOrder, setTrackingOrder] = useState(null);
+  const [showTrackingModal, setShowTrackingModal] = useState(false);
+
+  const handleOpenTrackingModal = (order) => {
+    setTrackingOrder(order);
+    setShowTrackingModal(true);
+  };
 
   // Address state & Modal state
   const [addresses, setAddresses] = useState([]);
@@ -453,15 +463,15 @@ const Account = () => {
                             <Printer size={14} />
                             <span>Print Invoice</span>
                           </button>
-                          <a
-                            href={`https://wa.me/919876543210?text=${encodeURIComponent(`Hello Shveraa Concierge, I would like to check tracking for order ${orderRef}`)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <button
+                            type="button"
+                            onClick={() => handleOpenTrackingModal(order)}
                             className="shv-order-action-link"
+                            title="Live Track Consignment Telemetry"
                           >
-                            <ExternalLink size={14} />
+                            <Truck size={14} />
                             <span>Live Track</span>
-                          </a>
+                          </button>
                         </div>
                       </div>
 
@@ -744,6 +754,16 @@ const Account = () => {
             </div>
           </div>
         )}
+
+        {/* Live Delhivery Tracking Modal */}
+        <OrderTrackingModal
+          order={trackingOrder}
+          isOpen={showTrackingModal}
+          onClose={() => {
+            setShowTrackingModal(false);
+            setTrackingOrder(null);
+          }}
+        />
 
         {/* Tab 3: Security & Preferences */}
         {activeTab === 'security' && (

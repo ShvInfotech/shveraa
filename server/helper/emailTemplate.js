@@ -1,4 +1,4 @@
-const logoUrl = "https://res.cloudinary.com/dblxejpyp/image/upload/v1788841967/nehdo-logo.png";
+const logoUrl = "https://res.cloudinary.com/dblxejpyp/image/upload/v1790678167/logo.png";
 
 
 // ==========================================================

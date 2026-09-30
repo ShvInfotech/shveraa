@@ -6,9 +6,9 @@ import { razorpay, razorpaySignature, } from "../../../config/razorpay.config.js
 import OrderNumberGanrate from 'generate-unique-id'
 import OrderModel from "../../../models/order.model.js";
 import addressModel from "../../../models/address.model.js";
-import { CreateShippingOrderService, PincodeServiceability } from "../../../services/delhiveryApis.js";
+import { CreateShippingOrderService, PincodeServiceability, TrackShipmentService } from "../../../services/delhiveryApis.js";
 import userModel from "../../../models/user.model.js";
-import { sendNotification } from "../../../helper/helper.js";
+import { sendNotification, SendWahtsappMessage } from "../../../helper/helper.js";
 
 
 
@@ -21,14 +21,14 @@ export const RozerpayPaymentOrder = async (req, res, next) => {
     if (!cartIds || !cartIds?.length) {
       return next(CustomeError(400, "CartIds are required"));
     }
-    console.log(addressId)
+
     const address = await addressModel.findById(addressId)
     if (!address) {
       return next(CustomeError(400, "Address not found"));
     }
 
     const data = await PincodeServiceability(address.pincode)
-    console.log("address Data", data)
+  
     if (!data.delivery_codes || data.delivery_codes.length === 0) {
       return next(CustomeError(404, "Delivery Not  Available For The Given Pincode"))
     }
@@ -49,7 +49,6 @@ export const RozerpayPaymentOrder = async (req, res, next) => {
         const variant = Matchcolor?.sizes?.find(
           (size) => size.size === item.size,
         );
-        console.log(variant);
 
         if (variant && variant.stock < item.quantity) {
           return next(
@@ -448,7 +447,7 @@ export const PlaceCodeOrder = async (req, res, next) => {
     const admins = await userModel.find({ role: "admin" }).select("deviceToken");
     const tokens = admins.flatMap(admin => admin.deviceToken || []);
     sendNotification(tokens, "New Order Placed", `Order ${orderNumber} has been placed by ${req.user.name}.`);
-
+      SendWahtsappMessage(9714920969,"order is confrom")
     return res.status(200).json({ success: true, message: "Payment verified and order placed successfully", order: newOrder });
   } catch (error) {
     return next(error);
@@ -461,6 +460,38 @@ export const GetMyOrders = async (req, res, next) => {
     const userId = req.user._id;
     const orders = await OrderModel.find({ userId }).sort({ createdAt: -1 });
     return res.status(200).json({ success: true, orders });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+
+export const TrackOrder = async (req, res, next) => {
+  try {
+    const { waybill } = req.body || {};
+
+    if (!waybill) {
+      return next(CustomeError(422, "Waybill Number Is Required"));
+    }
+
+    const result = await TrackShipmentService(waybill);
+
+    const shipment = result?.ShipmentData?.[0]?.Shipment;
+    if (!shipment) {
+      return res.status(200).json({
+        success: false,
+        message: result?.Error || result?.message || "No tracking details found for this waybill yet",
+        Scans: [],
+        status: null,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Tracking Data Fatch Successfully",
+      Scans: shipment.Scans || [],
+      status: shipment.Status || null,
+    });
   } catch (error) {
     return next(error);
   }

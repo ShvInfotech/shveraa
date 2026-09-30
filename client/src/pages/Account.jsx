@@ -25,6 +25,10 @@ import {
   Check,
   User,
   ShoppingBag,
+  RefreshCw,
+  FileText,
+  Download,
+  Trash,
 } from 'lucide-react';
 
 import {
@@ -37,6 +41,7 @@ import {
   getImageUrl,
 } from '../services/api';
 import OrderTrackingModal from '../components/OrderTrackingModal';
+import { downloadOrderInvoicePDF } from '../utils/invoiceGenerator';
 
 const Account = () => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -210,8 +215,18 @@ const Account = () => {
     setTimeout(() => setCopiedOrderId(null), 2000);
   };
 
-  const handlePrint = () => {
-    window.print();
+  const [generatingInvoiceId, setGeneratingInvoiceId] = useState(null);
+
+  const handleDownloadInvoice = async (order) => {
+    const ref = order?.orderNumber || order?._id || 'ORD';
+    try {
+      setGeneratingInvoiceId(ref);
+      await downloadOrderInvoicePDF(order, user);
+    } catch (err) {
+      console.error('Invoice download failed:', err);
+    } finally {
+      setGeneratingInvoiceId(null);
+    }
   };
 
   const handleAddressSubmit = (e) => {
@@ -456,12 +471,22 @@ const Account = () => {
                         <div className="shv-tracking-actions">
                           <button
                             type="button"
-                            onClick={handlePrint}
+                            onClick={() => handleDownloadInvoice(order)}
+                            disabled={generatingInvoiceId === orderRef}
                             className="shv-order-action-link"
-                            title="Print official tax invoice"
+                            title="Download certified official Tax Invoice PDF"
                           >
-                            <Printer size={14} />
-                            <span>Print Invoice</span>
+                            {generatingInvoiceId === orderRef ? (
+                              <>
+                                <RefreshCw size={14} className="shv-spin-icon" style={{ margin: 0 }} />
+                                <span>Generating...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Printer size={14} />
+                                <span>Print Invoice</span>
+                              </>
+                            )}
                           </button>
                           <button
                             type="button"
@@ -472,6 +497,19 @@ const Account = () => {
                             <Truck size={14} />
                             <span>Live Track</span>
                           </button>
+
+                          {
+                            order.status == "pending"?<button
+                            type="button"
+                            onClick={() => handleOpenTrackingModal(order)}
+                            className="shv-order-action-link"
+                            title="Live Track Consignment Telemetry"
+                          >
+                            <Trash size={14} />
+                            
+                            <span>Cancel</span>
+                          </button>:""
+                          }
                         </div>
                       </div>
 

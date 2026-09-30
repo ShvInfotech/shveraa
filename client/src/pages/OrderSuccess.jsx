@@ -14,9 +14,11 @@ import {
   MapPin,
   CreditCard,
   Gift,
+  RefreshCw,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getImageUrl } from '../services/api';
+import { downloadOrderInvoicePDF } from '../utils/invoiceGenerator';
 
 const OrderSuccess = () => {
   const location = useLocation();
@@ -161,8 +163,17 @@ const OrderSuccess = () => {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+
+  const handlePrint = async () => {
+    try {
+      setGeneratingPdf(true);
+      await downloadOrderInvoicePDF(order, user);
+    } catch (err) {
+      console.error('Invoice PDF error:', err);
+    } finally {
+      setGeneratingPdf(false);
+    }
   };
 
   return (
@@ -399,10 +410,20 @@ const OrderSuccess = () => {
           <button
             type="button"
             onClick={handlePrint}
+            disabled={generatingPdf}
             className="btn btn-outline btn-lg"
           >
-            <Printer size={16} />
-            <span>Print Invoice &amp; Certificate</span>
+            {generatingPdf ? (
+              <>
+                <RefreshCw size={16} className="shv-spin-icon" style={{ margin: 0 }} />
+                <span>Generating Invoice PDF...</span>
+              </>
+            ) : (
+              <>
+                <Printer size={16} />
+                <span>Print Invoice &amp; Certificate</span>
+              </>
+            )}
           </button>
         </div>
       </div>

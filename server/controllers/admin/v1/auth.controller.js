@@ -40,7 +40,7 @@ export const AdminLogin = async (req,res,next)=>{
             updateData.$addToSet.deviceToken = deviceToken;
         }
 
-        admin = await UserModel.findByIdAndUpdate(admin._id, updateData, { returnDocument: 'after' }).select('name email contact profile createdAt')
+        admin = await UserModel.findByIdAndUpdate(admin._id, updateData, { returnDocument: 'after' }).select('name email phone profile createdAt')
 
 
         return res.status(200).json({ success: true, message: "User Register", admin, AccessToken: token })
@@ -77,4 +77,4 @@ export const AdminUpdateDeviceToken = async (req, res, next) => {
     } catch (error) {
         return next(error);
     }
-};
+};

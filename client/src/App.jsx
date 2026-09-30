@@ -7,6 +7,7 @@ import Footer from './components/Footer';
 import CartDrawer from './components/CartDrawer';
 
 import Lenis from 'lenis';
+import { onForegroundMessage } from './services/firebase';
 
 // Pages
 import Home from './pages/Home';
@@ -106,6 +107,19 @@ const OwnerPreviewIndicator = ({ onLock }) => {
 const AppContent = () => {
   const { pathname, search } = useLocation();
   const isAdmin = pathname.startsWith('/admin');
+  const { showToast } = useCart();
+
+  // Foreground notification listener
+  useEffect(() => {
+    const unsubscribe = onForegroundMessage((payload) => {
+      const title = payload.notification?.title || 'Notification';
+      const body = payload.notification?.body || '';
+      showToast(`${title}: ${body}`);
+    });
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, [showToast]);
 
   // Check for Coming Soon mode and owner bypass
   const [isBypassed, setIsBypassed] = useState(() => {

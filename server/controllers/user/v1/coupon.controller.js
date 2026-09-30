@@ -48,6 +48,7 @@ export const  VerifyCoupon = async (req, res, next) => {
       success: true,
       message: `Coupon code '${coupon.code}' applied!`,
       coupon: {
+        coupenId: coupon._id,
         code: coupon.code,
         discountType: coupon.discountType,
         discountValue: coupon.discountValue,

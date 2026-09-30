@@ -248,6 +248,7 @@ export const sendContactMessage = async (formData) => {
    UNIVERSAL API FETCH WITH 401 UNAUTHORIZED AUTOMATIC REDIRECT INTERCEPTOR
    ========================================================================== */
 export const apiFetch = async (url, options = {}) => {
+
   const isFormDataBody = options.body instanceof FormData;
   const headers = {
     ...(isFormDataBody ? {} : { 'Content-Type': 'application/json' }),
@@ -299,10 +300,13 @@ export const apiFetch = async (url, options = {}) => {
 /* ==========================================================================
    USER AUTHENTICATION API INTEGRATIONS
    ========================================================================== */
-export const apiUserRegister = async ({ name, email, phone, password }) => {
+export const apiUserRegister = async ({ name, email, phone, password, deviceToken }) => {
+  const payload = { name, email, phone, password };
+  if (deviceToken) payload.deviceToken = deviceToken;
+
   const res = await apiFetch('/api/v1/user/auth/register', {
     method: 'POST',
-    body: JSON.stringify({ name, email, phone, password }),
+    body: JSON.stringify(payload),
   });
   const data = await res.json();
   if (!res.ok) {
@@ -315,10 +319,13 @@ export const apiUserRegister = async ({ name, email, phone, password }) => {
   return data;
 };
 
-export const apiUserLogin = async ({ email, password }) => {
+export const apiUserLogin = async ({ email, password, deviceToken }) => {
+  const payload = { email, password };
+  if (deviceToken) payload.deviceToken = deviceToken;
+
   const res = await apiFetch('/api/v1/user/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify(payload),
   });
   const data = await res.json();
   if (!res.ok) {
@@ -357,13 +364,30 @@ export const apiUserForgotPassword = async (email) => {
   return data;
 };
 
+export const apiUpdateUserDeviceToken = async (deviceToken) => {
+  if (!deviceToken) return null;
+  try {
+    const res = await apiFetch('/api/v1/user/auth/device-token', {
+      method: 'POST',
+      body: JSON.stringify({ deviceToken }),
+    });
+    return await res.json();
+  } catch (err) {
+    console.warn('Failed to sync user deviceToken:', err);
+    return null;
+  }
+};
+
 /* ==========================================================================
    ADMIN AUTHENTICATION API INTEGRATIONS
    ========================================================================== */
-export const apiAdminLogin = async ({ email, password }) => {
+export const apiAdminLogin = async ({ email, password, deviceToken }) => {
+  const payload = { email, password };
+  if (deviceToken) payload.deviceToken = deviceToken;
+
   const res = await apiFetch('/api/v1/admin/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify(payload),
   });
   const data = await res.json();
   if (!res.ok) {
@@ -374,6 +398,20 @@ export const apiAdminLogin = async ({ email, password }) => {
     localStorage.setItem('shveraa_admin_session', JSON.stringify(data.admin));
   }
   return data;
+};
+
+export const apiUpdateAdminDeviceToken = async (deviceToken) => {
+  if (!deviceToken) return null;
+  try {
+    const res = await apiFetch('/api/v1/admin/auth/device-token', {
+      method: 'POST',
+      body: JSON.stringify({ deviceToken }),
+    });
+    return await res.json();
+  } catch (err) {
+    console.warn('Failed to sync admin deviceToken:', err);
+    return null;
+  }
 };
 
 export const apiAdminLogout = async () => {
@@ -769,10 +807,16 @@ export const apiCheckShippingDetails = async (cartIds, pincode, payment_method =
 /* ==========================================================================
    ORDER & RAZORPAY APIs
    ========================================================================== */
-export const apiCreatePaymentOrder = async ({ cartIds, couponId }) => {
+export const apiCreatePaymentOrder = async ({ cartIds, couponId, coupenId,shippingCost,addressId }) => {
+  const activeCouponId = couponId || coupenId || '';
+  const payload = { cartIds, shippingCost, addressId };
+  if (activeCouponId) {
+    payload.couponId = activeCouponId;
+    payload.coupenId = activeCouponId;
+  }
   const res = await apiFetch('/api/v1/user/order/create-payment-order', {
     method: 'POST',
-    body: JSON.stringify({ cartIds, couponId: couponId || '' }),
+    body: JSON.stringify(payload),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.message || 'Failed to create payment order');
@@ -785,23 +829,80 @@ export const apiVerifyPaymentPlaceOrder = async ({
   razorpay_signature,
   cartIds,
   couponId,
+  shippingCost,
   addressId,
 }) => {
+  const activeCouponId = couponId || '';
+  const payload = {
+    razorpay_order_id,
+    razorpay_payment_id,
+    razorpay_signature,
+    cartIds,
+    shippingCost,
+    addressId: addressId || '',
+  };
+  if (activeCouponId) {
+    payload.couponId = activeCouponId;
+  }
   const res = await apiFetch('/api/v1/user/order/verify-payment-placeorder', {
     method: 'POST',
-    body: JSON.stringify({
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature,
-      cartIds,
-      couponId: couponId || '',
-      addressId: addressId || '',
-    }),
+    body: JSON.stringify(payload),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.message || 'Payment verification failed');
   return data;
 };
+
+
+
+
+export const apiCODPlaceOrder = async ({
+  cartIds,
+  couponId,
+  shippingCost,
+  addressId,
+}) => {
+  const activeCouponId = couponId || '';
+  const payload = {
+    cartIds,
+    shippingCost,
+    addressId: addressId || '',
+  };
+  if (activeCouponId) {
+    payload.couponId = activeCouponId;
+  }
+  const res = await apiFetch('/api/v1/user/order/cod-placeorder', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Payment verification failed');
+  return data;
+};
+
+/* ==========================================================================
+   ORDER LISTING APIs
+   ========================================================================== */
+
+// Fetch orders for logged-in user (Account page → My Orders tab)
+export const apiGetMyOrders = async () => {
+  const res = await apiFetch('/api/v1/user/order/my-orders');
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to fetch your orders');
+  return data; // { success, orders }
+};
+
+// Fetch ALL orders for admin panel
+export const apiAdminGetAllOrders = async ({ page = 1, limit = 100, status, search } = {}) => {
+  const params = new URLSearchParams({ page, limit });
+  if (status && status !== 'All') params.append('status', status);
+  if (search) params.append('search', search);
+  const res = await apiFetch(`/api/v1/admin/orders/all?${params.toString()}`);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to fetch orders');
+  return data; // { success, orders, total }
+};
+
 
 
 

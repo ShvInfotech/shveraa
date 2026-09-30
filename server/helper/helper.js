@@ -3,6 +3,7 @@ import fs from 'fs'
 import bcrypt from 'bcrypt'
 import { getMessaging } from 'firebase-admin/messaging';
 import firebaseadmin from '../config/firebase.js';
+import userModel from '../models/user.model.js';
 
 
 export const hashUserPassword = (password)=>{
@@ -49,7 +50,7 @@ export const sendNotification = async (deviceTokens, title, body) => {
 
             webpush: {
                 notification: {
-                    icon: "https://res.cloudinary.com/dblxejpyp/image/upload/v1788841967/nehdo-logo.png",
+                    icon: "https://res.cloudinary.com/dblxejpyp/image/upload/v1790678167/logo.png",
                 },
             },
         });

@@ -1,9 +1,10 @@
 import express from "express";
-import { AdminLogin, AdminLogout } from "../../../controllers/admin/v1/auth.controller.js";
+import { AdminLogin, AdminLogout, AdminUpdateDeviceToken } from "../../../controllers/admin/v1/auth.controller.js";
 import { checkRole, verifyjwtAccessToken } from "../../../middleware/jwtToken.js";
 const router = express.Router()
 
-router.post('/login',AdminLogin)
-router.post('/logout',verifyjwtAccessToken,checkRole('admin'), AdminLogout)
+router.post('/login', AdminLogin)
+router.post('/device-token', verifyjwtAccessToken, checkRole('admin'), AdminUpdateDeviceToken)
+router.post('/logout', verifyjwtAccessToken, checkRole('admin'), AdminLogout)
 
-export default router
+export default router

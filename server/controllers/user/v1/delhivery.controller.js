@@ -12,7 +12,7 @@ export const Pincodedetails = async (req, res, next) => {
         if (!/^\d{6}$/.test(pincode)) {
             return next(CustomeError(400, "Invalid pincode. Please enter a valid 6-digit pincode"))
         }
-
+         console.log(pincode)
         const data = await PincodeServiceability(pincode)
 
         if (!data.delivery_codes || data.delivery_codes.length === 0) {

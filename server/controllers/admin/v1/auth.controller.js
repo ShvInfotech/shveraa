@@ -65,3 +65,16 @@ export const AdminLogout = async (req, res, next) => {
         return next(error)
     }
 }
+
+export const AdminUpdateDeviceToken = async (req, res, next) => {
+    try {
+        const { deviceToken } = req.body || {};
+        if (!deviceToken) {
+            return next(CustomeError(422, 'deviceToken is required'));
+        }
+        await UserModel.findByIdAndUpdate(req.user._id, { $addToSet: { deviceToken } });
+        return res.status(200).json({ success: true, message: 'Admin device token registered successfully' });
+    } catch (error) {
+        return next(error);
+    }
+};

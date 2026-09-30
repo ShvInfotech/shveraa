@@ -510,3 +510,17 @@ export const ToggleWishlist = async (req, res, next) => {
     return next(error);
   }
 };
+
+export const UpdateDeviceToken = async (req, res, next) => {
+  try {
+    const { deviceToken } = req.body || {};
+    if (!deviceToken) {
+      return next(CustomeError(422, 'deviceToken is required'));
+    }
+    await UserModel.findByIdAndUpdate(req.user._id, { $addToSet: { deviceToken } });
+    return res.status(200).json({ success: true, message: 'Device token registered successfully' });
+  } catch (error) {
+    return next(error);
+  }
+};
+

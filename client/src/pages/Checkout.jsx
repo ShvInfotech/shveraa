@@ -24,6 +24,7 @@ import {
   apiCreatePaymentOrder,
   apiVerifyPaymentPlaceOrder,
   getImageUrl,
+  apiCODPlaceOrder,
 } from '../services/api';
 
 const loadRazorpayScript = () => {
@@ -89,7 +90,7 @@ const Checkout = () => {
       }
     };
     fetchAddresses();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const applyAddress = (addr) => {
@@ -166,7 +167,7 @@ const Checkout = () => {
 
     const requestId = ++shippingRequestId.current;
     const isCod = paymentMethod === 'cod';
-    apiCheckShippingDetails(cartIds,pincode,isCod ? 'COD' : 'Pre-paid',isCod ? Math.max(0, cartSubtotal - discountAmount) : 0,)
+    apiCheckShippingDetails(cartIds, pincode, isCod ? 'COD' : 'Pre-paid', isCod ? Math.max(0, cartSubtotal - discountAmount) : 0,)
       .then((data) => {
         if (requestId === shippingRequestId.current && data?.shippingCharges !== undefined) {
           setShippingCost(Number(data.shippingCharges) || 0);
@@ -203,12 +204,32 @@ const Checkout = () => {
     navigate('/order-success', { state: { order: orderData } });
   };
 
-  const handleCodOrder = () => {
-    console.log('this is cod order');
+  const handleCodOrder = async() => {
+    try {
+      const cartIds = cart.map((item) => item._id || item.id).filter(Boolean);
+    const couponId = appliedCoupon?.coupenId || '';
+    const addressId = selectedAddrId && selectedAddrId !== '__new__' ? selectedAddrId : '';
+
+   const verifyRes = await apiCODPlaceOrder({
+      cartIds,
+      couponId,
+      shippingCost: shippingCost,
+      addressId,
+    })
+
+
+     const placedOrderData = verifyRes?.order;
+      await finishOrder(placedOrderData);
+    } catch (error) {
+       console.error('Payment verification failed:', error);
+            setFormError(error.message || 'Please try again or contact support.');
+            setIsPlacingOrder(false);
+    }
   };
 
   const handleRazorpayPayment = async () => {
     const cartIds = cart.map((item) => item._id || item.id).filter(Boolean);
+
     if (!cartIds.length) {
       setFormError('No valid cart items found to create order.');
       return;
@@ -224,10 +245,13 @@ const Checkout = () => {
     setFormError('');
 
     try {
-      const couponId = appliedCoupon?._id || appliedCoupon?.id || '';
+
+      const couponId = appliedCoupon?.coupenId || '';
       const data = await apiCreatePaymentOrder({
         cartIds,
         couponId,
+        shippingCost: shippingCost,
+        addressId: selectedAddrId && selectedAddrId !== '__new__' ? selectedAddrId : '',
       });
 
       const order = data?.order;
@@ -256,48 +280,29 @@ const Checkout = () => {
               razorpay_signature: response.razorpay_signature,
               cartIds,
               couponId,
+              shippingCost: shippingCost,
               addressId,
             });
 
-            const orderNumber = verifyRes?.orderData?.orderNumber || `SHV-${Math.floor(100000 + Math.random() * 900000)}`;
-            const now = new Date();
-            const items = cart.map((item) => ({
-              id: item.productId || item._id || item.slug || item.id,
-              name: item.name,
-              image: item.image || (item.images && item.images[0]) || '/hero-ring-banner.jpg',
-              price: Number(item.price || 0),
-              qty: Number(item.quantity || 1),
-              size: item.size || item.selectedSize || 'Standard',
-            }));
 
-            const placedOrderData = {
-              orderId: orderNumber,
-              displayId: `#${orderNumber}`,
-              razorpayOrderId: response.razorpay_order_id,
-              razorpayPaymentId: response.razorpay_payment_id,
-              customer: {
-                fullName,
-                email,
-                phone,
-                address: `${address}${apartment ? `, ${apartment}` : ''}`,
-                city: `${city}${stateName ? `, ${stateName}` : ''}`,
-                pincode,
-              },
-              items,
-              pricing: {
-                subtotal: cartSubtotal,
-                discount: discountAmount,
-                shipping: shippingCost === 0 ? 'FREE' : `₹${shippingCost}`,
-                total: order.amount ? order.amount / 100 : finalPayable,
-              },
-              paymentMethod: 'Razorpay Secure (Online)',
-              paymentStatus: 'Paid',
-              status: 'Confirmed',
-              date: now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
-              estimatedDelivery: '2–4 Business Days',
-              carrier: 'BlueDart Air Express',
-              trackingNumber: 'N/A',
-            };
+            
+
+            const placedOrderData = verifyRes?.order;
+            // const placedOrderData = {
+            //   ...(serverOrder || {}),
+            //   orderId: serverOrder?.orderNumber || serverOrder?._id || `SHV-${Math.floor(100000 + Math.random() * 900000)}`,
+            //   orderNumber: serverOrder?.orderNumber || `SHV-${Math.floor(100000 + Math.random() * 900000)}`,
+            //   customer: {
+            //     fullName: fullName || user?.name || 'Valued Patron',
+            //     email: email || user?.email || '',
+            //     phone: serverOrder?.address?.phone || phone || user?.phone || '',
+            //     address: serverOrder?.address?.addressline
+            //       ? `${serverOrder.address.addressline}, ${serverOrder.address.city}, ${serverOrder.address.state} - ${serverOrder.address.pincode}`
+            //       : `${address}${apartment ? `, ${apartment}` : ''}, ${city}, ${stateName} - ${pincode}`,
+            //   },
+            //   deliveryOption,
+            //   estimatedDelivery: serverOrder?.waybill ? `Waybill: ${serverOrder.waybill} (2–4 Business Days)` : '2–4 Business Days',
+            // };
 
             await finishOrder(placedOrderData);
           } catch (verifyErr) {
@@ -467,7 +472,7 @@ const Checkout = () => {
                         className={`shv-saved-addr-row${selectedAddrId === '__new__' ? ' active' : ''}`}
                         onClick={() => { setSelectedAddrId('__new__'); setAddressNotice(''); setFullName(user?.name || ''); setPhone(user?.phone || ''); setAddress(''); setApartment(''); setCity(''); setStateName('Maharashtra'); setPincode(''); }}
                       >
-                        <input type="radio" name="savedAddr" checked={selectedAddrId === '__new__'} onChange={() => {}} />
+                        <input type="radio" name="savedAddr" checked={selectedAddrId === '__new__'} onChange={() => { }} />
                         <div className="shv-saved-addr-info">
                           <strong>+ Enter a new address</strong>
                           <span>Deliver to a different location</span>
@@ -809,8 +814,8 @@ const Checkout = () => {
                     {isPlacingOrder
                       ? 'Processing Order...'
                       : paymentMethod === 'cod'
-                      ? `Place COD Order • ₹${finalPayable}`
-                      : `Pay with Razorpay • ₹${finalPayable}`}
+                        ? `Place COD Order • ₹${finalPayable}`
+                        : `Pay with Razorpay • ₹${finalPayable}`}
                   </span>
                   <ArrowRight size={16} />
                 </button>

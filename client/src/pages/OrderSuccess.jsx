@@ -15,14 +15,18 @@ import {
   CreditCard,
   Gift,
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { getImageUrl } from '../services/api';
 
 const OrderSuccess = () => {
   const location = useLocation();
+  const { user } = useAuth();
   const [copied, setCopied] = useState(false);
 
   // Retrieve order from router state or fallback to storage, or provide rich default demo
   const fallbackOrder = {
     orderId: 'SHV-2026-849201',
+    orderNumber: 'SHV-2026-849201',
     date: new Date().toLocaleDateString('en-IN', {
       day: 'numeric',
       month: 'short',
@@ -58,6 +62,7 @@ const OrderSuccess = () => {
   };
 
   let savedOrder = location.state?.order;
+ 
   if (!savedOrder) {
     try {
       const stored = localStorage.getItem('shveraa_last_order');
@@ -69,9 +74,88 @@ const OrderSuccess = () => {
 
   const order = savedOrder || fallbackOrder;
 
+  const orderReference = order.orderNumber || order.orderId || order._id || 'SHV-ORDER';
+
+
+  const customerFullName =order.customer?.fullName ||user?.name ||'Valued Patron';
+
+
+
+  const customerFirstName = customerFullName.trim().split(' ')[0] || 'Valued Patron';
+
+  const customerEmail =
+    order.customer?.email ||
+    order.customerEmail ||
+    user?.email ||
+    '';
+
+  const customerPhone =
+    order.address?.phone ||
+    order.customer?.phone ||
+    user?.phone ||
+    '';
+
+  // Address resolution
+  let shippingAddressText = '';
+  if (order.address && typeof order.address === 'object') {
+    const parts = [
+      order.address.addressline || order.address.street || order.address.line1,
+      order.address.city,
+      order.address.state,
+      order.address.pincode ? `${order.address.pincode}` : '',
+      order.address.country || 'India',
+    ].filter(Boolean);
+    shippingAddressText = parts.join(', ');
+  } else if (order.customer?.address) {
+    shippingAddressText = order.customer.address;
+  } else {
+    shippingAddressText = 'Shipping address recorded';
+  }
+
+  // Pricing calculations
+  const subtotal = order.amount !== undefined ? Number(order.amount) : (Number(order.pricing?.subtotal) || 0);
+  const discount = order.discount !== undefined ? Number(order.discount) : (Number(order.pricing?.discount) || 0);
+  const shippingVal = order.shippingcharges !== undefined
+    ? Number(order.shippingcharges)
+    : (typeof order.pricing?.shipping === 'number'
+        ? order.pricing.shipping
+        : (order.pricing?.shipping === 'FREE' ? 0 : parseFloat(String(order.pricing?.shipping || '').replace(/[^0-9.]/g, '')) || 0));
+  const shippingText = shippingVal === 0 ? 'FREE' : `₹${shippingVal.toLocaleString('en-IN')}`;
+  const deliverySurcharge = Number(order.deliverySurcharge || order.pricing?.deliverySurcharge || 0);
+  const codSurcharge = Number(order.codSurcharge || order.pricing?.codSurcharge || 0);
+  const grandTotal = order.totalAmount !== undefined
+    ? Number(order.totalAmount)
+    : (Number(order.pricing?.total) || (subtotal - discount + shippingVal + deliverySurcharge + codSurcharge));
+
+  // Payment method resolution
+  const payMethodKey = (order.payment?.method || order.paymentMethod || '').toLowerCase();
+  const paymentId = order.payment?.paymentId;
+  let paymentMethodDisplay = 'Online Payment (Authorized & Secured)';
+  if (payMethodKey === 'razorpay') {
+    paymentMethodDisplay = paymentId
+      ? `Razorpay Secure Online (Payment ID: ${paymentId})`
+      : 'Razorpay Secure (Paid & Verified)';
+  } else if (payMethodKey === 'upi') {
+    paymentMethodDisplay = 'UPI Instant Pay (Verified & Encrypted)';
+  } else if (payMethodKey === 'card') {
+    paymentMethodDisplay = 'Credit / Debit Card (Processed via Razorpay)';
+  } else if (payMethodKey === 'netbanking') {
+    paymentMethodDisplay = 'NetBanking (Authorized)';
+  } else if (payMethodKey === 'cod') {
+    paymentMethodDisplay = 'Cash on Delivery (Pay at Doorstep)';
+  }
+
+
+  // Estimated delivery display
+  const estimatedDeliveryDisplay = order.estimatedDelivery || '2–4 Business Days (Insured Air Express)';
+
+
+  // Items resolution
+  const items = Array.isArray(order.items) && order.items.length > 0 ? order.items : fallbackOrder.items;
+
   const handleCopyOrderId = () => {
     if (navigator.clipboard) {
-      navigator.clipboard.writeText(order.orderId);
+      navigator.clipboard.writeText(orderReference);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -94,13 +178,13 @@ const OrderSuccess = () => {
           <span className="shv-script-eyebrow">With Sincere Gratitude</span>
           <h1 className="shv-success-title">Your Atelier Order is Confirmed</h1>
           <p className="shv-success-subtitle">
-            Thank you, <strong>{order.customer.fullName.split(' ')[0]}</strong>. A confirmation email and tax invoice have been dispatched to <strong>{order.customer.email}</strong>.
+            Thank you, <strong>{customerFirstName}</strong>.{customerEmail ? <> A confirmation email and tax invoice have been dispatched to <strong>{customerEmail}</strong>.</> : <> Your fine jewellery order has been confirmed successfully.</>}
           </p>
 
           {/* Order ID Pill */}
           <div className="shv-order-id-bar">
             <span className="shv-order-id-label">Order Reference:</span>
-            <strong className="shv-order-id-num">{order.orderId}</strong>
+            <strong className="shv-order-id-num">{orderReference}</strong>
             <button
               type="button"
               onClick={handleCopyOrderId}
@@ -119,7 +203,7 @@ const OrderSuccess = () => {
           <div className="shv-timeline-header">
             <h3>Atelier Dispatch &amp; Tracking Timeline</h3>
             <span className="shv-timeline-est">
-              Estimated Delivery: <strong>{order.estimatedDelivery}</strong>
+              Estimated Delivery: <strong>{estimatedDeliveryDisplay}</strong>
             </span>
           </div>
 
@@ -131,7 +215,7 @@ const OrderSuccess = () => {
               <div className="shv-step-content">
                 <h4>Order Placed</h4>
                 <p>Payment authorized &amp; confirmed</p>
-                <span className="shv-step-time">Today</span>
+                <span className="shv-step-time">{order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'Today'}</span>
               </div>
             </div>
 
@@ -169,7 +253,7 @@ const OrderSuccess = () => {
               </div>
               <div className="shv-step-content">
                 <h4>Insured Delivery</h4>
-                <p>Delivered to your doorstep by BlueDart Air</p>
+                <p>{order.waybill ? `Dispatched via BlueDart Air (Waybill #${order.waybill})` : 'Delivered to your doorstep by BlueDart Air'}</p>
                 <span className="shv-step-time">2–4 Business Days</span>
               </div>
             </div>
@@ -182,63 +266,73 @@ const OrderSuccess = () => {
           <div className="shv-success-items-card">
             <h3 className="shv-details-card-title">Purchased 925 Silver Pieces</h3>
             <div className="shv-success-items-list">
-              {order.items.map((item, idx) => (
-                <div key={idx} className="shv-success-item-row">
-                  <div className="shv-success-item-img">
-                    <img
-                      src={item.image || '/hero-ring-banner.jpg'}
-                      alt={item.name}
-                      onError={(e) => { e.currentTarget.src = '/hero-ring-banner.jpg'; }}
-                    />
-                  </div>
-                  <div className="shv-success-item-info">
-                    <h4>{item.name}</h4>
-                    <div className="shv-success-item-meta">
-                      <span>Size: {item.size}</span>
-                      <span>•</span>
-                      <span>Qty: {item.quantity}</span>
-                      <span className="shv-success-hallmark-badge">925 BIS</span>
+              {items.map((item, idx) => {
+                const itemImage = getImageUrl(item.image || (item.images && item.images[0])) || '/hero-ring-banner.jpg';
+                const itemName = item.name || 'Fine Silver Jewellery';
+                const itemSize = item.size || 'Free Size';
+                const itemColor = item.color;
+                const itemQty = item.quantity || item.qty || 1;
+                const itemPrice = Number(item.price || 0);
+
+                return (
+                  <div key={idx} className="shv-success-item-row">
+                    <div className="shv-success-item-img">
+                      <img
+                        src={itemImage}
+                        alt={itemName}
+                        onError={(e) => { e.currentTarget.src = '/hero-ring-banner.jpg'; }}
+                      />
+                    </div>
+                    <div className="shv-success-item-info">
+                      <h4>{itemName}</h4>
+                      <div className="shv-success-item-meta">
+                        {itemColor && <span>{itemColor} • </span>}
+                        <span>Size: {itemSize}</span>
+                        <span>•</span>
+                        <span>Qty: {itemQty}</span>
+                        <span className="shv-success-hallmark-badge">925 BIS</span>
+                      </div>
+                    </div>
+                    <div className="shv-success-item-price">
+                      ₹{(itemPrice * itemQty).toLocaleString('en-IN')}
                     </div>
                   </div>
-                  <div className="shv-success-item-price">
-                    ₹{item.price * item.quantity}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Price Calculations */}
             <div className="shv-success-price-breakdown">
               <div className="shv-success-calc-row">
                 <span>Subtotal</span>
-                <span>₹{order.pricing.subtotal}</span>
+                <span>₹{subtotal.toLocaleString('en-IN')}</span>
               </div>
-              {order.pricing.discount > 0 && (
+              {discount > 0 && (
                 <div className="shv-success-calc-row shv-discount">
                   <span>Discount</span>
-                  <span>-₹{order.pricing.discount}</span>
+                  <span>-₹{discount.toLocaleString('en-IN')}</span>
                 </div>
               )}
               <div className="shv-success-calc-row">
                 <span>Insured Express Shipping</span>
-                <span>{order.pricing.shipping}</span>
+                <span>{shippingText}</span>
               </div>
-              {order.pricing.deliverySurcharge > 0 && (
+              {deliverySurcharge > 0 && (
                 <div className="shv-success-calc-row">
                   <span>White-Glove VIP Delivery</span>
-                  <span>+₹{order.pricing.deliverySurcharge}</span>
+                  <span>+₹{deliverySurcharge.toLocaleString('en-IN')}</span>
                 </div>
               )}
-              {order.pricing.codSurcharge > 0 && (
+              {codSurcharge > 0 && (
                 <div className="shv-success-calc-row">
                   <span>COD Handling Fee</span>
-                  <span>+₹{order.pricing.codSurcharge}</span>
+                  <span>+₹{codSurcharge.toLocaleString('en-IN')}</span>
                 </div>
               )}
               <div className="shv-calc-divider" />
               <div className="shv-success-calc-row shv-total">
                 <span>Grand Total Paid</span>
-                <span>₹{order.pricing.total}</span>
+                <span>₹{grandTotal.toLocaleString('en-IN')}</span>
               </div>
             </div>
           </div>
@@ -251,9 +345,9 @@ const OrderSuccess = () => {
                 <h4>Insured Shipping Address</h4>
               </div>
               <div className="shv-meta-card-body">
-                <p className="shv-meta-name">{order.customer.fullName}</p>
-                <p className="shv-meta-text">{order.customer.address}</p>
-                <p className="shv-meta-contact">Phone: {order.customer.phone}</p>
+                <p className="shv-meta-name">{customerFullName}</p>
+                <p className="shv-meta-text">{shippingAddressText}</p>
+                {customerPhone && <p className="shv-meta-contact">Phone: {customerPhone}</p>}
               </div>
             </div>
 
@@ -264,10 +358,7 @@ const OrderSuccess = () => {
               </div>
               <div className="shv-meta-card-body">
                 <p className="shv-meta-pay-method">
-                  {order.paymentMethod === 'upi' && 'UPI Instant Pay (Verified & Encrypted)'}
-                  {order.paymentMethod === 'card' && 'Credit / Debit Card (Processed via Razorpay)'}
-                  {order.paymentMethod === 'netbanking' && 'NetBanking (Authorized)'}
-                  {order.paymentMethod === 'cod' && 'Cash on Delivery (Pay at Doorstep)'}
+                  {paymentMethodDisplay}
                 </p>
                 <div className="shv-meta-purity-badge">
                   <ShieldCheck size={14} />
@@ -286,7 +377,7 @@ const OrderSuccess = () => {
                   <h5>Atelier WhatsApp Support</h5>
                   <p>Have special delivery instructions or gift engraving questions?</p>
                   <a
-                    href="https://wa.me/919998046559?text=Hello%20Shveraa%20Jewels,%20I%20have%20an%20inquiry%20regarding%20my%20order"
+                    href={`https://wa.me/919876543210?text=${encodeURIComponent(`Hello Shveraa Atelier, I have an inquiry regarding my order ${orderReference}`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="shv-concierge-link"

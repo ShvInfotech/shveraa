@@ -8,6 +8,7 @@ import {
   apiGetCategories, apiGetProducts,
   apiGetStoreSettings, apiAdminSaveStoreSettings,
 } from './api';
+import { getDeviceToken } from './firebase';
 
 import { DEFAULT_ADMIN_ORDERS } from '../admin/adminData';
 
@@ -463,7 +464,14 @@ export const getAdminAuth = () => {
 
 export const loginAdmin = async (email, password) => {
   try {
-    const res = await apiAdminLogin({ email, password });
+    let deviceToken = null;
+    try {
+      deviceToken = await getDeviceToken();
+    } catch (tokenErr) {
+      console.warn('Failed to retrieve deviceToken for admin login:', tokenErr);
+    }
+
+    const res = await apiAdminLogin({ email, password, deviceToken });
     if (res?.admin) {
       const adminUser = res.admin;
       localStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, JSON.stringify(adminUser));

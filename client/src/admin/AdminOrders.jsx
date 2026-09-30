@@ -1,54 +1,41 @@
 import React, { useState } from 'react';
-import {
-  Search,
-  Filter,
-  Eye,
-  CheckCircle2,
-  Truck,
-  XCircle,
-  Clock,
-  Printer,
-  ChevronDown,
-} from 'lucide-react';
+import { Eye, Printer } from 'lucide-react';
+import { getImageUrl } from '../services/api';
+
+const STATUS_TABS = ['All', 'pending', 'accepted', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'cancelled'];
 
 const AdminOrders = ({ orders, onUpdateStatus, searchQuery }) => {
   const [selectedStatusTab, setSelectedStatusTab] = useState('All');
   const [selectedOrder, setSelectedOrder] = useState(null);
 
-  // Filter orders
+  // Filter orders – uses real DB fields
   const filteredOrders = orders.filter((ord) => {
     const matchesTab =
       selectedStatusTab === 'All' ||
-      ord.status.toLowerCase().includes(selectedStatusTab.toLowerCase()) ||
-      (selectedStatusTab === 'Scheduled' && (ord.status === 'Scheduled' || ord.status === 'Pending')) ||
-      (selectedStatusTab === 'On Progress' && ord.status === 'On The Way');
+      (ord.status || '').toLowerCase() === selectedStatusTab.toLowerCase();
 
-    const q = searchQuery.toLowerCase();
+    const q = (searchQuery || '').toLowerCase();
+    const orderRef = (ord.orderNumber || ord._id || '').toLowerCase();
+    const phone = (ord.address?.phone || '').toLowerCase();
+    const waybill = (ord.waybill || '').toLowerCase();
     const matchesSearch =
       !q ||
-      ord.orderId.toLowerCase().includes(q) ||
-      (ord.displayId && ord.displayId.toLowerCase().includes(q)) ||
-      ord.customer.fullName.toLowerCase().includes(q) ||
-      ord.customer.email.toLowerCase().includes(q) ||
-      (ord.customer.phone && ord.customer.phone.includes(q));
+      orderRef.includes(q) ||
+      phone.includes(q) ||
+      waybill.includes(q);
 
     return matchesTab && matchesSearch;
   });
 
   const getStatusBadgeClass = (status) => {
-    switch (status) {
-      case 'Delivered':
-        return 'delivered';
-      case 'On The Way':
-      case 'On Progress':
-      case 'Dispatched — In Transit':
-        return 'ontheway';
-      case 'Cancelled':
-        return 'cancelled';
-      case 'On Hold':
-        return 'onhold';
-      default:
-        return 'scheduled';
+    switch ((status || '').toLowerCase()) {
+      case 'delivered': return 'delivered';
+      case 'shipped':
+      case 'out_for_delivery': return 'ontheway';
+      case 'cancelled': return 'cancelled';
+      case 'accepted':
+      case 'processing': return 'onhold';
+      default: return 'scheduled';
     }
   };
 
@@ -67,7 +54,7 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery }) => {
 
         {/* Status Tab Pills */}
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          {['All', 'Scheduled', 'On Progress', 'Delivered', 'Cancelled'].map((tab) => (
+          {STATUS_TABS.map((tab) => (
             <button
               key={tab}
               type="button"
@@ -77,9 +64,10 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery }) => {
                 background: selectedStatusTab === tab ? '#1E2229' : '#FFFFFF',
                 color: selectedStatusTab === tab ? '#FFFFFF' : 'var(--admin-text-main)',
                 borderColor: selectedStatusTab === tab ? '#1E2229' : 'var(--admin-border)',
+                textTransform: 'capitalize',
               }}
             >
-              {tab}
+              {tab === 'out_for_delivery' ? 'Out for Delivery' : tab}
             </button>
           ))}
         </div>
@@ -92,10 +80,10 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery }) => {
             <thead>
               <tr>
                 <th>Order ID</th>
-                <th>Client / Patron</th>
+                <th>Shipping Address</th>
                 <th>Silhouettes &amp; Qty</th>
                 <th>Total Value</th>
-                <th>Payment Mode</th>
+                <th>Payment</th>
                 <th>Dispatch Status</th>
                 <th>Action</th>
               </tr>
@@ -109,63 +97,80 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery }) => {
                 </tr>
               ) : (
                 filteredOrders.map((ord) => {
-                  const itemCount = ord.items.reduce((acc, i) => acc + (i.qty || i.quantity || 1), 0);
-                  const firstItem = ord.items[0];
+                  const orderRef = ord.orderNumber || ord._id;
+                  const itemCount = (ord.items || []).reduce((acc, i) => acc + (i.quantity || i.qty || 1), 0);
+                  const firstItem = (ord.items || [])[0];
+                  const placedDate = ord.createdAt
+                    ? new Date(ord.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+                    : '—';
+                  const addrCity = ord.address?.city || '';
+                  const addrPhone = ord.address?.phone || '';
 
                   return (
-                    <tr key={ord.orderId}>
+                    <tr key={ord._id || orderRef}>
                       <td>
-                        <strong className="shv-table-order-id">{ord.displayId || ord.orderId}</strong>
-                        <div style={{ fontSize: '0.74rem', color: 'var(--admin-text-muted)' }}>{ord.date}</div>
+                        <strong className="shv-table-order-id">{orderRef}</strong>
+                        <div style={{ fontSize: '0.74rem', color: 'var(--admin-text-muted)' }}>{placedDate}</div>
+                        {ord.waybill && (
+                          <div style={{ fontSize: '0.7rem', color: 'var(--admin-text-light)', marginTop: 2 }}>
+                            Waybill: {ord.waybill}
+                          </div>
+                        )}
                       </td>
                       <td>
-                        <div style={{ fontWeight: 600 }}>{ord.customer.fullName}</div>
-                        <div style={{ fontSize: '0.76rem', color: 'var(--admin-text-muted)' }}>
-                          {ord.customer.city || ord.customer.phone}
-                        </div>
+                        <div style={{ fontWeight: 600 }}>{addrCity}</div>
+                        <div style={{ fontSize: '0.76rem', color: 'var(--admin-text-muted)' }}>{addrPhone}</div>
                       </td>
                       <td>
                         <div className="shv-table-item-cell">
                           {firstItem?.image && (
-                            <img src={firstItem.image} alt={firstItem.name} className="shv-table-item-thumb" />
+                            <img
+                              src={getImageUrl(firstItem.image)}
+                              alt={firstItem.name}
+                              className="shv-table-item-thumb"
+                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                            />
                           )}
                           <div>
                             <div style={{ fontWeight: 500, fontSize: '0.84rem' }}>{firstItem?.name}</div>
                             <div style={{ fontSize: '0.74rem', color: 'var(--admin-text-muted)' }}>
-                              {itemCount} {itemCount === 1 ? 'Piece' : 'Pieces'} • {ord.items.length > 1 ? `+${ord.items.length - 1} more` : firstItem?.size || '925 Silver'}
+                              {itemCount} {itemCount === 1 ? 'Piece' : 'Pieces'}
+                              {ord.items?.length > 1 ? ` • +${ord.items.length - 1} more` : ` • ${firstItem?.size || '925 Silver'}`}
                             </div>
                           </div>
                         </div>
                       </td>
                       <td>
                         <strong style={{ fontSize: '0.95rem' }}>
-                          ₹{(ord.pricing?.total || 0).toLocaleString('en-IN')}
+                          ₹{Number(ord.totalAmount || 0).toLocaleString('en-IN')}
                         </strong>
                       </td>
                       <td>
-                        <div style={{ fontSize: '0.82rem', fontWeight: 500 }}>{ord.paymentMethod?.split('(')[0]}</div>
-                        <div style={{ fontSize: '0.74rem', color: ord.paymentStatus === 'Paid' ? 'var(--admin-green)' : 'var(--admin-amber)' }}>
-                          ● {ord.paymentStatus}
+                        <div style={{ fontSize: '0.82rem', fontWeight: 500, textTransform: 'capitalize' }}>
+                          {ord.payment?.method || 'razorpay'}
+                        </div>
+                        <div style={{
+                          fontSize: '0.74rem',
+                          color: ord.payment?.status === 'paid' ? 'var(--admin-green)' : 'var(--admin-amber)',
+                          textTransform: 'capitalize',
+                        }}>
+                          ● {ord.payment?.status || 'pending'}
                         </div>
                       </td>
                       <td>
-                        {/* Status update inline selector */}
                         <select
-                          value={ord.status}
-                          onChange={(e) => onUpdateStatus(ord.orderId, e.target.value)}
+                          value={ord.status || 'pending'}
+                          onChange={(e) => onUpdateStatus(ord._id || orderRef, e.target.value)}
                           className={`shv-status-pill ${getStatusBadgeClass(ord.status)}`}
-                          style={{
-                            border: 'none',
-                            outline: 'none',
-                            cursor: 'pointer',
-                            fontFamily: 'inherit',
-                          }}
+                          style={{ border: 'none', outline: 'none', cursor: 'pointer', fontFamily: 'inherit', textTransform: 'capitalize' }}
                         >
-                          <option value="Scheduled">Scheduled</option>
-                          <option value="On The Way">On The Way</option>
-                          <option value="Delivered">Delivered</option>
-                          <option value="On Hold">On Hold</option>
-                          <option value="Cancelled">Cancelled</option>
+                          <option value="pending">Pending</option>
+                          <option value="accepted">Accepted</option>
+                          <option value="processing">Processing</option>
+                          <option value="shipped">Shipped</option>
+                          <option value="out_for_delivery">Out for Delivery</option>
+                          <option value="delivered">Delivered</option>
+                          <option value="cancelled">Cancelled</option>
                         </select>
                       </td>
                       <td>
@@ -194,33 +199,32 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery }) => {
           <div className="shv-modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="shv-modal-header">
               <div>
-                <h3 className="shv-modal-title">Consignment {selectedOrder.displayId || selectedOrder.orderId}</h3>
+                <h3 className="shv-modal-title">
+                  Consignment {selectedOrder.orderNumber || selectedOrder._id}
+                </h3>
                 <span style={{ fontSize: '0.8rem', color: 'var(--admin-text-muted)' }}>
-                  Placed on {selectedOrder.date} • {selectedOrder.carrier || 'BlueDart Air Express'}
+                  Placed on {selectedOrder.createdAt ? new Date(selectedOrder.createdAt).toLocaleDateString('en-IN') : '—'}
+                  {selectedOrder.waybill ? ` • Waybill: ${selectedOrder.waybill}` : ' • BlueDart Air Express'}
                 </span>
               </div>
-              <button
-                type="button"
-                onClick={() => setSelectedOrder(null)}
-                className="shv-modal-close-btn"
-              >
+              <button type="button" onClick={() => setSelectedOrder(null)} className="shv-modal-close-btn">
                 ✕
               </button>
             </div>
 
-            {/* Customer Details Box */}
+            {/* Shipping Address */}
             <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '1rem', marginBottom: '1.25rem', border: '1px solid var(--admin-border)' }}>
               <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--admin-text-light)', marginBottom: '0.5rem', fontWeight: 700 }}>
-                Patron &amp; Delivery Destination
+                Shipping Destination
               </div>
               <div style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: '0.2rem' }}>
-                {selectedOrder.customer.fullName}
+                {selectedOrder.address?.addressline || 'Address recorded'}
               </div>
               <div style={{ fontSize: '0.84rem', color: 'var(--admin-text-muted)', marginBottom: '0.2rem' }}>
-                {selectedOrder.customer.phone} • {selectedOrder.customer.email}
+                {[selectedOrder.address?.city, selectedOrder.address?.state, selectedOrder.address?.pincode].filter(Boolean).join(', ')}
               </div>
               <div style={{ fontSize: '0.84rem', color: 'var(--admin-text-main)' }}>
-                {selectedOrder.customer.address}, {selectedOrder.customer.city} - {selectedOrder.customer.pincode}
+                Phone: {selectedOrder.address?.phone || '—'}
               </div>
             </div>
 
@@ -229,31 +233,43 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery }) => {
               <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--admin-text-light)', marginBottom: '0.75rem', fontWeight: 700 }}>
                 Certified 925 Pure Silver Pieces
               </div>
-              {selectedOrder.items.map((item, idx) => (
+              {(selectedOrder.items || []).map((item, idx) => (
                 <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 0', borderBottom: '1px solid var(--admin-border-subtle)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     {item.image && (
-                      <img src={item.image} alt={item.name} style={{ width: '42px', height: '42px', borderRadius: '8px', objectFit: 'cover' }} />
+                      <img
+                        src={getImageUrl(item.image)}
+                        alt={item.name}
+                        style={{ width: '42px', height: '42px', borderRadius: '8px', objectFit: 'cover' }}
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
                     )}
                     <div>
                       <div style={{ fontWeight: 600, fontSize: '0.86rem' }}>{item.name}</div>
                       <div style={{ fontSize: '0.76rem', color: 'var(--admin-text-muted)' }}>
-                        Qty: {item.qty || item.quantity || 1} • Size: {item.size || 'Standard'}
+                        Qty: {item.quantity || item.qty || 1} • Size: {item.size || 'Free Size'}
+                        {item.color ? ` • ${item.color}` : ''}
                       </div>
                     </div>
                   </div>
-                  <strong style={{ fontSize: '0.9rem' }}>₹{((item.price || 0) * (item.qty || item.quantity || 1)).toLocaleString('en-IN')}</strong>
+                  <strong style={{ fontSize: '0.9rem' }}>
+                    ₹{((item.price || 0) * (item.quantity || item.qty || 1)).toLocaleString('en-IN')}
+                  </strong>
                 </div>
               ))}
             </div>
 
-            {/* Total and Print button */}
+            {/* Total & actions */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '1rem', borderTop: '1px solid var(--admin-border)' }}>
               <div>
                 <span style={{ fontSize: '0.82rem', color: 'var(--admin-text-muted)' }}>Total Amount: </span>
-                <strong style={{ fontSize: '1.2rem' }}>₹{(selectedOrder.pricing?.total || 0).toLocaleString('en-IN')}</strong>
+                <strong style={{ fontSize: '1.2rem' }}>₹{Number(selectedOrder.totalAmount || 0).toLocaleString('en-IN')}</strong>
+                <div style={{ fontSize: '0.76rem', color: 'var(--admin-text-muted)', marginTop: 2 }}>
+                  Payment: <span style={{ textTransform: 'capitalize', fontWeight: 600 }}>
+                    {selectedOrder.payment?.method} — {selectedOrder.payment?.status}
+                  </span>
+                </div>
               </div>
-
               <div style={{ display: 'flex', gap: '0.6rem' }}>
                 <button
                   type="button"
@@ -264,11 +280,7 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery }) => {
                   <Printer size={15} />
                   <span>Print Slip</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedOrder(null)}
-                  className="shv-btn-primary"
-                >
+                <button type="button" onClick={() => setSelectedOrder(null)} className="shv-btn-primary">
                   Done
                 </button>
               </div>

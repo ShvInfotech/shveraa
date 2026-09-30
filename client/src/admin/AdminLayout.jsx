@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './admin.css';
 import AdminLogin from './AdminLogin';
 import AdminSidebar from './AdminSidebar';
@@ -13,11 +13,8 @@ import AdminDeliveries from './AdminDeliveries';
 import AdminCoupons from './AdminCoupons';
 import AdminPayments from './AdminPayments';
 import AdminSettings from './AdminSettings';
-import {
-  getAdminOrders,
-  updateAdminOrderStatus,
-} from './adminData';
 import { useDynamicStore, getAdminAuth, logoutAdmin } from '../services/storeService';
+import { apiAdminGetAllOrders } from '../services/api';
 import { HelpCircle, Mail, Phone, MessageSquare } from 'lucide-react';
 
 const AdminLayout = () => {
@@ -31,24 +28,39 @@ const AdminLayout = () => {
   // Dynamic store hooks for real-time reactivity
   const { categories, products, coupons, settings, refreshStore } = useDynamicStore();
   const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
 
-  useEffect(() => {
-    setOrders(getAdminOrders());
-    const handleOrderUpdate = () => setOrders(getAdminOrders());
-    const handleUnauthorized = () => setAdminUser(null);
-
-    window.addEventListener('shveraa_store_updated', handleOrderUpdate);
-    window.addEventListener('shveraa_admin_unauthorized', handleUnauthorized);
-
-    return () => {
-      window.removeEventListener('shveraa_store_updated', handleOrderUpdate);
-      window.removeEventListener('shveraa_admin_unauthorized', handleUnauthorized);
-    };
+  const fetchAllOrders = useCallback(async () => {
+    if (!getAdminAuth()) return;
+    setOrdersLoading(true);
+    try {
+      const data = await apiAdminGetAllOrders({ limit: 200 });
+      setOrders(data.orders || []);
+    } catch (err) {
+      console.error('Admin: Failed to fetch orders:', err);
+    } finally {
+      setOrdersLoading(false);
+    }
   }, []);
 
-  const handleUpdateOrderStatus = (orderId, newStatus) => {
-    setOrders(updateAdminOrderStatus(orderId, newStatus));
+  useEffect(() => {
+    fetchAllOrders();
+    const handleUnauthorized = () => setAdminUser(null);
+    window.addEventListener('shveraa_admin_unauthorized', handleUnauthorized);
+    return () => {
+      window.removeEventListener('shveraa_admin_unauthorized', handleUnauthorized);
+    };
+  }, [fetchAllOrders]);
+
+  const handleUpdateOrderStatus = async (orderId, newStatus) => {
+    // Optimistic update
+    setOrders((prev) =>
+      prev.map((o) =>
+        (o._id === orderId || o.orderNumber === orderId) ? { ...o, status: newStatus } : o
+      )
+    );
   };
+
 
   // Dedicated Product Studio Opener
   const handleOpenProductEditor = (productToEdit = null) => {

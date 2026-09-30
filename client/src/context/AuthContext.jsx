@@ -5,6 +5,7 @@ import {
   apiUserLogout,
   apiUserForgotPassword,
 } from '../services/api';
+import { getDeviceToken } from '../services/firebase';
 
 const AuthContext = createContext();
 
@@ -45,7 +46,14 @@ export const AuthProvider = ({ children }) => {
       return { success: false, message: 'Please provide both email and password.' };
     }
     try {
-      const response = await apiUserLogin({ email, password });
+      let deviceToken = null;
+      try {
+        deviceToken = await getDeviceToken();
+      } catch (tokenErr) {
+        console.warn('Failed to retrieve deviceToken for login:', tokenErr);
+      }
+
+      const response = await apiUserLogin({ email, password, deviceToken });
       if (response?.user) {
         setUser(response.user);
         // Notify CartContext to reload from DB
@@ -67,7 +75,14 @@ export const AuthProvider = ({ children }) => {
       return { success: false, message: 'Please fill in all required fields.' };
     }
     try {
-      const response = await apiUserRegister({ name: fullName, email, phone, password });
+      let deviceToken = null;
+      try {
+        deviceToken = await getDeviceToken();
+      } catch (tokenErr) {
+        console.warn('Failed to retrieve deviceToken for register:', tokenErr);
+      }
+
+      const response = await apiUserRegister({ name: fullName, email, phone, password, deviceToken });
       if (response?.user) {
         setUser(response.user);
         // Notify CartContext to reload from DB

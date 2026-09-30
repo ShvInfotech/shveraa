@@ -256,6 +256,9 @@ export const CartProvider = ({ children }) => {
       if (!coupon) throw new Error('Invalid coupon');
       setAppliedCoupon({
         ...coupon,
+        coupenId: coupon.coupenId || coupon._id || coupon.id,
+        couponId: coupon.coupenId || coupon._id || coupon.id,
+        _id: coupon.coupenId || coupon._id || coupon.id,
       });
       setCouponError('');
       showToast(response.message || 'Coupon applied');

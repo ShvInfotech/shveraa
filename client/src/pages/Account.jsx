@@ -33,6 +33,8 @@ import {
   apiUpdateUserAddress,
   apiDeleteUserAddress,
   apiSetDefaultUserAddress,
+  apiGetMyOrders,
+  getImageUrl,
 } from '../services/api';
 
 const Account = () => {
@@ -164,24 +166,28 @@ const Account = () => {
     }
   };
 
-  // Orders state - reads from localStorage (only real placed orders)
+  // Orders state - fetched from API
   const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState('');
 
   useEffect(() => {
+    if (!isAuthenticated) return;
+    const fetchOrders = async () => {
+      setOrdersLoading(true);
+      setOrdersError('');
       try {
-        const storedOrders = localStorage.getItem('shveraa_orders');
-        if (storedOrders) {
-          setOrders(JSON.parse(storedOrders));
-        } else {
-          const lastOrderStr = localStorage.getItem('shveraa_last_order');
-          if (lastOrderStr) {
-            setOrders([JSON.parse(lastOrderStr)]);
-          }
-        }
-      } catch (e) {
-        console.error('Error parsing stored orders:', e);
+        const data = await apiGetMyOrders();
+        setOrders(data.orders || []);
+      } catch (err) {
+        console.error('Error fetching orders:', err);
+        setOrdersError(err.message || 'Could not load orders.');
+      } finally {
+        setOrdersLoading(false);
       }
-  }, []);
+    };
+    fetchOrders();
+  }, [isAuthenticated]);
 
   const handleTabChange = (tabName) => {
     setActiveTab(tabName);
@@ -340,150 +346,182 @@ const Account = () => {
             <span>Sign Out</span>
           </button>
         </div>
-
         {/* Tab 1: Orders Content */}
         {activeTab === 'orders' && (
           <div className="shv-orders-tab-view">
-            {orders.length === 0 ? (
+            {ordersLoading ? (
+              <div className="shv-orders-empty-state">
+                <ShoppingBag size={44} className="shv-empty-icon" style={{ opacity: 0.4 }} />
+                <h3 style={{ opacity: 0.6 }}>Loading your orders…</h3>
+                <p style={{ opacity: 0.5 }}>Fetching your Atelier consignments from our server.</p>
+              </div>
+            ) : ordersError ? (
+              <div className="shv-orders-empty-state">
+                <ShoppingBag size={44} className="shv-empty-icon" />
+                <h3>Could not load orders</h3>
+                <p>{ordersError}</p>
+                <button className="btn btn-primary" onClick={() => { setOrdersError(''); apiGetMyOrders().then(d => setOrders(d.orders || [])).catch(e => setOrdersError(e.message)); }}>
+                  Retry
+                </button>
+              </div>
+            ) : orders.length === 0 ? (
               <div className="shv-orders-empty-state">
                 <ShoppingBag size={44} className="shv-empty-icon" />
                 <h3>No Atelier Orders Yet</h3>
-                <p>You haven’t acquired any certified 925 sterling silver pieces yet.</p>
+                <p>You haven't acquired any certified 925 sterling silver pieces yet.</p>
                 <Link to="/shop" className="btn btn-primary">
                   Explore Current Collection <ArrowRight size={15} />
                 </Link>
               </div>
             ) : (
               <div className="shv-orders-list">
-                {orders.map((order, idx) => (
-                  <div key={idx} className="shv-order-card">
-                    {/* Order Header */}
-                    <div className="shv-order-header">
-                      <div className="shv-order-header-left">
-                        <div className="shv-order-id-wrap">
-                          <span className="shv-order-label">Order Ref:</span>
-                          <strong>{order.orderId}</strong>
+                {orders.map((order, idx) => {
+                  const orderRef = order.orderNumber || order._id || `ORD-${idx}`;
+                  const placedDate = order.createdAt
+                    ? new Date(order.createdAt).toLocaleDateString('en-GB')
+                    : '—';
+                  const isDelivered = order.status?.toLowerCase() === 'delivered';
+                  const addrObj = order.address || {};
+                  const addressLine = [
+                    addrObj.addressline || addrObj.street,
+                    addrObj.city,
+                    addrObj.state,
+                    addrObj.pincode,
+                  ].filter(Boolean).join(', ');
+                  const paymentStatus = order.payment?.status || 'pending';
+
+                  return (
+                    <div key={order._id || idx} className="shv-order-card">
+                      {/* Order Header */}
+                      <div className="shv-order-header">
+                        <div className="shv-order-header-left">
+                          <div className="shv-order-id-wrap">
+                            <span className="shv-order-label">Order Ref:</span>
+                            <strong>{orderRef}</strong>
+                            <button
+                              type="button"
+                              onClick={() => copyOrderId(orderRef)}
+                              className="shv-copy-mini-btn"
+                              title="Copy Order ID"
+                            >
+                              {copiedOrderId === orderRef ? (
+                                <Check size={13} color="#10B981" />
+                              ) : (
+                                <Copy size={13} />
+                              )}
+                            </button>
+                          </div>
+                          <span className="shv-order-meta-dot">•</span>
+                          <span className="shv-order-date">
+                            <Clock size={13} /> Placed on {placedDate}
+                          </span>
+                        </div>
+
+                        <div className="shv-order-header-right">
+                          <span
+                            className={`shv-order-status-badge ${
+                              isDelivered ? 'delivered' : 'in-transit'
+                            }`}
+                          >
+                            <span className="shv-status-dot" />
+                            {order.status || 'pending'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* BlueDart Tracking Bar */}
+                      <div className="shv-order-tracking-strip">
+                        <div className="shv-tracking-info">
+                          <Truck size={16} className="shv-truck-icon" />
+                          <div>
+                            <strong>BlueDart Air Express (Insured)</strong>
+                            <span>
+                              {order.waybill
+                                ? `Waybill: ${order.waybill}`
+                                : 'Awaiting pickup'}{' '}
+                              • Est. Delivery: 2–4 Business Days
+                            </span>
+                          </div>
+                        </div>
+                        <div className="shv-tracking-actions">
                           <button
                             type="button"
-                            onClick={() => copyOrderId(order.orderId)}
-                            className="shv-copy-mini-btn"
-                            title="Copy Order ID"
+                            onClick={handlePrint}
+                            className="shv-order-action-link"
+                            title="Print official tax invoice"
                           >
-                            {copiedOrderId === order.orderId ? (
-                              <Check size={13} color="#10B981" />
-                            ) : (
-                              <Copy size={13} />
-                            )}
+                            <Printer size={14} />
+                            <span>Print Invoice</span>
                           </button>
-                        </div>
-                        <span className="shv-order-meta-dot">•</span>
-                        <span className="shv-order-date">
-                          <Clock size={13} /> Placed on {order.date}
-                        </span>
-                      </div>
-
-                      <div className="shv-order-header-right">
-                        <span
-                          className={`shv-order-status-badge ${
-                            order.status?.toLowerCase().includes('delivered')
-                              ? 'delivered'
-                              : 'in-transit'
-                          }`}
-                        >
-                          <span className="shv-status-dot" />
-                          {order.status || 'Dispatched — In Transit'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* BlueDart Tracking Bar */}
-                    <div className="shv-order-tracking-strip">
-                      <div className="shv-tracking-info">
-                        <Truck size={16} className="shv-truck-icon" />
-                        <div>
-                          <strong>{order.carrier || 'BlueDart Air Express (Insured)'}</strong>
-                          <span>
-                            Tracking ID: {order.trackingNumber || 'BD-84920491'} • Est. Delivery:{' '}
-                            {order.estimatedDelivery || '2–4 Business Days'}
-                          </span>
+                          <a
+                            href={`https://wa.me/919876543210?text=${encodeURIComponent(`Hello Shveraa Concierge, I would like to check tracking for order ${orderRef}`)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="shv-order-action-link"
+                          >
+                            <ExternalLink size={14} />
+                            <span>Live Track</span>
+                          </a>
                         </div>
                       </div>
-                      <div className="shv-tracking-actions">
-                        <button
-                          type="button"
-                          onClick={handlePrint}
-                          className="shv-order-action-link"
-                          title="Print official tax invoice"
-                        >
-                          <Printer size={14} />
-                          <span>Print Invoice</span>
-                        </button>
-                        <a
-                          href={`https://wa.me/919998046559?text=Hello%20Shveraa%20Jewels,%20I%20would%20like%20to%20check%20tracking%20for%20order%20${order.orderId}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="shv-order-action-link"
-                        >
-                          <ExternalLink size={14} />
-                          <span>Live Track</span>
-                        </a>
-                      </div>
-                    </div>
 
-                    {/* Items List */}
-                    <div className="shv-order-items-grid">
-                      {order.items?.map((item, itemIdx) => (
-                        <div key={itemIdx} className="shv-order-item-card">
-                          <div className="shv-order-item-img-wrap">
-                            <img
-                              src={item.image || '/hero-ring-banner.jpg'}
-                              alt={item.name}
-                              onError={(e) => {
-                                e.currentTarget.src = '/hero-ring-banner.jpg';
-                              }}
-                            />
-                          </div>
-                          <div className="shv-order-item-info">
-                            <h4>{item.name}</h4>
-                            <div className="shv-order-item-meta">
-                              <span>Size: {item.size || 'Standard'}</span>
-                              <span>•</span>
-                              <span>Qty: {item.quantity || 1}</span>
-                              <span className="shv-bis-tag">925 BIS</span>
+                      {/* Items List */}
+                      <div className="shv-order-items-grid">
+                        {order.items?.map((item, itemIdx) => (
+                          <div key={itemIdx} className="shv-order-item-card">
+                            <div className="shv-order-item-img-wrap">
+                              <img
+                                src={getImageUrl(item.image) || '/hero-ring-banner.jpg'}
+                                alt={item.name}
+                                onError={(e) => {
+                                  e.currentTarget.src = '/hero-ring-banner.jpg';
+                                }}
+                              />
                             </div>
-                            <div className="shv-order-item-price">
-                              ₹{(item.price || 0) * (item.quantity || 1)}
+                            <div className="shv-order-item-info">
+                              <h4>{item.name}</h4>
+                              <div className="shv-order-item-meta">
+                                {item.color && <span>{item.color} • </span>}
+                                <span>Size: {item.size || 'Free Size'}</span>
+                                <span>•</span>
+                                <span>Qty: {item.quantity || 1}</span>
+                                <span className="shv-bis-tag">925 BIS</span>
+                              </div>
+                              <div className="shv-order-item-price">
+                                ₹{((item.price || 0) * (item.quantity || 1)).toLocaleString('en-IN')}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Order Footer & Destination */}
-                    <div className="shv-order-footer">
-                      <div className="shv-order-destination">
-                        <MapPin size={15} />
-                        <div>
-                          <span className="shv-dest-label">Delivery Destination:</span>
-                          <span className="shv-dest-addr">
-                            {order.customer?.address ||
-                              '402, Lotus Heritage, Linking Road, Mumbai - 400050'}
-                          </span>
-                        </div>
+                        ))}
                       </div>
 
-                      <div className="shv-order-totals-block">
-                        <div className="shv-order-final-paid">
-                          <span className="shv-paid-label">Total Amount Paid</span>
-                          <span className="shv-paid-val">
-                            ₹{order.pricing?.total || 3198}
-                          </span>
+                      {/* Order Footer & Destination */}
+                      <div className="shv-order-footer">
+                        <div className="shv-order-destination">
+                          <MapPin size={15} />
+                          <div>
+                            <span className="shv-dest-label">Delivery Destination:</span>
+                            <span className="shv-dest-addr">
+                              {addressLine || 'Address recorded'}
+                            </span>
+                          </div>
                         </div>
-                        <span className="shv-tax-inc">Inclusive of All GST &amp; Insurance</span>
+
+                        <div className="shv-order-totals-block">
+                          <div className="shv-order-final-paid">
+                            <span className="shv-paid-label">
+                              Total Amount {paymentStatus === 'paid' ? 'Paid' : 'Pending'}
+                            </span>
+                            <span className="shv-paid-val">
+                              ₹{Number(order.totalAmount || 0).toLocaleString('en-IN')}
+                            </span>
+                          </div>
+                          <span className="shv-tax-inc">Inclusive of All GST &amp; Insurance</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

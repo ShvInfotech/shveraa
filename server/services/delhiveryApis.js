@@ -95,3 +95,35 @@ export const TrackShipmentService = async (waybill) => {
   }
 }
 
+
+
+
+export const CancelShipmentService = async (waybill) => {
+  try {
+
+    const response = await fetch(`${delhiveryURL}api/p/edit`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Authorization": `Token ${process.env.DELHIVERY_AUTH_TOKEN}`,
+      },
+      body:JSON.stringify({
+        "waybill": waybill,
+        "cancellation": "true"
+      })
+    });
+
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Track Order Error:", error);
+    throw error;
+  }
+}
+
+
+
+
+

@@ -1,5 +1,5 @@
 import express from "express";
-import { RozerpayPaymentOrder, RozerpayPaymentVerifyPlaceOrder, GetMyOrders, PlaceCodeOrder, TrackOrder } from "../../../controllers/user/v1/order.controller.js";
+import { RozerpayPaymentOrder, RozerpayPaymentVerifyPlaceOrder, GetMyOrders, PlaceCodeOrder, TrackOrder, CancelShipment } from "../../../controllers/user/v1/order.controller.js";
 import { verifyjwtAccessToken } from "../../../middleware/jwtToken.js";
 const router = express.Router()
 
@@ -11,4 +11,5 @@ router.post('/cod-placeorder',verifyjwtAccessToken, PlaceCodeOrder)
 router.get('/my-orders', verifyjwtAccessToken, GetMyOrders)
 
 router.post('/track-order',TrackOrder)
+router.post('/cancel-order',verifyjwtAccessToken, CancelShipment)
 export default router

@@ -6,9 +6,10 @@ import { razorpay, razorpaySignature, } from "../../../config/razorpay.config.js
 import OrderNumberGanrate from 'generate-unique-id'
 import OrderModel from "../../../models/order.model.js";
 import addressModel from "../../../models/address.model.js";
-import { CreateShippingOrderService, PincodeServiceability, TrackShipmentService } from "../../../services/delhiveryApis.js";
+import { CancelShipmentService, CreateShippingOrderService, PincodeServiceability, TrackShipmentService } from "../../../services/delhiveryApis.js";
 import userModel from "../../../models/user.model.js";
 import { sendNotification, SendWahtsappMessage } from "../../../helper/helper.js";
+import { RazorpayRefundApi } from "../../../services/razorpayapi.js";
 
 
 
@@ -28,7 +29,7 @@ export const RozerpayPaymentOrder = async (req, res, next) => {
     }
 
     const data = await PincodeServiceability(address.pincode)
-  
+
     if (!data.delivery_codes || data.delivery_codes.length === 0) {
       return next(CustomeError(404, "Delivery Not  Available For The Given Pincode"))
     }
@@ -304,7 +305,7 @@ export const PlaceCodeOrder = async (req, res, next) => {
 
     const address = await addressModel.findById(addressId)
 
- const data = await PincodeServiceability(address.pincode)
+    const data = await PincodeServiceability(address.pincode)
     console.log("address Data", data)
     if (!data.delivery_codes || data.delivery_codes.length === 0) {
       return next(CustomeError(404, "Delivery Not  Available For The Given Pincode"))
@@ -447,7 +448,7 @@ export const PlaceCodeOrder = async (req, res, next) => {
     const admins = await userModel.find({ role: "admin" }).select("deviceToken");
     const tokens = admins.flatMap(admin => admin.deviceToken || []);
     sendNotification(tokens, "New Order Placed", `Order ${orderNumber} has been placed by ${req.user.name}.`);
-      SendWahtsappMessage(9714920969,"order is confrom")
+    SendWahtsappMessage(9714920969, "order is confrom")
     return res.status(200).json({ success: true, message: "Payment verified and order placed successfully", order: newOrder });
   } catch (error) {
     return next(error);
@@ -496,6 +497,63 @@ export const TrackOrder = async (req, res, next) => {
     return next(error);
   }
 };
+
+
+export const CancelShipment = async (req, res, next) => {
+  try {
+    const { waybill, orderId } = req.body || {};
+
+    if (!orderId) {
+      return next(CustomeError(422, "OrderId is Required"));
+    }
+
+    let order = await OrderModel.findOne(waybill ? { waybill, _id: orderId } : { _id: orderId });
+
+    if (!order) {
+      return next(CustomeError(404, "Order not found"));
+    }
+
+    if (!["pending", "accepted"].includes(order.status)) {
+      return next(CustomeError(400, "Order cannot be cancelled at this stage"));
+    }
+
+    const activeWaybill = waybill || order.waybill;
+    if (activeWaybill) {
+      try {
+        await CancelShipmentService(activeWaybill);
+      } catch (shipmentErr) {
+        console.warn("Delhivery cancel warning:", shipmentErr.message);
+      }
+    }
+
+    let updatedOrder;
+    if (order.payment?.method === "razorpay" && order.payment?.status === "paid") {
+      try {
+        const refundResult = await RazorpayRefundApi(order);
+        const refundData = {
+          method: "razorpay",
+          status: "pending",
+          refundId: refundResult?.id || "",
+        };
+        updatedOrder = await OrderModel.findByIdAndUpdate(order._id, { status: "cancelled", refundData }, { returnDocument: 'after' });
+      } catch (rfErr) {
+        console.warn("Razorpay refund error:", rfErr.message);
+        updatedOrder = await OrderModel.findByIdAndUpdate(order._id, { status: "cancelled" }, { returnDocument: 'after' });
+      }
+    } else {
+      updatedOrder = await OrderModel.findByIdAndUpdate(order._id, { status: "cancelled" }, { returnDocument: 'after' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Order Cancelled Successfully",
+      order: updatedOrder,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 
 
 

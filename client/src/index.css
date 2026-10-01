@@ -9395,6 +9395,48 @@ h4 { font-size: 1.15rem; }
   margin-top: 0.5rem;
 }
 
+.shv-return-modal-notice {
+  margin: 1.25rem 1.75rem 0.5rem;
+  padding: 0.85rem 1rem;
+  background: #FFF8EE;
+  border: 1px solid rgba(160, 126, 82, 0.25);
+  border-radius: 8px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.shv-return-modal-notice p {
+  margin: 0;
+  font-size: 0.84rem;
+  color: #5C4B37;
+  line-height: 1.45;
+}
+
+.shv-field-error {
+  display: block;
+  font-size: 0.75rem;
+  color: #DC2626;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.shv-order-action-link.return-btn {
+  color: #B45309;
+}
+
+.shv-order-action-link.return-btn:hover {
+  color: #92400E;
+}
+
+.shv-order-action-link.cancel-btn {
+  color: #DC2626;
+}
+
+.shv-order-action-link.cancel-btn:hover {
+  color: #B91C1C;
+}
+
 
 .shv-security-grid {
   display: grid;

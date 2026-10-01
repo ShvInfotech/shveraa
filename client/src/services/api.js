@@ -913,3 +913,15 @@ export const apiTrackOrder = async (waybill) => {
   if (!res.ok) throw new Error(data.message || 'Failed to fetch tracking data');
   return data; // { success, message, Scans, status }
 };
+
+// Cancel order API
+export const apiCancelOrder = async (orderId, waybill) => {
+  const res = await apiFetch('/api/v1/user/order/cancel-order', {
+    method: 'POST',
+    body: JSON.stringify({ orderId, waybill }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to cancel order');
+  return data;
+};
+

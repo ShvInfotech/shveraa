@@ -165,7 +165,7 @@ const Shop = () => {
         if (bestsellerOnly) params.bestseller = 'true';
 
         let data = await fetchProducts(params);
-
+       
         if (wishlistOnly) {
           const wishlistIds = new Set(wishlist.map((w) => w._id || w.slug));
           data = data.filter((p) => wishlistIds.has(p._id || p.slug));

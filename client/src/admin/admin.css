@@ -2421,3 +2421,133 @@
   font-weight: 600;
 }
 
+
+.shv-editor-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+
+.shv-field {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shv-field.full-width {
+  grid-column: 1 / -1;
+}
+
+.shv-field.half-width {
+  grid-column: span 1;
+}
+
+.shv-editor-field-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.shv-editor-field-hint,
+.shv-editor-field-description {
+  font-size: 0.78rem;
+  color: #64748b;
+  font-weight: 400;
+}
+
+.shv-editor-chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.shv-editor-custom-size-group {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  margin-top: 12px;
+  width: 100%;
+}
+
+.shv-editor-custom-size-group input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+
+.shv-size-add-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.shv-custom-chip {
+  border-color: #a07e52;
+  color: #a07e52;
+  background: #fdfbf7;
+}
+
+.shv-custom-chip svg:last-child {
+  margin-left: 2px;
+}
+
+.shv-color-dot {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  border: 1px solid #ccc;
+  border-radius: 50%;
+}
+
+.shv-editor-field-description {
+  display: block;
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.shv-editor-checkbox-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.shv-editor-checkbox-toggle > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+@media (max-width: 640px) {
+  .shv-editor-fields-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .shv-field.half-width,
+  .shv-field.full-width {
+    grid-column: 1 / -1;
+  }
+
+  .shv-editor-custom-size-group {
+    flex-direction: column;
+  }
+
+  .shv-editor-custom-size-group .shv-size-add-btn {
+    width: 100%;
+    min-height: 42px;
+  }
+}
+

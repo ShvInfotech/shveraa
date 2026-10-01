@@ -21,6 +21,7 @@ const deleteProductFields = async () => {
       {
         $unset: {
           price: "",
+          collection: "",
           badge: "",
           featured: "",
           bestseller: "",
@@ -30,6 +31,7 @@ const deleteProductFields = async () => {
           colors: "",
           sizes: "",
           makingCharges: "",
+          images:"",
           __v: ""
         }
       }
@@ -40,6 +42,7 @@ const deleteProductFields = async () => {
     const remaining = await productModel.collection.countDocuments({
       $or: [
         { price: { $exists: true } },
+        { collection: { $exists: true } },
         { badge: { $exists: true } },
         { featured: { $exists: true } },
         { bestseller: { $exists: true } },
@@ -49,6 +52,7 @@ const deleteProductFields = async () => {
         { colors: { $exists: true } },
         { sizes: { $exists: true } },
         { makingCharges: { $exists: true } },
+        { images: { $exists: true } },
         { __v: { $exists: true } }
       ]
     });

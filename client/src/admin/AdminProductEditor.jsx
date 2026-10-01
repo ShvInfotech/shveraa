@@ -758,140 +758,12 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
                 />
               </div>
 
-              {/* Sizes Available */}
-              <div className="shv-field full-width">
-                <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>Available Sizes &amp; Fit Options</span>
-                  <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 400 }}>
-                    Select preset chips or click "Add Size" below
-                  </span>
-                </label>
-                <div className="shv-editor-chips-wrap">
-                  {PRESET_SIZES.map((sz) => {
-                    const isSelected = sizes.includes(sz);
-                    return (
-                      <button
-                        key={sz}
-                        type="button"
-                        onClick={() => toggleSize(sz)}
-                        className={`shv-size-chip ${isSelected ? 'active' : ''}`}
-                      >
-                        {isSelected && <Check size={13} />}
-                        <span>{sz}</span>
-                      </button>
-                    );
-                  })}
-                  {sizes
-                    .filter((sz) => !PRESET_SIZES.includes(sz))
-                    .map((sz) => (
-                      <button
-                        key={sz}
-                        type="button"
-                        onClick={() => toggleSize(sz)}
-                        className="shv-size-chip active"
-                        style={{ borderColor: '#A07E52', color: '#A07E52', background: '#FDFBF7' }}
-                        title="Custom Size - Click to remove"
-                      >
-                        <Check size={13} />
-                        <span>{sz}</span>
-                        <X size={12} style={{ marginLeft: '4px' }} />
-                      </button>
-                    ))}
-                </div>
 
-                <div className="shv-editor-custom-size-group" style={{ marginTop: '0.75rem' }}>
-                  <input
-                    type="text"
-                    value={customSizeInput}
-                    onChange={(e) => setCustomSizeInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleAddCustomSize(e);
-                      }
-                    }}
-                    placeholder="Custom size (e.g. US 11, 2.4 Bangle, 18cm Bracelet, Free Size)"
-                  />
-                  <button type="button" onClick={handleAddCustomSize} className="shv-size-add-btn">
-                    <Plus size={14} />
-                    <span>Add Size</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Metal / Color Variations Available */}
-              <div className="shv-field full-width">
-                <label>Available Metal &amp; Color Variations</label>
-                <div className="shv-editor-chips-wrap">
-                  {JEWELRY_COLORS.map((col) => {
-                    const isSelected = colors.includes(col.name);
-                    return (
-                      <button
-                        key={col.id}
-                        type="button"
-                        onClick={() => toggleColor(col.name)}
-                        className={`shv-size-chip ${isSelected ? 'active' : ''}`}
-                      >
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            width: '14px',
-                            height: '14px',
-                            borderRadius: '50%',
-                            background: col.gradient || col.hex,
-                            border: `1px solid ${col.border || '#ccc'}`,
-                            marginRight: '6px',
-                            verticalAlign: 'middle',
-                          }}
-                        />
-                        {isSelected && <Check size={13} />}
-                        <span>{col.name}</span>
-                      </button>
-                    );
-                  })}
-                  {colors
-                    .filter((color) => !JEWELRY_COLORS.some((preset) => preset.name.toLowerCase() === color.toLowerCase()))
-                    .map((color) => (
-                      <button
-                        key={color}
-                        type="button"
-                        onClick={() => toggleColor(color)}
-                        className="shv-size-chip active"
-                        style={{ borderColor: '#A07E52', color: '#A07E52', background: '#FDFBF7' }}
-                        title="Custom metal/color variation - Click to remove"
-                      >
-                        <Check size={13} />
-                        <span>{color}</span>
-                        <X size={12} style={{ marginLeft: '4px' }} />
-                      </button>
-                    ))}
-                </div>
-                <div className="shv-editor-custom-size-group" style={{ marginTop: '0.75rem' }}>
-                  <input
-                    type="text"
-                    value={customColorInput}
-                    onChange={(e) => setCustomColorInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleAddCustomColor(e);
-                      }
-                    }}
-                    placeholder="Custom metal/color (e.g. Champagne Gold, Black Rhodium)"
-                  />
-                  <button type="button" onClick={handleAddCustomColor} className="shv-size-add-btn">
-                    <Plus size={14} />
-                    <span>Add Variation</span>
-                  </button>
-                </div>
-                <span style={{ fontSize: '0.76rem', color: '#64748B', marginTop: '4px', display: 'block' }}>
-                  Select preset finishes or add a custom variation. Each selection creates its own size, price, SKU, stock and photo variant.
-                </span>
-              </div>
             </div>
           </div>
 
           {/* SECTION 4: PRICING, MAKING CHARGES & INVENTORY */}
+
           <div className="shv-editor-card">
             <div className="shv-editor-card-header">
               <div className="shv-editor-card-icon">
@@ -899,19 +771,165 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
               </div>
               <div>
                 <h2 className="shv-editor-card-title">Commercials &amp; Inventory</h2>
-                <p className="shv-editor-card-subtitle">Selling prices, compare-at MRP and stock controls.</p>
+                <p className="shv-editor-card-subtitle">
+                  Selling prices, compare-at MRP and stock controls.
+                </p>
               </div>
             </div>
 
             <div className="shv-editor-fields-grid">
-              
+              <div className="shv-field full-width">
+                <label className="shv-editor-field-label">
+                  <span>Available Sizes &amp; Fit Options</span>
+                  <span className="shv-editor-field-hint">
+                    Select preset chips or add a custom size
+                  </span>
+                </label>
+
+                <div className="shv-editor-chips-wrap">
+                  {PRESET_SIZES.map((sz) => {
+                    const isSelected = sizes.includes(sz);
+
+                    return (
+                      <button
+                        key={sz}
+                        type="button"
+                        onClick={() => toggleSize(sz)}
+                        className={`shv-size-chip ${isSelected ? "active" : ""}`}
+                      >
+                        {isSelected && <Check size={13} />}
+                        <span>{sz}</span>
+                      </button>
+                    );
+                  })}
+
+                  {sizes
+                    .filter((sz) => !PRESET_SIZES.includes(sz))
+                    .map((sz) => (
+                      <button
+                        key={sz}
+                        type="button"
+                        onClick={() => toggleSize(sz)}
+                        className="shv-size-chip active shv-custom-chip"
+                        title="Custom Size - Click to remove"
+                      >
+                        <Check size={13} />
+                        <span>{sz}</span>
+                        <X size={12} />
+                      </button>
+                    ))}
+                </div>
+
+                <div className="shv-editor-custom-size-group">
+                  <input
+                    type="text"
+                    value={customSizeInput}
+                    onChange={(e) => setCustomSizeInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddCustomSize(e);
+                      }
+                    }}
+                    placeholder="e.g. US 11, 2.4 Bangle, 18cm Bracelet, Free Size"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddCustomSize}
+                    className="shv-size-add-btn"
+                  >
+                    <Plus size={14} />
+                    <span>Add Size</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="shv-field full-width">
+                <label>Available Metal &amp; Color Variations</label>
+
+                <div className="shv-editor-chips-wrap">
+                  {JEWELRY_COLORS.map((col) => {
+                    const isSelected = colors.includes(col.name);
+
+                    return (
+                      <button
+                        key={col.id}
+                        type="button"
+                        onClick={() => toggleColor(col.name)}
+                        className={`shv-size-chip ${isSelected ? "active" : ""}`}
+                      >
+                        <span
+                          className="shv-color-dot"
+                          style={{
+                            background: col.gradient || col.hex,
+                            borderColor: col.border || "#ccc",
+                          }}
+                        />
+                        {isSelected && <Check size={13} />}
+                        <span>{col.name}</span>
+                      </button>
+                    );
+                  })}
+
+                  {colors
+                    .filter(
+                      (color) =>
+                        !JEWELRY_COLORS.some(
+                          (preset) =>
+                            preset.name.toLowerCase() === color.toLowerCase()
+                        )
+                    )
+                    .map((color) => (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => toggleColor(color)}
+                        className="shv-size-chip active shv-custom-chip"
+                        title="Custom variation - Click to remove"
+                      >
+                        <Check size={13} />
+                        <span>{color}</span>
+                        <X size={12} />
+                      </button>
+                    ))}
+                </div>
+
+                <div className="shv-editor-custom-size-group">
+                  <input
+                    type="text"
+                    value={customColorInput}
+                    onChange={(e) => setCustomColorInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddCustomColor(e);
+                      }
+                    }}
+                    placeholder="e.g. Champagne Gold, Black Rhodium"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddCustomColor}
+                    className="shv-size-add-btn"
+                  >
+                    <Plus size={14} />
+                    <span>Add Variation</span>
+                  </button>
+                </div>
+
+                <span className="shv-editor-field-description">
+                  Each selection creates its own size, price, SKU, stock and photo variant.
+                </span>
+              </div>
 
               <div className="shv-field half-width">
                 <label>Compare-at MRP (₹)</label>
                 <input
                   type="number"
                   value={formData.originalPrice}
-                  onChange={(e) => setFormData({ ...formData, originalPrice: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, originalPrice: e.target.value })
+                  }
                   placeholder="4999"
                 />
                 {discountPercent && (
@@ -926,16 +944,24 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
                   <input
                     type="checkbox"
                     checked={formData.inStock}
-                    onChange={(e) => setFormData({ ...formData, inStock: e.target.checked })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, inStock: e.target.checked })
+                    }
                   />
                   <div>
-                    <span className="toggle-title">Piece Available for Purchase (In Stock)</span>
-                    <span className="toggle-desc">When disabled, customer sees 'Sold Out / Made to Order' badge.</span>
+                    <span className="toggle-title">
+                      Piece Available for Purchase (In Stock)
+                    </span>
+                    <span className="toggle-desc">
+                      When disabled, customer sees 'Sold Out / Made to Order' badge.
+                    </span>
                   </div>
                 </label>
               </div>
             </div>
           </div>
+          ```
+
 
           {/* SECTION 4A: PACKING DETAILS */}
           <div className="shv-editor-card">
@@ -1393,9 +1419,9 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
 
                 <div className="shv-preview-pricing">
                   <span className="shv-preview-price">
-                    ₹{Number(formData.price || 0).toLocaleString('en-IN')}
+                    ₹{Number(variants[activeVariantIdx]?.sizes[0]?.price || 0).toLocaleString('en-IN')}
                   </span>
-                  {formData.originalPrice && Number(formData.originalPrice) > Number(formData.price) && (
+                  {formData.originalPrice && Number(formData.originalPrice) > Number(variants[activeVariantIdx]?.sizes[0]?.price) && (
                     <span className="shv-preview-mrp">
                       ₹{Number(formData.originalPrice).toLocaleString('en-IN')}
                     </span>

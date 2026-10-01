@@ -226,7 +226,7 @@ const AdminProducts = ({ products, categories, searchQuery, onRefresh, onOpenEdi
                       <td>
                         <div>
                           <strong style={{ fontSize: '0.92rem' }}>
-                            ₹{Number(prod.price || 0).toLocaleString('en-IN')}
+                            ₹{Number(prod.variants[0].sizes[0].price || 0).toLocaleString('en-IN')}
                           </strong>
                           {prod.originalPrice > prod.price && (
                             <span

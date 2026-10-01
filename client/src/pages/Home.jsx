@@ -242,7 +242,7 @@ const Home = () => {
 
   // Trigger luxury promotional welcome popup on landing if not dismissed
   useEffect(() => {
-    const seen = sessionStorage.getItem('shveraa_welcome_popup_seen');
+    const seen = localStorage.getItem('shveraa_welcome_popup_seen');
     if (!seen) {
       const timer = setTimeout(() => {
         setShowPromoPopup(true);
@@ -253,7 +253,7 @@ const Home = () => {
 
   const handleClosePromoPopup = () => {
     setShowPromoPopup(false);
-    sessionStorage.setItem('shveraa_welcome_popup_seen', 'true');
+    localStorage.setItem('shveraa_welcome_popup_seen', 'true');
   };
 
   return (

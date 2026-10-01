@@ -170,7 +170,7 @@ export const OrderTrackingModal = ({ order, isOpen, onClose }) => {
               </div>
               <h4>Consignment Being Prepared</h4>
               <p>
-                Your order is currently being inspected and packaged in our Jaipur Atelier with hallmark verification.
+                Your order is currently being inspected and packaged in our Surat Atelier with hallmark verification.
                 The official Delhivery waybill and live telemetry updates will appear here automatically once the courier collects your shipment.
               </p>
               <div className="shv-track-carrier-badge">

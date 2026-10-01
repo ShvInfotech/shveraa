@@ -535,7 +535,7 @@ export const CancelShipment = async (req, res, next) => {
           status: "pending",
           refundId: refundResult?.id || "",
         };
-        updatedOrder = await OrderModel.findByIdAndUpdate(order._id, { status: "cancelled", refundData }, { returnDocument: 'after' });
+        updatedOrder = await OrderModel.findByIdAndUpdate(order._id, { status: "cancelled", payment: { ...order.payment, status: "refunded" }, refundData }, { returnDocument: 'after' });
       } catch (rfErr) {
         console.warn("Razorpay refund error:", rfErr.message);
         updatedOrder = await OrderModel.findByIdAndUpdate(order._id, { status: "cancelled" }, { returnDocument: 'after' });
@@ -553,6 +553,152 @@ export const CancelShipment = async (req, res, next) => {
     return next(error);
   }
 };
+
+
+export const ReturnShipment = async (req, res, next) => {
+  try {
+
+    const { orderId, accountDetails, reason } = req.body || {};
+
+    if (!orderId) {
+      return next(CustomeError(422, "OrderId is Required"));
+    }
+
+    let order = await OrderModel.findById(orderId);
+
+    if (!order) {
+      return next(CustomeError(404, "Order not found"));
+    }
+
+    if (order.status !== "delivered") {
+      return next(CustomeError(400, "Return shipment can only be requested for delivered orders"));
+    }
+
+
+
+    const completeAt = new Date(order.completeAt);
+
+    const currentDate = new Date();
+
+    const daysPassed = Math.floor(
+      (currentDate - completeAt) / (1000 * 60 * 60 * 24)
+    );
+
+    if (daysPassed >= 7) {
+      return next(CustomeError(400, "Return period has expired. Returns are allowed only within 7 days of delivery"));
+    }
+
+
+    if (order.payment?.method === "cod") {
+      if (!accountDetails || !accountDetails.accountNumber || !accountDetails.ifscCode || !accountDetails.accountHolderName || !accountDetails.accountType) {
+        return next(CustomeError(422, "Bank account details are required for COD order return"));
+      }
+    }
+
+
+    const productIDs = order.items.map((item) => item.productId);
+    const products = await productModel.find({ _id: { $in: productIDs } });
+
+
+
+
+    const quantity = order.items.reduce((acc, item) => acc + item.quantity, 0);
+    const totalAmount = order.totalAmount;
+    let weigth = 0
+    const width = 23;
+    const height = 23;
+    products.forEach((product) => {
+      weigth += (product.packing.weight || 0) * order.items.find((item) => item.productId.toString() === product._id.toString()).quantity;
+    })
+
+
+
+
+
+
+    const delhiveryPayload = {
+      shipments: [
+        {
+          name: req.user.name,
+
+          // Customer address: parcel pickup location
+          add: order.address.addressline,
+          pin: String(order.address.pincode),
+          city: order.address.city,
+          state: order.address.state,
+          country: "India",
+          phone: order.address.phone || req.user.phone,
+
+          order: `RETURN-${order.orderNumber}`,
+          payment_mode: "Pickup",
+
+          // Seller / return destination address
+          return_name: process.env.SELLER_NAME,
+          return_add: process.env.SELLER_ADDRESS,
+          return_pin: process.env.SELLER_PIN,
+          return_city: process.env.SELLER_CITY,
+          return_state: process.env.SELLER_STATE,
+          return_country: "India",
+          return_phone: process.env.SELLER_PHONE,
+
+          products_desc: "",
+          quantity: quantity,
+          total_amount: totalAmount,
+
+          weight: weigth * 1000,
+          shipment_width: width,
+          shipment_height: height,
+          shipping_mode: "Surface",
+          waybill: ""
+        }
+      ],
+
+      pickup_location: {
+        name: process.env.DELHIVERY_PICKUP_LOCATION
+      }
+    };
+
+
+    const result = await CreateShippingOrderService(delhiveryPayload)
+    let waybill = ""
+    if (result.success && result.packages && result.packages.length > 0) {
+      waybill = result.packages[0].waybill;
+    } else {
+      return next(CustomeError(500, "Failed to create shipping order with Delhivery"));
+    }
+    const returnData = {
+      waybill: waybill,
+      status: "pending",
+      reason: reason || "No reason provided"
+    }
+
+    if (order.payment?.method === "razorpay" && order.payment?.status === "paid") {
+
+      const refundResult = await RazorpayRefundApi(order);
+
+      const refundData = {
+        method: "razorpay",
+        status: "pending",
+        refundId: refundResult?.id || "",
+      };
+      order = await OrderModel.findByIdAndUpdate(order._id, { type: "return", status: "cancelled", payment: { ...order.payment, status: "refunded" }, returnData, refundData }, { returnDocument: 'after' });
+    } else {
+      const refundData = {
+        method: "cod",
+        status: "pending",
+        refundId: "",
+        accountDetails: accountDetails || {}
+      };
+      order = await OrderModel.findByIdAndUpdate(order._id, { type: "return", status: "cancelled", payment: { ...order.payment, status: "refunded" }, returnData, refundData }, { returnDocument: 'after' });
+    }
+
+
+
+    return res.status(200).json({ success: true, message: "Return shipment request created successfully" });
+  } catch (error) {
+    return next(error);
+  }
+}
 
 
 

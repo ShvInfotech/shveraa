@@ -118,8 +118,9 @@ const orderSchema = new mongoose.Schema(
 
     returnData: {
       type: {
-        waybill: String,
-        status: String,
+        waybill: {type:String},
+        status:{ type:String},
+        reason: {type: String},
       },
       default: null,
     },
@@ -140,11 +141,13 @@ const orderSchema = new mongoose.Schema(
           type: String,
           default: ""
         },
+        
         accountDetails: {
           type: {
-            name: { type: String},
-            accountNumber: { type: String},
-            ifscode: { type: String,}
+            accountHolderName: { type: String },
+            accountNumber: { type: String },
+            ifscCode: { type: String, },
+            accountType: { type: String, enum: ["savings", "current"] }
           },
           default: null
         }

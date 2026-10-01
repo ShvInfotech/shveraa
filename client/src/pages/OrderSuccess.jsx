@@ -239,7 +239,7 @@ const OrderSuccess = () => {
               <div className="shv-step-content">
                 <h4>Artisan Inspection</h4>
                 <p>Hand hallmarking &amp; ultrasonic polish</p>
-                <span className="shv-step-time">Jaipur Atelier</span>
+                <span className="shv-step-time">Surat Atelier</span>
               </div>
             </div>
 

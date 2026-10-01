@@ -330,20 +330,7 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery }) => {
                         </div>
                       </td>
                       <td>
-                        <select
-                          value={ord.status || 'pending'}
-                          onChange={(e) => onUpdateStatus(ord._id || orderRef, e.target.value)}
-                          className={`shv-status-pill ${getStatusBadgeClass(ord.status)}`}
-                          style={{ border: 'none', outline: 'none', cursor: 'pointer', fontFamily: 'inherit', textTransform: 'capitalize' }}
-                        >
-                          <option value="pending">Pending</option>
-                          <option value="accepted">Accepted</option>
-                          <option value="processing">Processing</option>
-                          <option value="shipped">Shipped</option>
-                          <option value="out_for_delivery">Out for Delivery</option>
-                          <option value="delivered">Delivered</option>
-                          <option value="cancelled">Cancelled</option>
-                        </select>
+                          <p className={`shv-status-pill ${getStatusBadgeClass(ord.status)}`}>{ord.status || 'pending'}</p>
                       </td>
                       <td>
                         <button

@@ -120,7 +120,7 @@ const SEED_REVIEWS = [
   {
     id: 'rev-4',
     name: 'Pooja Varma',
-    city: 'Jaipur',
+    city: 'Surat',
     rating: 4,
     date: 'Jul 29, 2026',
     verified: true,
@@ -1084,7 +1084,7 @@ const ProductDetail = () => {
                   <div className="shv-pdp-accordion-body">
                     <div className="shv-pdp-shipping-text">
                       <p>
-                        Free delivery across india on all orders. Shipping within Delhi/NCR will take 2-3 working days. To find out more, refer to our{' '}
+                        Free delivery across india on all orders. Shipping within Surat will take 2-3 working days. To find out more, refer to our{' '}
                         <Link to="/shipping" className="shv-pdp-inline-link">
                           Shipping Policy
                         </Link>

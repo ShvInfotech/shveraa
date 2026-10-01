@@ -9,7 +9,60 @@ import dbconnection from './config/db.js'
 import indexRoutes from './routes/index.routes.js'
 import { GlobelErrorHandaling } from './middleware/globelError.js';
 import { ResetPasswordpage } from './controllers/user/v1/user.controller.js';
+import productModel from './models/product.model.js';
 
+
+
+const deleteProductFields = async () => {
+  try {
+
+    const result = await productModel.collection.updateMany(
+      {},
+      {
+        $unset: {
+          price: "",
+          badge: "",
+          featured: "",
+          bestseller: "",
+          stockCount: "",
+          rating: "",
+          reviewsCount: "",
+          colors: "",
+          sizes: "",
+          makingCharges: "",
+          __v: ""
+        }
+      }
+    );
+
+    console.log("Update result:", result);
+
+    const remaining = await productModel.collection.countDocuments({
+      $or: [
+        { price: { $exists: true } },
+        { badge: { $exists: true } },
+        { featured: { $exists: true } },
+        { bestseller: { $exists: true } },
+        { stockCount: { $exists: true } },
+        { rating: { $exists: true } },
+        { reviewsCount: { $exists: true } },
+        { colors: { $exists: true } },
+        { sizes: { $exists: true } },
+        { makingCharges: { $exists: true } },
+        { __v: { $exists: true } }
+      ]
+    });
+
+    console.log("Remaining:", remaining);
+  } catch (error) {
+    console.error("Cleanup failed:", error);
+    process.exitCode = 1;
+  } finally {
+   
+  }
+};
+
+deleteProductFields();
 const app = express();
 const PORT = process.env.PORT || 5000;
 const HOST = process.env.HOST || 'localhost'

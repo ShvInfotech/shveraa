@@ -45,6 +45,7 @@ import {
   apiGetMyOrders,
   apiCancelOrder,
   getImageUrl,
+  apiReturnOrderRequest,
 } from '../services/api';
 import OrderTrackingModal from '../components/OrderTrackingModal';
 
@@ -81,9 +82,9 @@ const Account = () => {
     accountNumber: '',
     confirmAccountNumber: '',
     ifscCode: '',
-    accountType: 'Savings',
+    accountType: 'savings',
     reason: 'Defective / Damaged Item',
-    comments: '',
+
   });
   const [codBankErrors, setCodBankErrors] = useState({});
   const [submittingReturn, setSubmittingReturn] = useState(false);
@@ -122,109 +123,130 @@ const Account = () => {
       return;
     }
 
-    const isCod = (order.payment?.method || '').toLowerCase() === 'cod';
-    const orderRef = order.orderNumber || order._id || 'ORD';
-
-    if (isCod) {
-      // For COD orders, open the return bank details form
-      setReturnModalOrder(order);
-      setCodBankForm({
-        accountHolderName: user?.name || '',
-        bankName: '',
-        accountNumber: '',
-        confirmAccountNumber: '',
-        ifscCode: '',
-        accountType: 'Savings',
-        reason: 'Defective / Damaged Item',
-        comments: '',
-      });
-      setCodBankErrors({});
-      setShowReturnModal(true);
-    } else {
-      // For non-COD (prepaid/razorpay) orders
-      const confirmPrepaid = window.confirm(
-        `Initiate Return for Order #${orderRef}?\n\nSince this order was paid online, the refund will be credited directly to your original payment source upon return verification.`
-      );
-      if (confirmPrepaid) {
-        console.log('=== Prepaid Order Return Request ===');
-        console.log({
-          orderId: order._id,
-          orderNumber: orderRef,
-          totalAmount: order.totalAmount,
-          paymentMethod: order.payment?.method || 'prepaid',
-          type: 'Prepaid Return Request',
-          submittedAt: new Date().toISOString(),
-        });
-        showOrderMsg(`Return request for #${orderRef} initiated successfully.`);
-      }
-    }
+    setReturnModalOrder(order);
+    setCodBankForm({
+      accountHolderName: user?.name || '',
+      bankName: '',
+      accountNumber: '',
+      confirmAccountNumber: '',
+      ifscCode: '',
+      accountType: 'Savings',
+      reason: 'Defective / Damaged Item',
+    });
+    setCodBankErrors({});
+    setShowReturnModal(true);
   };
 
-  // COD Bank Details Form Submit
-  const handleCodBankSubmit = (e) => {
+  // Return Form Submit (Handles both COD and Prepaid / Online orders)
+  const handleReturnSubmit = async (e) => {
     e.preventDefault();
-    const errors = {};
+    if (!returnModalOrder) return;
 
-    const accName = codBankForm.accountHolderName.trim();
-    const bank = codBankForm.bankName.trim();
-    const accNum = codBankForm.accountNumber.trim();
-    const confAccNum = codBankForm.confirmAccountNumber.trim();
-    const ifsc = codBankForm.ifscCode.trim().toUpperCase();
+    const isCod = (returnModalOrder.payment?.method || '').toLowerCase() === 'cod';
+    let submissionData = null;
 
-    if (!accName) {
-      errors.accountHolderName = 'Account holder name is required';
-    }
-    if (!bank) {
-      errors.bankName = 'Bank name is required';
-    }
-    if (!accNum) {
-      errors.accountNumber = 'Account number is required';
-    } else if (!/^\d{8,20}$/.test(accNum)) {
-      errors.accountNumber = 'Enter a valid bank account number (8–20 digits)';
-    }
-    if (!confAccNum) {
-      errors.confirmAccountNumber = 'Please confirm your account number';
-    } else if (confAccNum !== accNum) {
-      errors.confirmAccountNumber = 'Account numbers do not match';
-    }
-    if (!ifsc) {
-      errors.ifscCode = 'IFSC code is required';
-    } else if (!/^[A-Z]{4}0[A-Z0-9]{6}$/i.test(ifsc)) {
-      errors.ifscCode = 'Invalid IFSC format (e.g., SBIN0001234)';
-    }
+    if (isCod) {
+      const errors = {};
+      const accName = codBankForm.accountHolderName.trim();
+      const bank = codBankForm.bankName.trim();
+      const accNum = codBankForm.accountNumber.trim();
+      const confAccNum = codBankForm.confirmAccountNumber.trim();
+      const ifsc = codBankForm.ifscCode.trim().toUpperCase();
 
-    if (Object.keys(errors).length > 0) {
-      setCodBankErrors(errors);
-      return;
+      if (!accName) {
+        errors.accountHolderName = 'Account holder name is required';
+      }
+      if (!bank) {
+        errors.bankName = 'Bank name is required';
+      }
+      if (!accNum) {
+        errors.accountNumber = 'Account number is required';
+      } else if (!/^\d{8,20}$/.test(accNum)) {
+        errors.accountNumber = 'Enter a valid bank account number (8–20 digits)';
+      }
+      if (!confAccNum) {
+        errors.confirmAccountNumber = 'Please confirm your account number';
+      } else if (confAccNum !== accNum) {
+        errors.confirmAccountNumber = 'Account numbers do not match';
+      }
+      if (!ifsc) {
+        errors.ifscCode = 'IFSC code is required';
+      } else if (!/^[A-Z]{4}0[A-Z0-9]{6}$/i.test(ifsc)) {
+        errors.ifscCode = 'Invalid IFSC format (e.g., SBIN0001234)';
+      }
+
+      if (Object.keys(errors).length > 0) {
+        setCodBankErrors(errors);
+        return;
+      }
+
+      submissionData = {
+        orderId: returnModalOrder?._id,
+        accountDetails: {
+          accountHolderName: accName,
+          bankName: bank,
+          accountNumber: accNum,
+          confirmAccountNumber: confAccNum,
+          ifscCode: ifsc,
+          accountType: codBankForm.accountType,
+        },
+        reason: codBankForm.reason,
+      };
+    } else {
+      // Non-COD / Prepaid / Online orders: only reason is required, no bank details
+      submissionData = {
+        orderId: returnModalOrder?._id,
+        reason: codBankForm.reason,
+      };
     }
 
     setSubmittingReturn(true);
 
-    const submissionData = {
-      orderId: returnModalOrder?._id,
-      orderNumber: returnModalOrder?.orderNumber || returnModalOrder?._id,
-      totalAmount: returnModalOrder?.totalAmount,
-      paymentMethod: 'cod',
-      bankDetails: {
-        accountHolderName: accName,
-        bankName: bank,
-        accountNumber: accNum,
-        confirmAccountNumber: confAccNum,
-        ifscCode: ifsc,
-        accountType: codBankForm.accountType,
-      },
-      reason: codBankForm.reason,
-      comments: codBankForm.comments.trim(),
-      submittedAt: new Date().toISOString(),
-    };
+    try {
+      const result = await apiReturnOrderRequest(submissionData);
+      console.log('=== Return Order Response ===', result);
 
-    // User requirement: submit karta console ma data print karav
-    console.log('=== COD Return Request & Bank Details Submitted ===');
-    console.log(submissionData);
+      if (result && result.success !== false) {
+        showOrderMsg(result.message || 'Return shipment request created successfully');
+        setShowReturnModal(false);
 
-    setSubmittingReturn(false);
-    setShowReturnModal(false);
-    showOrderMsg(`Return request and bank details for #${submissionData.orderNumber} submitted successfully!`);
+        // Optimistically update order in local state so UI updates immediately
+        setOrders((prev) =>
+          prev.map((ord) =>
+            ord._id === returnModalOrder._id
+              ? {
+                  ...ord,
+                  type: 'return',
+                  status: 'cancelled',
+                  returnData: {
+                    status: 'pending',
+                    reason: codBankForm.reason,
+                    ...(result.waybill ? { waybill: result.waybill } : {}),
+                  },
+                }
+              : ord
+          )
+        );
+
+        // Fetch fresh order list from server
+        try {
+          const freshData = await apiGetMyOrders();
+          if (freshData?.orders) {
+            setOrders(freshData.orders);
+          }
+        } catch (fetchErr) {
+          console.error('Failed to reload orders:', fetchErr);
+        }
+      } else {
+        // If response comes with success: false
+        showOrderMsg(result?.message || 'Failed to submit return request');
+      }
+    } catch (err) {
+      console.error('Return order error:', err);
+      showOrderMsg(err.message || 'Failed to submit return request');
+    } finally {
+      setSubmittingReturn(false);
+    }
   };
 
 
@@ -583,7 +605,8 @@ const Account = () => {
                   const placedDate = order.createdAt
                     ? new Date(order.createdAt).toLocaleDateString('en-GB')
                     : '—';
-                  const isDelivered = order.status?.toLowerCase() === 'delivered';
+                  const isReturned = order.type === 'return' || !!order.returnData;
+                  const isDelivered = (order.status || '').toLowerCase() === 'delivered';
                   const addrObj = order.address || {};
                   const addressLine = [
                     addrObj.addressline || addrObj.street,
@@ -623,11 +646,11 @@ const Account = () => {
                         <div className="shv-order-header-right">
                           <span
                             className={`shv-order-status-badge ${
-                              isDelivered ? 'delivered' : 'in-transit'
+                              isReturned ? 'returned' : isDelivered ? 'delivered' : 'in-transit'
                             }`}
                           >
                             <span className="shv-status-dot" />
-                            {order.status || 'pending'}
+                            {isReturned ? 'Return Requested' : (order.status || 'pending')}
                           </span>
                         </div>
                       </div>
@@ -639,7 +662,9 @@ const Account = () => {
                           <div>
                             <strong>BlueDart Air Express (Insured)</strong>
                             <span>
-                              {order.waybill
+                              {order.returnData?.waybill
+                                ? `Return Waybill: ${order.returnData.waybill}`
+                                : order.waybill
                                 ? `Waybill: ${order.waybill}`
                                 : 'Awaiting pickup'}{' '}
                               • Est. Delivery: 2–4 Business Days
@@ -647,37 +672,44 @@ const Account = () => {
                           </div>
                         </div>
                         <div className="shv-tracking-actions">
-                          <button
-                            type="button"
-                            onClick={() => handleDownloadInvoice(order)}
-                            disabled={generatingInvoiceId === orderRef}
-                            className="shv-order-action-link"
-                            title="Download certified official Tax Invoice PDF"
-                          >
-                            {generatingInvoiceId === orderRef ? (
-                              <>
-                                <RefreshCw size={14} className="shv-spin-icon" style={{ margin: 0 }} />
-                                <span>Generating...</span>
-                              </>
-                            ) : (
-                              <>
-                                <Printer size={14} />
-                                <span>Print Invoice</span>
-                              </>
-                            )}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleOpenTrackingModal(order)}
-                            className="shv-order-action-link"
-                            title="Live Track Consignment Telemetry"
-                          >
-                            <Truck size={14} />
-                            <span>Live Track</span>
-                          </button>
+                          {/* Print Invoice - Only show when order is delivered or returned */}
+                          {(isDelivered || isReturned) && (
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadInvoice(order)}
+                              disabled={generatingInvoiceId === orderRef}
+                              className="shv-order-action-link"
+                              title="Download certified official Tax Invoice PDF"
+                            >
+                              {generatingInvoiceId === orderRef ? (
+                                <>
+                                  <RefreshCw size={14} className="shv-spin-icon" style={{ margin: 0 }} />
+                                  <span>Generating...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Printer size={14} />
+                                  <span>Print Invoice</span>
+                                </>
+                              )}
+                            </button>
+                          )}
 
-                          {/* Cancel Button - Only visible when order status is pending or accepted */}
-                          {['pending', 'accepted', 'accept'].includes((order.status || '').toLowerCase()) && (
+                          {/* Live Track - Only show for active in-transit orders (not delivered, cancelled, returned) */}
+                          {!isDelivered && !isReturned && !['cancelled', 'delivered'].includes((order.status || '').toLowerCase()) && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenTrackingModal(order)}
+                              className="shv-order-action-link"
+                              title="Live Track Consignment Telemetry"
+                            >
+                              <Truck size={14} />
+                              <span>Live Track</span>
+                            </button>
+                          )}
+
+                          {/* Cancel Button - Only visible when order status is pending or accepted and not returned */}
+                          {!isReturned && ['pending', 'accepted', 'accept'].includes((order.status || '').toLowerCase()) && (
                             <button
                               type="button"
                               onClick={() => handleCancelOrder(order)}
@@ -699,8 +731,8 @@ const Account = () => {
                             </button>
                           )}
 
-                          {/* Return Button - Only visible when order status is delivered */}
-                          {(order.status || '').toLowerCase() === 'delivered' && (
+                          {/* Return Button - Only visible when order status is delivered and return not requested yet */}
+                          {isDelivered && !isReturned && (
                             <button
                               type="button"
                               onClick={() => handleReturnClick(order)}
@@ -710,6 +742,26 @@ const Account = () => {
                               <RotateCcw size={14} />
                               <span>Return</span>
                             </button>
+                          )}
+
+                          {/* Return Requested Indicator */}
+                          {isReturned && (
+                            <span
+                              className="shv-order-action-link"
+                              style={{
+                                cursor: 'default',
+                                color: '#1E40AF',
+                                background: '#EFF6FF',
+                                padding: '4px 10px',
+                                borderRadius: '4px',
+                                border: '1px solid #BFDBFE',
+                                fontWeight: 600,
+                              }}
+                              title="Return request submitted"
+                            >
+                              <RotateCcw size={14} />
+                              <span>Return Requested</span>
+                            </span>
                           )}
                         </div>
                       </div>
@@ -1005,204 +1057,199 @@ const Account = () => {
           }}
         />
 
-        {/* COD Return & Bank Details Modal */}
-        {showReturnModal && returnModalOrder && (
-          <div className="shv-modal-overlay" onClick={() => setShowReturnModal(false)}>
-            <div
-              className="shv-modal-card shv-return-modal"
-              onClick={(e) => e.stopPropagation()}
-              style={{ maxWidth: '640px' }}
-            >
-              <div className="shv-modal-header">
-                <div>
-                  <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <RotateCcw size={20} color="#A07E52" />
-                    <span>Return Request &amp; Bank Details</span>
-                  </h3>
-                  <span style={{ fontSize: '0.82rem', color: '#72685E' }}>
-                    Order Ref: #{returnModalOrder.orderNumber || returnModalOrder._id} • ₹
-                    {Number(returnModalOrder.totalAmount || 0).toLocaleString('en-IN')}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  className="shv-modal-close-btn"
-                  onClick={() => setShowReturnModal(false)}
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="shv-return-modal-notice">
-                <AlertCircle size={18} color="#A07E52" style={{ flexShrink: 0, marginTop: '2px' }} />
-                <p>
-                  Since this was a <strong>Cash on Delivery (COD)</strong> order, please enter your bank account details below. Your refund of <strong>₹{Number(returnModalOrder.totalAmount || 0).toLocaleString('en-IN')}</strong> will be safely transferred via NEFT/IMPS after the returned items are inspected.
-                </p>
-              </div>
-
-              <form onSubmit={handleCodBankSubmit} className="shv-addr-modal-form" style={{ paddingTop: '0.5rem' }}>
-                <div className="shv-form-row">
-                  <div className="shv-input-group">
-                    <label>Account Holder Name *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Name as registered with bank"
-                      value={codBankForm.accountHolderName}
-                      onChange={(e) => {
-                        setCodBankForm({ ...codBankForm, accountHolderName: e.target.value });
-                        if (codBankErrors.accountHolderName) setCodBankErrors({ ...codBankErrors, accountHolderName: '' });
-                      }}
-                    />
-                    {codBankErrors.accountHolderName && (
-                      <span className="shv-field-error">{codBankErrors.accountHolderName}</span>
-                    )}
+        {/* Return & Bank Details Modal */}
+        {showReturnModal && returnModalOrder && (() => {
+          const isCod = (returnModalOrder.payment?.method || '').toLowerCase() === 'cod';
+          return (
+            <div className="shv-modal-overlay" onClick={() => setShowReturnModal(false)}>
+              <div
+                className="shv-modal-card shv-return-modal"
+                onClick={(e) => e.stopPropagation()}
+                style={{ maxWidth: '640px' }}
+              >
+                <div className="shv-modal-header">
+                  <div>
+                    <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <RotateCcw size={20} color="#A07E52" />
+                      <span>{isCod ? 'Return Request & Bank Details' : 'Return Request'}</span>
+                    </h3>
+                    <span style={{ fontSize: '0.82rem', color: '#72685E' }}>
+                      Order Ref: #{returnModalOrder.orderNumber || returnModalOrder._id} • ₹
+                      {Number(returnModalOrder.totalAmount || 0).toLocaleString('en-IN')}
+                      {' '}({isCod ? 'Cash on Delivery' : 'Online Paid'})
+                    </span>
                   </div>
-
-                  <div className="shv-input-group">
-                    <label>Bank Name *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. HDFC Bank, SBI, ICICI"
-                      value={codBankForm.bankName}
-                      onChange={(e) => {
-                        setCodBankForm({ ...codBankForm, bankName: e.target.value });
-                        if (codBankErrors.bankName) setCodBankErrors({ ...codBankErrors, bankName: '' });
-                      }}
-                    />
-                    {codBankErrors.bankName && (
-                      <span className="shv-field-error">{codBankErrors.bankName}</span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="shv-form-row">
-                  <div className="shv-input-group">
-                    <label>Account Number *</label>
-                    <input
-                      type="password"
-                      required
-                      placeholder="Enter bank account number"
-                      value={codBankForm.accountNumber}
-                      onChange={(e) => {
-                        setCodBankForm({ ...codBankForm, accountNumber: e.target.value });
-                        if (codBankErrors.accountNumber) setCodBankErrors({ ...codBankErrors, accountNumber: '' });
-                      }}
-                    />
-                    {codBankErrors.accountNumber && (
-                      <span className="shv-field-error">{codBankErrors.accountNumber}</span>
-                    )}
-                  </div>
-
-                  <div className="shv-input-group">
-                    <label>Confirm Account Number *</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Re-enter bank account number"
-                      value={codBankForm.confirmAccountNumber}
-                      onChange={(e) => {
-                        setCodBankForm({ ...codBankForm, confirmAccountNumber: e.target.value });
-                        if (codBankErrors.confirmAccountNumber) setCodBankErrors({ ...codBankErrors, confirmAccountNumber: '' });
-                      }}
-                    />
-                    {codBankErrors.confirmAccountNumber && (
-                      <span className="shv-field-error">{codBankErrors.confirmAccountNumber}</span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="shv-form-row">
-                  <div className="shv-input-group">
-                    <label>IFSC Code *</label>
-                    <input
-                      type="text"
-                      required
-                      maxLength={11}
-                      placeholder="e.g. HDFC0001234"
-                      value={codBankForm.ifscCode}
-                      style={{ textTransform: 'uppercase' }}
-                      onChange={(e) => {
-                        setCodBankForm({ ...codBankForm, ifscCode: e.target.value.toUpperCase() });
-                        if (codBankErrors.ifscCode) setCodBankErrors({ ...codBankErrors, ifscCode: '' });
-                      }}
-                    />
-                    {codBankErrors.ifscCode && (
-                      <span className="shv-field-error">{codBankErrors.ifscCode}</span>
-                    )}
-                  </div>
-
-                  <div className="shv-input-group">
-                    <label>Account Type *</label>
-                    <select
-                      value={codBankForm.accountType}
-                      onChange={(e) => setCodBankForm({ ...codBankForm, accountType: e.target.value })}
-                    >
-                      <option value="Savings">Savings Account</option>
-                      <option value="Current">Current Account</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="shv-input-group">
-                  <label>Reason for Return *</label>
-                  <select
-                    value={codBankForm.reason}
-                    onChange={(e) => setCodBankForm({ ...codBankForm, reason: e.target.value })}
-                  >
-                    <option value="Defective / Damaged Item">Defective or Damaged Item</option>
-                    <option value="Incorrect Size / Fit">Incorrect Size / Fit</option>
-                    <option value="Quality not as expected">Silver Quality / Finishing Not as Expected</option>
-                    <option value="Received Wrong Item">Received Wrong Item</option>
-                    <option value="Changed Mind">Changed Mind</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-
-                <div className="shv-input-group">
-                  <label>Additional Notes / Feedback (Optional)</label>
-                  <textarea
-                    rows={2}
-                    placeholder="Provide any additional details for our team..."
-                    value={codBankForm.comments}
-                    onChange={(e) => setCodBankForm({ ...codBankForm, comments: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '10px 13px',
-                      border: '1.5px solid rgba(160, 126, 82, 0.28)',
-                      borderRadius: '8px',
-                      fontSize: '0.9rem',
-                      color: '#1F1B17',
-                      background: '#FDFAF6',
-                      fontFamily: 'inherit',
-                      resize: 'vertical',
-                      outline: 'none',
-                    }}
-                  />
-                </div>
-
-                <div className="shv-modal-footer">
                   <button
                     type="button"
-                    className="btn btn-outline btn-sm"
+                    className="shv-modal-close-btn"
                     onClick={() => setShowReturnModal(false)}
                   >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn btn-primary btn-sm"
-                    disabled={submittingReturn}
-                    style={{ minWidth: '150px' }}
-                  >
-                    {submittingReturn ? 'Submitting…' : 'Submit Return'}
+                    ✕
                   </button>
                 </div>
-              </form>
+
+                {isCod ? (
+                  <div className="shv-return-modal-notice">
+                    <AlertCircle size={18} color="#A07E52" style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <p>
+                      Since this was a <strong>Cash on Delivery (COD)</strong> order, please enter your bank account details below. Your refund of <strong>₹{Number(returnModalOrder.totalAmount || 0).toLocaleString('en-IN')}</strong> will be safely transferred via NEFT/IMPS after the returned items are inspected.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="shv-return-modal-notice" style={{ background: '#F5FAF7', borderColor: '#2E7D32' }}>
+                    <CheckCircle2 size={18} color="#2E7D32" style={{ flexShrink: 0, marginTop: '2px' }} />
+                    <p style={{ color: '#1B5E20' }}>
+                      Since this order was paid online, no bank details are required. Your refund of <strong>₹{Number(returnModalOrder.totalAmount || 0).toLocaleString('en-IN')}</strong> will be credited directly to your original payment source (UPI/Card/NetBanking) after the returned items are inspected.
+                    </p>
+                  </div>
+                )}
+
+                <form onSubmit={handleReturnSubmit} className="shv-addr-modal-form" style={{ paddingTop: '0.5rem' }}>
+                  {isCod && (
+                    <>
+                      <div className="shv-form-row">
+                        <div className="shv-input-group">
+                          <label>Account Holder Name *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="Name as registered with bank"
+                            value={codBankForm.accountHolderName}
+                            onChange={(e) => {
+                              setCodBankForm({ ...codBankForm, accountHolderName: e.target.value });
+                              if (codBankErrors.accountHolderName) setCodBankErrors({ ...codBankErrors, accountHolderName: '' });
+                            }}
+                          />
+                          {codBankErrors.accountHolderName && (
+                            <span className="shv-field-error">{codBankErrors.accountHolderName}</span>
+                          )}
+                        </div>
+
+                        <div className="shv-input-group">
+                          <label>Bank Name *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. HDFC Bank, SBI, ICICI"
+                            value={codBankForm.bankName}
+                            onChange={(e) => {
+                              setCodBankForm({ ...codBankForm, bankName: e.target.value });
+                              if (codBankErrors.bankName) setCodBankErrors({ ...codBankErrors, bankName: '' });
+                            }}
+                          />
+                          {codBankErrors.bankName && (
+                            <span className="shv-field-error">{codBankErrors.bankName}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="shv-form-row">
+                        <div className="shv-input-group">
+                          <label>Account Number *</label>
+                          <input
+                            type="password"
+                            required
+                            placeholder="Enter bank account number"
+                            value={codBankForm.accountNumber}
+                            onChange={(e) => {
+                              setCodBankForm({ ...codBankForm, accountNumber: e.target.value });
+                              if (codBankErrors.accountNumber) setCodBankErrors({ ...codBankErrors, accountNumber: '' });
+                            }}
+                          />
+                          {codBankErrors.accountNumber && (
+                            <span className="shv-field-error">{codBankErrors.accountNumber}</span>
+                          )}
+                        </div>
+
+                        <div className="shv-input-group">
+                          <label>Confirm Account Number *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="Re-enter bank account number"
+                            value={codBankForm.confirmAccountNumber}
+                            onChange={(e) => {
+                              setCodBankForm({ ...codBankForm, confirmAccountNumber: e.target.value });
+                              if (codBankErrors.confirmAccountNumber) setCodBankErrors({ ...codBankErrors, confirmAccountNumber: '' });
+                            }}
+                          />
+                          {codBankErrors.confirmAccountNumber && (
+                            <span className="shv-field-error">{codBankErrors.confirmAccountNumber}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="shv-form-row">
+                        <div className="shv-input-group">
+                          <label>IFSC Code *</label>
+                          <input
+                            type="text"
+                            required
+                            maxLength={11}
+                            placeholder="e.g. HDFC0001234"
+                            value={codBankForm.ifscCode}
+                            style={{ textTransform: 'uppercase' }}
+                            onChange={(e) => {
+                              setCodBankForm({ ...codBankForm, ifscCode: e.target.value.toUpperCase() });
+                              if (codBankErrors.ifscCode) setCodBankErrors({ ...codBankErrors, ifscCode: '' });
+                            }}
+                          />
+                          {codBankErrors.ifscCode && (
+                            <span className="shv-field-error">{codBankErrors.ifscCode}</span>
+                          )}
+                        </div>
+
+                        <div className="shv-input-group">
+                          <label>Account Type *</label>
+                          <select
+                            value={codBankForm.accountType}
+                            onChange={(e) => setCodBankForm({ ...codBankForm, accountType: e.target.value })}
+                          >
+                            <option value="Savings">Savings Account</option>
+                            <option value="Current">Current Account</option>
+                          </select>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  <div className="shv-input-group">
+                    <label>Reason for Return *</label>
+                    <select
+                      value={codBankForm.reason}
+                      onChange={(e) => setCodBankForm({ ...codBankForm, reason: e.target.value })}
+                    >
+                      <option value="Defective / Damaged Item">Defective or Damaged Item</option>
+                      <option value="Incorrect Size / Fit">Incorrect Size / Fit</option>
+                      <option value="Quality not as expected">Silver Quality / Finishing Not as Expected</option>
+                      <option value="Received Wrong Item">Received Wrong Item</option>
+                      <option value="Changed Mind">Changed Mind</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div className="shv-modal-footer">
+                    <button
+                      type="button"
+                      className="btn btn-outline btn-sm"
+                      onClick={() => setShowReturnModal(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="btn btn-primary btn-sm"
+                      disabled={submittingReturn}
+                      style={{ minWidth: '150px' }}
+                    >
+                      {submittingReturn ? 'Submitting…' : 'Submit Return'}
+                    </button>
+                  </div>
+                </form>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
 
         {/* Tab 3: Security & Preferences */}

@@ -126,7 +126,7 @@ export const generateInvoiceHTML = (order, user = {}) => {
           </div>
           <div style="font-size: 11px; color: #52525B; line-height: 1.5;">
             Shveraa Luxury Silver Private Limited<br />
-            Johari Bazar, Heritage Jewellery District, Jaipur, RJ - 302003<br />
+            Johari Bazar, Heritage Jewellery District, Surat, RJ - 302003<br />
             GSTIN: <strong>24AAACS9821F1ZX</strong> • HSN Code: <strong>7113</strong> (Silver Jewellery)<br />
             Email: concierge@shveraa.luxury • Web: www.shveraa.com
           </div>
@@ -214,7 +214,7 @@ export const generateInvoiceHTML = (order, user = {}) => {
                 <td style="padding: 11px 12px;">
                   <div style="font-weight: 700; color: #18181B; font-size: 12px;">${it.name || 'Pure 925 Silver Piece'}</div>
                   <div style="font-size: 10px; color: #71717A; margin-top: 2px;">
-                    ${it.color ? `Finish: ${it.color} • ` : ''}Handcrafted in Jaipur Atelier • Anti-Tarnish Coating
+                    ${it.color ? `Finish: ${it.color} • ` : ''}Handcrafted in Surat Atelier • Anti-Tarnish Coating
                   </div>
                 </td>
                 <td style="padding: 11px 10px; text-align: center;">

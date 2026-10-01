@@ -108,7 +108,7 @@ const UGC_POSTS = [
     id: 2,
     image: '/muse-necklace.jpg',
     tag: '@radhika.desai',
-    location: 'Jaipur • Summer Light',
+    location: 'Surat • Summer Light',
     piece: 'Liquid Silver Herringbone & Medallion',
     likes: '3.1k',
     link: '/shop?category=necklaces',
@@ -523,7 +523,7 @@ const Home = () => {
 
                 <div className="shv-atelier-sig-wrap">
                   <span className="shv-atelier-sig-script">Shveraa Atelier</span>
-                  <span className="shv-atelier-sig-sub">Jaipur &bull; Mumbai</span>
+                  <span className="shv-atelier-sig-sub">Surat &bull; Mumbai</span>
                 </div>
               </div>
             </div>

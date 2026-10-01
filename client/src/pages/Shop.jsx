@@ -26,8 +26,8 @@ const CATEGORY_EDITORIAL = {
   all: {
     title: 'The Pure 925 Silver Treasury',
     subtitle:
-      'Hand-sculpted in Jaipur with certified 92.5% silver purity. Triple-dipped in mirror rhodium for water-resistant radiance that defies time.',
-    eyebrow: 'Artisan Silversmithing Jaipur • 92.5% Purity',
+      'Hand-sculpted in Surat with certified 92.5% silver purity. Triple-dipped in mirror rhodium for water-resistant radiance that defies time.',
+    eyebrow: 'Artisan Silversmithing Surat • 92.5% Purity',
     bgImage: '/promo-model.jpg',
   },
   rings: {

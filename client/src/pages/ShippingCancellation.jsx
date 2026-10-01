@@ -46,7 +46,7 @@ const ShippingCancellation = () => {
               <Clock size={20} strokeWidth={1.6} />
             </div>
             <h3>5–7 Day Delivery</h3>
-            <p>Dispatched from our Jaipur atelier with live SMS &amp; WhatsApp tracking updates at every stage.</p>
+            <p>Dispatched from our Surat atelier with live SMS &amp; WhatsApp tracking updates at every stage.</p>
           </div>
 
           <div className="shv-process-step-card">

@@ -234,7 +234,7 @@ const SizeGuide = () => {
                   <HeartHandshake size={24} className="shv-care-icon" />
                   <h3>Free Lifetime Ultrasonic Spa</h3>
                   <p>
-                    At any time during your piece’s lifecycle, ship it to our Jaipur Atelier for a complimentary professional ultrasonic bath and rhodium shine renewal.
+                    At any time during your piece’s lifecycle, ship it to our Surat Atelier for a complimentary professional ultrasonic bath and rhodium shine renewal.
                   </p>
                 </div>
               </div>

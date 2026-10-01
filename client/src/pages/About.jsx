@@ -13,7 +13,7 @@ const About = () => {
             Where Silversmithing Meets <span className="shv-accent-italic">Modern Scuptural Art</span>
           </h1>
           <p className="shv-about-desc">
-            Born between the heritage jewellery quarters of Jaipur and the contemporary architectural aesthetic of Mumbai — refusing disposable fast-fashion brass, celebrating solid certified 925 sterling silver, and handcrafting water-resistant heirlooms designed to be lived in.
+            Born between the heritage jewellery quarters of Surat and the contemporary architectural aesthetic of Mumbai — refusing disposable fast-fashion brass, celebrating solid certified 925 sterling silver, and handcrafting water-resistant heirlooms designed to be lived in.
           </p>
           <div className="shv-about-hallmark-strip">
             <span>✦ Certified 925 BIS Purity</span>
@@ -72,7 +72,7 @@ const About = () => {
                 <div className="shv-about-img-floating-card">
                   <ShieldCheck size={20} color="#B08D57" />
                   <div>
-                    <strong>Jaipur Atelier Lab</strong>
+                    <strong>Surat Atelier Lab</strong>
                     <span>Hand-tested &amp; BIS Stamped</span>
                   </div>
                 </div>

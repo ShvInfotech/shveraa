@@ -103,10 +103,10 @@ const Shop = () => {
   const { wishlist } = useCart();
 
   const [collapsedSections, setCollapsedSections] = useState({
-    category: false,
-    subCategory: false,
-    metal: false,
-    price: false,
+    category: true,
+    subCategory: true,
+    metal: true,
+    price: true,
   });
 
   const toggleSection = (sec) => {
@@ -165,10 +165,28 @@ const Shop = () => {
         if (bestsellerOnly) params.bestseller = 'true';
 
         let data = await fetchProducts(params);
-       
+
+        // Fallback: If category was selected and API returned empty due to slug differences, try client-side category filter on allProducts
+        if (selectedCategory !== 'all' && (!data || data.length === 0) && allProducts.length > 0) {
+          const cat = selectedCategory.toLowerCase();
+          data = allProducts.filter((p) => {
+            const pCat = (p.category || '').toLowerCase();
+            if (cat === 'necklaces') return pCat.includes('necklace') || pCat.includes('pendant');
+            if (cat === 'rings') return pCat.includes('ring');
+            if (cat === 'earrings') return pCat.includes('earring');
+            if (cat === 'bracelets') return pCat.includes('bracelet');
+            if (cat === 'anklets') return pCat.includes('anklet');
+            return pCat === cat;
+          });
+        }
+
         if (wishlistOnly) {
-          const wishlistIds = new Set(wishlist.map((w) => w._id || w.slug));
-          data = data.filter((p) => wishlistIds.has(p._id || p.slug));
+          const wishlistIds = new Set(wishlist.map((w) => String(w._id || w.slug)));
+          data = data.filter((p) => wishlistIds.has(String(p._id || p.slug)));
+        }
+
+        if (bestsellerOnly) {
+          data = data.filter((p) => Boolean(p.bestseller));
         }
 
         if (selectedSubCategory) {
@@ -182,23 +200,56 @@ const Shop = () => {
         }
 
         if (selectedColorParam && selectedColorParam !== 'all') {
-          if (selectedColorParam === 'oxidised') {
-            data = data.filter((p) => {
-              const text = `${p.finish || ''} ${p.description || ''} ${p.material || ''}`.toLowerCase();
-              return text.includes('oxid') || p.category === 'personalised' || (Array.isArray(p.colors) && p.colors.some((c) => String(c).toLowerCase().includes('oxid')));
-            });
-          }
+          const col = selectedColorParam.toLowerCase();
+          data = data.filter((p) => {
+            const text = `${p.name || ''} ${p.finish || ''} ${p.description || ''} ${p.material || ''} ${p.metalType || ''}`.toLowerCase();
+            const colorsArr = Array.isArray(p.colors) ? p.colors.map((c) => String(c).toLowerCase()) : [];
+            const variantsColors = Array.isArray(p.variants) ? p.variants.map((v) => String(v.color || '').toLowerCase()) : [];
+            const allColors = [...colorsArr, ...variantsColors];
+
+            if (col === 'silver') {
+              return text.includes('silver') || text.includes('rhodium') || allColors.some((c) => c.includes('silver')) || (!text.includes('gold') && !allColors.some((c) => c.includes('gold')));
+            }
+            if (col === 'gold') {
+              return text.includes('gold') || text.includes('vermeil') || allColors.some((c) => c.includes('gold') && !c.includes('rose'));
+            }
+            if (col === 'rose-gold' || col === 'rosegold') {
+              return text.includes('rose') || allColors.some((c) => c.includes('rose'));
+            }
+            if (col === 'oxidised' || col === 'oxidized') {
+              return text.includes('oxid') || p.category === 'personalised' || allColors.some((c) => c.includes('oxid'));
+            }
+            return text.includes(col) || allColors.some((c) => c.includes(col));
+          });
         }
 
         if (maxPriceParam) {
-          if (maxPriceParam === 'above3000') {
-            data = data.filter((p) => (p.price || 0) >= 3000);
-          } else {
-            const maxVal = Number(maxPriceParam);
-            if (!isNaN(maxVal)) {
-              data = data.filter((p) => (p.price || 0) <= maxVal);
-            }
-          }
+          data = data.filter((p) => {
+            const price = Number(p.price) || 0;
+            if (maxPriceParam === 'under100') return price <= 100;
+            if (maxPriceParam === '100-150') return price >= 100 && price <= 150;
+            if (maxPriceParam === '150-180') return price >= 150 && price <= 180;
+            if (maxPriceParam === 'above180') return price >= 180;
+            if (maxPriceParam === 'under1500' || maxPriceParam === '1500') return price <= 1500;
+            if (maxPriceParam === '1500-2000') return price >= 1500 && price <= 2000;
+            if (maxPriceParam === '2000-3000' || maxPriceParam === '2000') return price >= 2000 && price <= 3000;
+            if (maxPriceParam === '3000') return price <= 3000;
+            if (maxPriceParam === 'above3000') return price >= 3000;
+            const numericMax = Number(maxPriceParam);
+            if (!isNaN(numericMax)) return price <= numericMax;
+            return true;
+          });
+        }
+
+        // Apply Client-side Sorting
+        if (selectedSort === 'price-asc') {
+          data.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
+        } else if (selectedSort === 'price-desc') {
+          data.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
+        } else if (selectedSort === 'rating') {
+          data.sort((a, b) => (Number(b.rating) || 0) - (Number(a.rating) || 0));
+        } else if (selectedSort === 'newest') {
+          data.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
         }
 
         setProducts(data);
@@ -210,7 +261,7 @@ const Shop = () => {
     };
 
     loadProducts();
-  }, [selectedCategory, selectedSubCategory, selectedSort, searchQuery, bestsellerOnly, wishlistOnly, maxPriceParam, selectedColorParam, wishlist, reloadTrigger]);
+  }, [selectedCategory, selectedSubCategory, selectedSort, searchQuery, bestsellerOnly, wishlistOnly, maxPriceParam, selectedColorParam, wishlist, reloadTrigger, allProducts]);
 
   const updateFilter = (key, val) => {
     const newParams = new URLSearchParams(searchParams);
@@ -267,8 +318,32 @@ const Shop = () => {
     (maxPriceParam ? 1 : 0) +
     (selectedColorParam !== 'all' ? 1 : 0);
 
+  const maxCatalogPrice = Math.max(...allProducts.map((p) => Number(p.price) || 0), 0);
+  const priceOptions = maxCatalogPrice > 500
+    ? [
+        { id: 'under1500', label: 'Under ₹1,500', max: 1500 },
+        { id: '1500-2000', label: '₹1,500 – ₹2,000', min: 1500, max: 2000 },
+        { id: '2000-3000', label: '₹2,000 – ₹3,000', min: 2000, max: 3000 },
+        { id: 'above3000', label: 'Above ₹3,000', min: 3000 },
+      ]
+    : [
+        { id: 'under100', label: 'Under ₹100', max: 100 },
+        { id: '100-150', label: '₹100 – ₹150', min: 100, max: 150 },
+        { id: '150-180', label: '₹150 – ₹180', min: 150, max: 180 },
+        { id: 'above180', label: 'Above ₹180', min: 180 },
+      ];
+
   const getCategoryCount = (slug) => {
-    return allProducts.filter((p) => p.category === slug).length || 0;
+    const cat = (slug || '').toLowerCase();
+    return allProducts.filter((p) => {
+      const pCat = (p.category || '').toLowerCase();
+      if (cat === 'necklaces') return pCat.includes('necklace') || pCat.includes('pendant');
+      if (cat === 'rings') return pCat.includes('ring');
+      if (cat === 'earrings') return pCat.includes('earring');
+      if (cat === 'bracelets') return pCat.includes('bracelet');
+      if (cat === 'anklets') return pCat.includes('anklet');
+      return pCat === cat;
+    }).length;
   };
 
   const getSubCategoryCount = (sub) => {
@@ -279,37 +354,37 @@ const Shop = () => {
   };
 
   const getMetalCount = (metalId) => {
-    if (metalId === 'silver') {
-      return allProducts.filter((p) => {
-        const text = `${p.finish || ''} ${p.description || ''} ${p.material || ''}`.toLowerCase();
-        return text.includes('silver') || text.includes('rhodium') || !text.includes('gold');
-      }).length || allProducts.length;
-    }
-    if (metalId === 'gold') {
-      return allProducts.filter((p) => {
-        const text = `${p.finish || ''} ${p.description || ''} ${p.name || ''}`.toLowerCase();
-        return text.includes('gold') || text.includes('vermeil') || (Array.isArray(p.colors) && p.colors.includes('gold'));
-      }).length || Math.max(3, Math.floor(allProducts.length * 0.6));
-    }
-    if (metalId === 'rose-gold') {
-      return allProducts.filter((p) => {
-        const text = `${p.finish || ''} ${p.description || ''} ${p.name || ''}`.toLowerCase();
-        return text.includes('rose') || (Array.isArray(p.colors) && p.colors.includes('rose-gold'));
-      }).length || Math.max(2, Math.floor(allProducts.length * 0.4));
-    }
-    if (metalId === 'oxidised') {
-      return allProducts.filter((p) => {
-        const text = `${p.finish || ''} ${p.description || ''} ${p.material || ''}`.toLowerCase();
-        return text.includes('oxid') || p.category === 'personalised';
-      }).length || Math.max(2, Math.floor(allProducts.length * 0.3));
-    }
-    return allProducts.length;
+    const col = (metalId || '').toLowerCase();
+    return allProducts.filter((p) => {
+      const text = `${p.name || ''} ${p.finish || ''} ${p.description || ''} ${p.material || ''}`.toLowerCase();
+      const colorsArr = Array.isArray(p.colors) ? p.colors.map((c) => String(c).toLowerCase()) : [];
+      const variantsColors = Array.isArray(p.variants) ? p.variants.map((v) => String(v.color || '').toLowerCase()) : [];
+      const allColors = [...colorsArr, ...variantsColors];
+
+      if (col === 'silver') {
+        return text.includes('silver') || text.includes('rhodium') || allColors.some((c) => c.includes('silver')) || (!text.includes('gold') && !allColors.some((c) => c.includes('gold')));
+      }
+      if (col === 'gold') {
+        return text.includes('gold') || text.includes('vermeil') || allColors.some((c) => c.includes('gold') && !c.includes('rose'));
+      }
+      if (col === 'rose-gold' || col === 'rosegold') {
+        return text.includes('rose') || allColors.some((c) => c.includes('rose'));
+      }
+      if (col === 'oxidised') {
+        return text.includes('oxid') || p.category === 'personalised' || allColors.some((c) => c.includes('oxid'));
+      }
+      return text.includes(col);
+    }).length;
   };
 
   const getPriceCount = (pr) => {
-    if (pr.min) return allProducts.filter((p) => (p.price || 0) >= pr.min).length;
-    if (pr.max) return allProducts.filter((p) => (p.price || 0) <= pr.max).length;
-    return allProducts.length;
+    return allProducts.filter((p) => {
+      const price = Number(p.price) || 0;
+      if (pr.min && pr.max) return price >= pr.min && price <= pr.max;
+      if (pr.min) return price >= pr.min;
+      if (pr.max) return price <= pr.max;
+      return true;
+    }).length;
   };
 
   const renderFilterContent = () => (
@@ -468,12 +543,7 @@ const Shop = () => {
 
         {!collapsedSections.price && (
           <div className="shv-ref-options-list">
-            {[
-              { id: '1500', label: 'Under ₹1,500', max: 1500 },
-              { id: '2000', label: 'Under ₹2,000', max: 2000 },
-              { id: '3000', label: 'Under ₹3,000', max: 3000 },
-              { id: 'above3000', label: 'Above ₹3,000', min: 3000 },
-            ].map((pr) => {
+            {priceOptions.map((pr) => {
               const isChecked = maxPriceParam === pr.id;
               const count = getPriceCount(pr);
               return (
@@ -584,21 +654,16 @@ const Shop = () => {
                   <span>Bestsellers</span>
                 </button>
 
-                <button
-                  type="button"
-                  className={`shv-quick-chip ${maxPriceParam === '2000' ? 'active' : ''}`}
-                  onClick={() => updateFilter('maxPrice', maxPriceParam === '2000' ? '' : '2000')}
-                >
-                  <span>Under ₹2,000</span>
-                </button>
-
-                <button
-                  type="button"
-                  className={`shv-quick-chip ${maxPriceParam === '3000' ? 'active' : ''}`}
-                  onClick={() => updateFilter('maxPrice', maxPriceParam === '3000' ? '' : '3000')}
-                >
-                  <span>Under ₹3,000</span>
-                </button>
+                {priceOptions.slice(0, 2).map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    className={`shv-quick-chip ${maxPriceParam === opt.id ? 'active' : ''}`}
+                    onClick={() => updateFilter('maxPrice', maxPriceParam === opt.id ? '' : opt.id)}
+                  >
+                    <span>{opt.label}</span>
+                  </button>
+                ))}
               </div>
 
               {/* Right: Filter Drawer Trigger (Mobile/Tablet) & Custom Sort Select */}
@@ -636,7 +701,7 @@ const Shop = () => {
             </div>
 
             {/* 4. Active Filters Dismissible Tag Strip */}
-            {(searchQuery || wishlistOnly || bestsellerOnly || maxPriceParam || selectedSubCategory || (selectedCategory !== 'all' && !wishlistOnly)) && (
+            {(searchQuery || wishlistOnly || bestsellerOnly || maxPriceParam || selectedSubCategory || (selectedCategory !== 'all' && !wishlistOnly) || (selectedColorParam && selectedColorParam !== 'all')) && (
               <div className="shv-active-tags-strip">
                 <span className="shv-active-label">Active Filters:</span>
 
@@ -689,7 +754,7 @@ const Shop = () => {
 
                 {maxPriceParam && (
                   <div className="shv-active-tag">
-                    <span>{maxPriceParam === 'above3000' ? 'Above ₹3,000' : `Under ₹${maxPriceParam}`}</span>
+                    <span>{priceOptions.find((p) => p.id === maxPriceParam)?.label || (maxPriceParam === 'above3000' ? 'Above ₹3,000' : `Price: ₹${maxPriceParam}`)}</span>
                     <button onClick={() => updateFilter('maxPrice', '')} aria-label="Remove price filter">
                       <X size={12} />
                     </button>

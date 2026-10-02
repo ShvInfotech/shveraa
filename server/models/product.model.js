@@ -29,6 +29,7 @@ const productSchema = new mongoose.Schema(
     slug: { type: String, required: true, unique: true, lowercase: true, trim: true },
     description: { type: String, default: '' },
     originalPrice: { type: Number, default: 0 },
+    salePrice: { type: Number, default: 0 },
     category: { type: String, required: true }, // slug or category ID
     sku: { type: String, default: '', trim: true },
     collection: { type: String, default: '', trim: true },
@@ -41,6 +42,14 @@ const productSchema = new mongoose.Schema(
     finish: { type: String, default: 'Mirror Rhodium Polish' },
     dimensions: { type: String, default: '' },
     careInstructions: { type: String, default: '' },
+    badge: { type: String, default: '' },
+    images: [{ type: String }],
+    colors: [{ type: String }],
+    featured: { type: Boolean, default: false },
+    bestseller: { type: Boolean, default: false },
+    rating: { type: Number, default: 0 },
+    avgRating: { type: Number, default: 0 },
+    stockCount: { type: Number, default: 0 },
   
   
   
@@ -54,7 +63,7 @@ const productSchema = new mongoose.Schema(
     variants: [variantSchema],
     packing: { type: packingSchema, default: () => ({}) },
   },
-  { versionKey: false, timestamps: true }
+  { versionKey: false, timestamps: true, strict: false }
 );
 
 export default mongoose.model('Products', productSchema);

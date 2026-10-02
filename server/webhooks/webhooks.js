@@ -61,3 +61,45 @@ export const RozerpayRefundWebhook = async (req, res, next) => {
         return next(error);
     }
 }
+
+
+export const DelhiveryScanWebhook = async (req, res, next) => {
+  try {
+     const statusMapping = {
+  "UD:Manifested": "pending",
+  "UD:Not Picked": "pending",
+  "UD:In Transit": "processing",
+  "UD:Pending": "shipped",
+  "UD:Dispatched": "out_for_delivery",
+  "DL:Delivered": "delivered",
+
+
+  "RT:In Transit": "RTO_IN_TRANSIT",
+  "RT:Pending": "RTO_PENDING",
+  "RT:Dispatched": "RTO_DISPATCHED",
+  "DL:RTO": "RTO_DELIVERED",
+
+  "PP:Open": "RETURN_OPEN",
+  "PP:Scheduled": "RETURN_SCHEDULED",
+  "PP:Dispatched": "RETURN_PICKUP_DISPATCHED",
+
+  "PU:In Transit": "RETURN_IN_TRANSIT",
+  "PU:Pending": "RETURN_PENDING",
+  "PU:Dispatched": "RETURN_DISPATCHED",
+
+  "DL:DTO": "RETURN_DELIVERED",
+
+  "CN:Canceled": "RETURN_CANCELLED",
+  "CN:Closed": "RETURN_CLOSED"
+};
+
+
+
+// const statusKey = `${status.StatusType}:${status.Status}`;
+// const newStatus = statusMapping[statusKey];
+   return res.status(200).json({ success: true, message: "Webhook received successfully" });
+  } catch (error) {
+    return next(error);
+  }
+
+}

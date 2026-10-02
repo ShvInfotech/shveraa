@@ -118,7 +118,7 @@ export const generateInvoiceHTML = (order, user = {}) => {
       <!-- Top Header -->
       <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #18181B; padding-bottom: 20px; position: relative; z-index: 1;">
         <div>
-          <div style="font-family: 'Figtree', sans-serif; font-size: 26px; font-weight: 700; letter-spacing: 0.12em; color: #18181B; margin-bottom: 4px;">
+         <div style="font-family: 'Figtree', sans-serif; font-size: 26px; font-weight: 700; letter-spacing: 0.12em; color: #18181B; margin-bottom: 4px;">
             SHVERAA
           </div>
           <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: #84532B; margin-bottom: 8px;">

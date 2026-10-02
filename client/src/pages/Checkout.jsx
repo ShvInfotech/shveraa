@@ -154,10 +154,11 @@ const Checkout = () => {
   const [formError, setFormError] = useState('');
   const shippingRequestId = useRef(0);
 
-  // Calculate final grand total including white-glove option or COD fee
+  // Calculate final grand total including white-glove option
+  // NOTE: Cash on Delivery is a complimentary payment option — no COD surcharge
+  // is added to the payable total.
   const deliverySurcharge = deliveryOption === 'whiteglove' ? 249 : 0;
-  const codSurcharge = paymentMethod === 'cod' ? 99 : 0;
-  const finalPayable = cartTotal + deliverySurcharge + codSurcharge;
+  const finalPayable = cartTotal + deliverySurcharge;
 
   useEffect(() => {
     if (!cart.length || !/^\d{6}$/.test(pincode)) return;
@@ -787,7 +788,6 @@ const Checkout = () => {
                           <Banknote size={18} className="shv-pay-icon" />
                           <span>Cash on Delivery (Doorstep Cash / UPI)</span>
                         </div>
-                        <span className="shv-cod-fee">+₹99 Fee</span>
                       </div>
 
                       {paymentMethod === 'cod' && (
@@ -885,13 +885,6 @@ const Checkout = () => {
                   <div className="shv-pricing-row">
                     <span>White-Glove VIP Presentation</span>
                     <span>+₹249</span>
-                  </div>
-                )}
-
-                {paymentMethod === 'cod' && (
-                  <div className="shv-pricing-row">
-                    <span>COD Verification Fee</span>
-                    <span>+₹99</span>
                   </div>
                 )}
 

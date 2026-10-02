@@ -89,6 +89,29 @@ export const JEWELRY_COLORS = [
   },
 ];
 
+// Resolve the price actually shown to a customer.
+// Prices live on the size entries inside a colour variant (the admin editor
+// writes them there), so the top-level `price` field is only a last resort.
+export const getProductPrice = (product) => {
+  if (!product) return 0;
+
+  const variantPrices = (Array.isArray(product.variants) ? product.variants : [])
+    .flatMap((variant) => (Array.isArray(variant?.sizes) ? variant.sizes : []))
+    .map((size) => Number(typeof size === 'object' && size !== null ? size.price : size))
+    .filter((value) => Number.isFinite(value) && value > 0);
+
+  if (variantPrices.length > 0) return Math.min(...variantPrices);
+
+  const sizePrices = (Array.isArray(product.sizes) ? product.sizes : [])
+    .map((size) => Number(typeof size === 'object' && size !== null ? size.price : size))
+    .filter((value) => Number.isFinite(value) && value > 0);
+
+  if (sizePrices.length > 0) return Math.min(...sizePrices);
+
+  const topLevel = Number(product.price);
+  return Number.isFinite(topLevel) && topLevel > 0 ? topLevel : 0;
+};
+
 export const getProductColors = (product) => {
   if (!product) return JEWELRY_COLORS.slice(0, 3);
   if (Array.isArray(product.colors) && product.colors.length > 0) {
@@ -117,11 +140,45 @@ export const getProductColors = (product) => {
       return c;
     });
   }
+  // Colour variants are the source of truth for Metal & Finish — only fall
+  // back to text/description sniffing when the product has no variants.
+  if (Array.isArray(product.variants) && product.variants.length > 0) {
+    return getProductVariants(product).map((variant) => {
+      const name = variant?.color || 'Pure 925 Silver';
+      const found = JEWELRY_COLORS.find(
+        (jc) =>
+          jc.id === name.toLowerCase() ||
+          jc.name.toLowerCase() === name.toLowerCase() ||
+          jc.shortName.toLowerCase() === name.toLowerCase()
+      );
+      return (
+        found || {
+          id: name.toLowerCase().replace(/\s+/g, '-'),
+          name,
+          shortName: name,
+          hex: '#C5CBD3',
+          gradient: 'linear-gradient(135deg, #FFFFFF 0%, #D4D9E2 100%)',
+          border: '#CBD5E1',
+          badge: 'Custom Finish',
+          purity: 'Certified 925 Silver Base',
+          description: `${name} finish on certified 925 sterling silver.`,
+        }
+      );
+    });
+  }
+
   const textToCheck = `${product.finish || ''} ${product.description || ''} ${product.material || ''}`.toLowerCase();
   if (textToCheck.includes('oxid') || product.category === 'personalised') {
     return JEWELRY_COLORS;
   }
   return JEWELRY_COLORS.slice(0, 3);
+};
+
+// Normalised colour variants (every product keeps its colour choices here).
+export const getProductVariants = (product) => {
+  if (!product) return [];
+  if (Array.isArray(product.variants) && product.variants.length > 0) return product.variants;
+  return [];
 };
 
 // Initial default CMS settings

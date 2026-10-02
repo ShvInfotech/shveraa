@@ -404,7 +404,7 @@ export const PlaceCodeOrder = async (req, res, next) => {
         "name": process.env.DELHIVERY_PICKUP_LOCATION,
       }
     }
-
+  console.log(delhiveryPayload)
 
     const result = await CreateShippingOrderService(delhiveryPayload)
     let waybill = ""

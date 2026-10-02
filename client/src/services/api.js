@@ -155,6 +155,8 @@ export const getActiveCategories = () => {
   return ALL_CATEGORIES;
 };
 
+// Every product the storefront can currently show (dynamic store + fallback).
+// Used for filter option counts so the counts always match what is browseable.
 export const getActiveProducts = () => {
   try {
     const raw = typeof window !== 'undefined' ? localStorage.getItem('shveraa_dyn_products') : null;

@@ -2,10 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import {
   SlidersHorizontal,
-  Search,
   X,
-  Heart,
-  Sparkles,
   ArrowRight,
   ShieldCheck,
   RotateCcw,
@@ -103,6 +100,7 @@ const Shop = () => {
   const { wishlist } = useCart();
 
   const [collapsedSections, setCollapsedSections] = useState({
+    sort: true,
     category: true,
     subCategory: true,
     metal: true,
@@ -312,6 +310,7 @@ const Shop = () => {
   const activeFiltersCount =
     (selectedCategory !== 'all' ? 1 : 0) +
     (selectedSubCategory ? 1 : 0) +
+    (selectedSort !== 'featured' ? 1 : 0) +
     (searchQuery ? 1 : 0) +
     (bestsellerOnly ? 1 : 0) +
     (wishlistOnly ? 1 : 0) +
@@ -389,17 +388,50 @@ const Shop = () => {
 
   const renderFilterContent = () => (
     <div className="shv-ref-filter-wrap">
-      {/* Title Header with thin line */}
-      <div className="shv-ref-filter-header">
-        <h2 className="shv-ref-filter-title">FILTERS</h2>
-        {activeFiltersCount > 0 && (
-          <button
-            type="button"
-            onClick={clearAllFilters}
-            className="shv-ref-clear-btn"
-          >
-            CLEAR ALL
-          </button>
+      {/* 0. SORT BY */}
+      <div className="shv-ref-filter-group">
+        <button
+          type="button"
+          className="shv-ref-group-header"
+          onClick={() => toggleSection('sort')}
+        >
+          <span className="shv-ref-group-title">SORT BY</span>
+          {collapsedSections.sort ? (
+            <ChevronDown size={16} className="shv-ref-chevron collapsed" />
+          ) : (
+            <ChevronUp size={16} className="shv-ref-chevron" />
+          )}
+        </button>
+
+        {!collapsedSections.sort && (
+          <div className="shv-ref-options-list">
+            {[
+              { id: 'featured', label: 'Featured Curations' },
+              { id: 'price-asc', label: 'Price: Low to High' },
+              { id: 'price-desc', label: 'Price: High to Low' },
+              { id: 'rating', label: 'Highest Rated' },
+              { id: 'newest', label: 'Newest Additions' },
+            ].map((opt) => {
+              const isChecked = selectedSort === opt.id;
+              return (
+                <label key={opt.id} className="shv-ref-checkbox-row">
+                  <input
+                    type="radio"
+                    name="shop_sort_options"
+                    checked={isChecked}
+                    onChange={() => updateFilter('sort', opt.id)}
+                    className="shv-ref-hidden-checkbox"
+                  />
+                  <span className={`shv-ref-checkbox-box ${isChecked ? 'checked' : ''}`} style={{ borderRadius: '50%' }}>
+                    {isChecked && <Check size={11} strokeWidth={2.6} />}
+                  </span>
+                  <span className="shv-ref-label-text">
+                    {opt.label}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
         )}
       </div>
 
@@ -571,20 +603,15 @@ const Shop = () => {
 
   return (
     <div className="shv-shop-page" style={{ backgroundColor: '#FFFFFF', minHeight: '100vh' }}>
-      {/* 1. Shop Editorial Hero Header Banner */}
+      {/* 1. Shop Hero Header Banner (Image Only) */}
       <section
         className="shv-shop-hero-banner"
         style={{
           backgroundImage: `url(${activeBannerBg})`,
         }}
-      >
-        <div className="container">
-          <div className="shv-shop-banner-content">
-            <h1 className="shv-shop-title">{shopBanner?.title || editorial.title}</h1>
-            {shopBanner?.subtitle && <p className="shv-shop-banner-subtitle">{shopBanner.subtitle}</p>}
-          </div>
-        </div>
-      </section>
+        role="img"
+        aria-label="Jewellery Collection Banner"
+      />
 
       <div className="container shv-shop-main-container">
         {/* Breadcrumb Navigation cleanly positioned below hero banner */}
@@ -605,12 +632,7 @@ const Shop = () => {
         </nav>
 
         <div className="shv-shop-layout">
-          {/* Left: Minimalist Reference Sidebar Filter on Desktop */}
-          <aside className="shv-shop-sidebar" aria-label="Filters">
-            {renderFilterContent()}
-          </aside>
-
-          {/* Right: Toolbar, Active Filter Tags, and Product Grid */}
+          {/* Main Product Area */}
           <main className="shv-shop-content">
             {/* 3. Modern Interactive Toolbar */}
             <div className="shv-shop-toolbar">
@@ -643,60 +665,20 @@ const Shop = () => {
                 </div>
               </div>
 
-              {/* Center: Quick Filter Pills */}
-              <div className="shv-quick-filters">
-                <button
-                  type="button"
-                  className={`shv-quick-chip ${bestsellerOnly ? 'active' : ''}`}
-                  onClick={() => updateFilter('bestseller', bestsellerOnly ? '' : 'true')}
-                >
-                  <Sparkles size={12} />
-                  <span>Bestsellers</span>
-                </button>
-
-                {priceOptions.slice(0, 2).map((opt) => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    className={`shv-quick-chip ${maxPriceParam === opt.id ? 'active' : ''}`}
-                    onClick={() => updateFilter('maxPrice', maxPriceParam === opt.id ? '' : opt.id)}
-                  >
-                    <span>{opt.label}</span>
-                  </button>
-                ))}
-              </div>
-
-              {/* Right: Filter Drawer Trigger (Mobile/Tablet) & Custom Sort Select */}
+              {/* Right: Advance Filter Button */}
               <div className="shv-toolbar-right">
                 <button
                   type="button"
-                  className="shv-filter-drawer-btn"
+                  className="shv-advanced-filter-btn"
                   onClick={() => setFilterDrawerOpen(true)}
                   aria-label="Open Filters"
                 >
-                  <SlidersHorizontal size={14} />
-                  <span>Filter</span>
+                  <SlidersHorizontal size={15} />
+                  <span>Advance Filter</span>
                   {activeFiltersCount > 0 && (
                     <span className="shv-filter-count-badge">{activeFiltersCount}</span>
                   )}
                 </button>
-
-                {/* Custom Styled Sort Select */}
-                <div className="shv-sort-dropdown-wrap">
-                  <select
-                    value={selectedSort}
-                    onChange={(e) => updateFilter('sort', e.target.value)}
-                    className="shv-sort-select"
-                    aria-label="Sort Collection"
-                  >
-                    <option value="featured">Featured Curations</option>
-                    <option value="price-asc">Price: Low to High</option>
-                    <option value="price-desc">Price: High to Low</option>
-                    <option value="rating">Highest Rated</option>
-                    <option value="newest">Newest Additions</option>
-                  </select>
-                  <ChevronDown size={14} className="shv-sort-chevron" />
-                </div>
               </div>
             </div>
 
@@ -839,8 +821,11 @@ const Shop = () => {
           >
             <div className="shv-filter-drawer-header">
               <div className="shv-filter-header-title">
-                <SlidersHorizontal size={16} />
-                <h3>Filter Collection</h3>
+                <SlidersHorizontal size={18} />
+                <h3>Filters</h3>
+                {activeFiltersCount > 0 && (
+                  <span className="shv-filter-count-badge">{activeFiltersCount}</span>
+                )}
               </div>
               <button
                 className="shv-filter-close-btn"
@@ -859,12 +844,11 @@ const Shop = () => {
               <button
                 type="button"
                 className="shv-filter-clear-btn"
-                onClick={() => {
-                  clearAllFilters();
-                  setFilterDrawerOpen(false);
-                }}
+                onClick={clearAllFilters}
+                disabled={activeFiltersCount === 0}
+                style={{ opacity: activeFiltersCount === 0 ? 0.45 : 1, cursor: activeFiltersCount === 0 ? 'not-allowed' : 'pointer' }}
               >
-                Reset
+                Reset All
               </button>
               <button
                 type="button"

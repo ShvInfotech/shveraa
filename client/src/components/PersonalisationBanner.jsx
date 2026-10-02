@@ -35,7 +35,7 @@ const PIECES = [
 const FONTS = [
   { id: 'script', name: 'Atelier Script', fontFamily: "'Alex Brush', cursive", italic: true },
   { id: 'serif', name: 'Classic Serif', fontFamily: "'Playfair Display', serif", italic: false },
-  { id: 'sans', name: 'Modern Minimal', fontFamily: "'Plus Jakarta Sans', sans-serif", italic: false },
+  { id: 'sans', name: 'Modern Minimal', fontFamily: "'Figtree', sans-serif", italic: false },
 ];
 
 const PersonalisationBanner = () => {

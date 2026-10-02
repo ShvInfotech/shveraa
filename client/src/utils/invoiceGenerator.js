@@ -88,7 +88,7 @@ export const generateInvoiceHTML = (order, user = {}) => {
 
   return `
     <div id="shv-invoice-document" style="
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      font-family: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       width: 794px;
       margin: 0 auto;
       background: #FFFFFF;
@@ -112,13 +112,13 @@ export const generateInvoiceHTML = (order, user = {}) => {
         pointer-events: none;
         z-index: 0;
         white-space: nowrap;
-        font-family: Georgia, serif;
+        font-family: 'Figtree', sans-serif;
       ">SHVERAA 925</div>
 
       <!-- Top Header -->
       <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #18181B; padding-bottom: 20px; position: relative; z-index: 1;">
         <div>
-          <div style="font-family: Georgia, serif; font-size: 26px; font-weight: 700; letter-spacing: 0.12em; color: #18181B; margin-bottom: 4px;">
+          <div style="font-family: 'Figtree', sans-serif; font-size: 26px; font-weight: 700; letter-spacing: 0.12em; color: #18181B; margin-bottom: 4px;">
             SHVERAA
           </div>
           <div style="font-size: 10px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: #84532B; margin-bottom: 8px;">

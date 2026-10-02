@@ -5864,13 +5864,13 @@ h4 { font-size: 1.15rem; }
 
 @media (min-width: 992px) {
   .shv-shop-hero-banner {
-    height: 320px;
+    height: 360px;
   }
 }
 
 @media (min-width: 1280px) {
   .shv-shop-hero-banner {
-    height: 380px;
+    height: 420px;
   }
 }
 
@@ -15591,4 +15591,69 @@ html, body {
 .product-card-floating-swatches .product-color-swatch-dot.active {
   transform: scale(1.15);
   box-shadow: 0 0 0 1.5px #FFFFFF, 0 0 0 2.5px #18181B;
+}
+
+/* Product Detail Wishlist Buttons (Floating on Image & Action Bar) */
+.shv-pdp-image-wishlist-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(160, 126, 82, 0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+.shv-pdp-image-wishlist-btn:hover {
+  transform: scale(1.08);
+  background: #FFFFFF;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+.shv-pdp-image-wishlist-btn.wishlisted {
+  background: #FFF1F2;
+  border-color: #FECDD3;
+}
+
+.shv-pdp-wishlist-action-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 13px 20px;
+  margin-top: -4px;
+  margin-bottom: 1.5rem;
+  background: #FAF8F5;
+  border: 1px solid rgba(160, 126, 82, 0.28);
+  border-radius: var(--radius-xs);
+  font-family: 'Figtree', sans-serif;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #1F1B17;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.shv-pdp-wishlist-action-btn:hover {
+  background: #FFFFFF;
+  border-color: #1F1B17;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.05);
+}
+
+.shv-pdp-wishlist-action-btn.wishlisted {
+  background: #FFF1F2;
+  border-color: #FDA4AF;
+  color: #E11D48;
 }

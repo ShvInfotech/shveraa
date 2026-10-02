@@ -697,6 +697,24 @@ const ProductDetail = () => {
                   {product.badge}
                 </span>
               )}
+
+              {/* Floating Wishlist Button on Product Detail Image */}
+              <button
+                type="button"
+                className={`shv-pdp-image-wishlist-btn ${isWishlisted ? 'wishlisted' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleWishlist(product);
+                }}
+                aria-label={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                title={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
+              >
+                <Heart
+                  size={20}
+                  fill={isWishlisted ? '#E11D48' : 'none'}
+                  color={isWishlisted ? '#E11D48' : '#1F1B17'}
+                />
+              </button>
             </div>
           </div>
 
@@ -879,7 +897,8 @@ const ProductDetail = () => {
                 type="button"
                 onClick={() => toggleWishlist(product)}
                 className={`action-btn action-btn-lg product-wishlist-btn ${isWishlisted ? 'wishlisted' : ''}`}
-                aria-label="Save to Wishlist"
+                aria-label={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                title={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
               >
                 <Heart
                   size={20}
@@ -888,6 +907,21 @@ const ProductDetail = () => {
                 />
               </button>
             </div>
+
+            {/* Dedicated Wishlist Action Button */}
+            <button
+              type="button"
+              onClick={() => toggleWishlist(product)}
+              className={`shv-pdp-wishlist-action-btn ${isWishlisted ? 'wishlisted' : ''}`}
+              aria-label={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
+            >
+              <Heart
+                size={18}
+                fill={isWishlisted ? '#E11D48' : 'none'}
+                color={isWishlisted ? '#E11D48' : '#1F1B17'}
+              />
+              <span>{isWishlisted ? 'Preserved in Wishlist (Saved)' : 'Add to Curated Wishlist'}</span>
+            </button>
 
             {/* Pincode Delivery Estimator */}
             <div className="shv-pdp-delivery-box">

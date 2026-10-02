@@ -12,10 +12,12 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  Sparkles,
+  Heart,
 } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
 import Loader from '../components/Loader';
-import { fetchProducts, FALLBACK_PRODUCTS, getImageUrl, apiGetShopBanners } from '../services/api';
+import { fetchProducts, getImageUrl, apiGetShopBanners } from '../services/api';
 import { useCart } from '../context/CartContext';
 import { useDynamicStore, JEWELRY_COLORS } from '../services/storeService';
 

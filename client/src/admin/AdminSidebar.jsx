@@ -1,15 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import {
   LayoutDashboard,
   ShoppingBag,
-  Truck,
+  RotateCcw,
   DollarSign,
   Settings,
   HelpCircle,
   MessageSquare,
-  ChevronDown,
-  ChevronRight,
   LogOut,
   Store,
   Package,
@@ -23,19 +21,10 @@ import {
 const AdminSidebar = ({
   currentTab,
   setCurrentTab,
-  deliveryFilter,
-  setDeliveryFilter,
   orderCount,
   isCollapsed,
   setIsCollapsed,
 }) => {
-  const [deliveriesExpanded, setDeliveriesExpanded] = useState(true);
-
-  const handleDeliverySubItemClick = (filterName) => {
-    setCurrentTab('deliveries');
-    setDeliveryFilter(filterName);
-  };
-
   return (
     <aside className={`shv-admin-sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       {/* Brand Header */}
@@ -95,80 +84,19 @@ const AdminSidebar = ({
               </button>
             </li>
 
-            {/* Track Deliveries with Expandable Submenu */}
+            {/* Return Management (Return / RTO) */}
             <li>
               <button
                 type="button"
-                onClick={() => {
-                  if (isCollapsed) {
-                    setIsCollapsed(false);
-                    setDeliveriesExpanded(true);
-                  } else {
-                    setDeliveriesExpanded(!deliveriesExpanded);
-                  }
-                  setCurrentTab('deliveries');
-                }}
-                className={`shv-sidebar-link ${currentTab === 'deliveries' ? 'active' : ''}`}
-                title="Track Deliveries"
+                onClick={() => setCurrentTab('returns')}
+                className={`shv-sidebar-link ${currentTab === 'returns' ? 'active' : ''}`}
+                title="Return Management"
               >
                 <div className="shv-sidebar-link-left">
-                  <Truck size={18} />
-                  {!isCollapsed && <span>Track Deliveries</span>}
+                  <RotateCcw size={18} />
+                  {!isCollapsed && <span>Return Management</span>}
                 </div>
-                {!isCollapsed && (
-                  deliveriesExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />
-                )}
               </button>
-
-              {/* Submenu Tree */}
-              {!isCollapsed && deliveriesExpanded && (
-                <ul className="shv-sidebar-submenu">
-                  <li>
-                    <button
-                      type="button"
-                      onClick={() => handleDeliverySubItemClick('On Progress')}
-                      className={`shv-sidebar-sublink ${
-                        currentTab === 'deliveries' && deliveryFilter === 'On Progress' ? 'active' : ''
-                      }`}
-                    >
-                      <span>On Progress</span>
-                    </button>
-                  </li>
-                  <li>
-                    <button
-                      type="button"
-                      onClick={() => handleDeliverySubItemClick('Delivered')}
-                      className={`shv-sidebar-sublink ${
-                        currentTab === 'deliveries' && deliveryFilter === 'Delivered' ? 'active' : ''
-                      }`}
-                    >
-                      <span>Delivered</span>
-                    </button>
-                  </li>
-                  <li>
-                    <button
-                      type="button"
-                      onClick={() => handleDeliverySubItemClick('Canceled')}
-                      className={`shv-sidebar-sublink ${
-                        currentTab === 'deliveries' && deliveryFilter === 'Canceled' ? 'active' : ''
-                      }`}
-                    >
-                      <span>Canceled</span>
-                    </button>
-                  </li>
-                  <li>
-                    <button
-                      type="button"
-                      onClick={() => handleDeliverySubItemClick('Pending')}
-                      className={`shv-sidebar-sublink ${
-                        currentTab === 'deliveries' && deliveryFilter === 'Pending' ? 'active' : ''
-                      }`}
-                    >
-                      <span>Pending</span>
-                    </button>
-                  </li>
-                </ul>
-              )}
             </li>
 
             {/* Categories */}
@@ -308,7 +236,8 @@ const AdminSidebar = ({
             <button
               type="button"
               onClick={() => {
-                localStorage.removeItem('shveraa_admin_session');
+                sessionStorage.removeItem('shveraa_admin_token');
+                sessionStorage.removeItem('shveraa_admin_session');
                 window.location.reload();
               }}
               className="shv-admin-exit-btn"

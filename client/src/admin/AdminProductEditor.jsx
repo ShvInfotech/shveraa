@@ -61,6 +61,88 @@ const SAMPLE_JEWELRY_IMAGES = [
   'https://images.unsplash.com/photo-1535632787350-4e68ef0ac584?auto=format&fit=crop&w=900&q=85',
 ];
 
+// Keep the currently selected product value inside its dropdown option list so
+// a value saved on an existing product is never dropped from the select.
+const buildOptionsWithValue = (presets, currentValue) => {
+  if (
+    currentValue &&
+    !presets.some((preset) => preset.toLowerCase() === String(currentValue).toLowerCase())
+  ) {
+    return [...presets, currentValue];
+  }
+  return presets;
+};
+
+// Reusable spec dropdown with an inline "add value" action. A value typed by the
+// admin is appended to that dropdown's option list and selected immediately so
+// it can be saved with the product.
+const SpecSelectField = ({ label, value, options, onChange, onAddOption, placeholder }) => {
+  const [isAdding, setIsAdding] = useState(false);
+  const [draft, setDraft] = useState('');
+  const addInputRef = useRef(null);
+
+  const beginAdd = () => {
+    setDraft('');
+    setIsAdding(true);
+    setTimeout(() => addInputRef.current?.focus(), 0);
+  };
+
+  const cancelAdd = () => {
+    setIsAdding(false);
+    setDraft('');
+  };
+
+  const submitAdd = (e) => {
+    if (e) e.preventDefault();
+    const nextValue = draft.trim();
+    if (!nextValue) return;
+    onAddOption(nextValue);
+    setDraft('');
+    setIsAdding(false);
+  };
+
+  return (
+    <div className="shv-field half-width">
+      <label>{label}</label>
+      <div className="shv-spec-select-row">
+        <select value={value} onChange={(e) => onChange(e.target.value)}>
+          {options.map((opt) => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={beginAdd}
+          className="shv-spec-add-btn"
+          title="Add a new value to this dropdown"
+        >
+          <Plus size={15} />
+        </button>
+      </div>
+
+      {isAdding && (
+        <div className="shv-editor-custom-size-group">
+          <input
+            ref={addInputRef}
+            type="text"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') submitAdd(e);
+              if (e.key === 'Escape') cancelAdd();
+            }}
+            placeholder={placeholder}
+          />
+          <button type="button" onClick={submitAdd} className="shv-size-add-btn">
+            <Plus size={14} />
+            <span>Add</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
   const isEditing = Boolean(product && product._id);
   const fileInputRef = useRef(null);
@@ -144,6 +226,18 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
   const [previewHover, setPreviewHover] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [apiError, setApiError] = useState('');
+
+  // Spec dropdown option lists. They start from the presets plus any value the
+  // product was already saved with, and grow when the admin adds a new value.
+  const [metalTypeOptions, setMetalTypeOptions] = useState(() =>
+    buildOptionsWithValue(METAL_TYPES, product?.metalType || product?.material || METAL_TYPES[0])
+  );
+  const [finishOptions, setFinishOptions] = useState(() =>
+    buildOptionsWithValue(FINISH_TYPES, product?.finish || FINISH_TYPES[0])
+  );
+  const [gemstoneOptions, setGemstoneOptions] = useState(() =>
+    buildOptionsWithValue(GEMSTONE_TYPES, product?.stone || GEMSTONE_TYPES[0])
+  );
 
   // Add a new variant
   const handleAddVariant = () => {
@@ -433,6 +527,28 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
   };
 
 
+  // Append a custom value to a spec dropdown and select it right away so the
+  // admin can save the product with the freshly added value.
+  const addSpecOption = (currentOptions, setOptions, value, field) => {
+    const existing = currentOptions.find(
+      (option) => option.toLowerCase() === value.toLowerCase()
+    );
+    if (!existing) {
+      setOptions([...currentOptions, value]);
+    }
+    setFormData((prev) => ({ ...prev, [field]: existing || value }));
+  };
+
+  const handleAddMetalType = (value) =>
+    addSpecOption(metalTypeOptions, setMetalTypeOptions, value, 'metalType');
+
+  const handleAddFinish = (value) =>
+    addSpecOption(finishOptions, setFinishOptions, value, 'finish');
+
+  const handleAddGemstone = (value) =>
+    addSpecOption(gemstoneOptions, setGemstoneOptions, value, 'stone');
+
+
   // Save product - calls real API
   const handleFormSubmit = async (e) => {
     e.preventDefault();
@@ -682,17 +798,14 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
             </div>
 
             <div className="shv-editor-fields-grid">
-              <div className="shv-field half-width">
-                <label>Precious Metal Type</label>
-                <select
-                  value={formData.metalType}
-                  onChange={(e) => setFormData({ ...formData, metalType: e.target.value })}
-                >
-                  {METAL_TYPES.map((m) => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </select>
-              </div>
+              <SpecSelectField
+                label="Precious Metal Type"
+                value={formData.metalType}
+                options={metalTypeOptions}
+                onChange={(val) => setFormData({ ...formData, metalType: val })}
+                onAddOption={handleAddMetalType}
+                placeholder="e.g. 18K Gold Vermeil over 925 Silver"
+              />
 
               <div className="shv-field half-width">
                 <label>Hallmark &amp; Purity Stamp</label>
@@ -714,29 +827,23 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
                 />
               </div>
 
-              <div className="shv-field half-width">
-                <label>Plating &amp; Protective Finish</label>
-                <select
-                  value={formData.finish}
-                  onChange={(e) => setFormData({ ...formData, finish: e.target.value })}
-                >
-                  {FINISH_TYPES.map((f) => (
-                    <option key={f} value={f}>{f}</option>
-                  ))}
-                </select>
-              </div>
+              <SpecSelectField
+                label="Plating &amp; Protective Finish"
+                value={formData.finish}
+                options={finishOptions}
+                onChange={(val) => setFormData({ ...formData, finish: val })}
+                onAddOption={handleAddFinish}
+                placeholder="e.g. 18K Gold Micron Plating"
+              />
 
-              <div className="shv-field half-width">
-                <label>Gemstone / Diamond Type</label>
-                <select
-                  value={formData.stone}
-                  onChange={(e) => setFormData({ ...formData, stone: e.target.value })}
-                >
-                  {GEMSTONE_TYPES.map((g) => (
-                    <option key={g} value={g}>{g}</option>
-                  ))}
-                </select>
-              </div>
+              <SpecSelectField
+                label="Gemstone / Diamond Type"
+                value={formData.stone}
+                options={gemstoneOptions}
+                onChange={(val) => setFormData({ ...formData, stone: val })}
+                onAddOption={handleAddGemstone}
+                placeholder="e.g. Blue Sapphire &amp; 925 Silver"
+              />
 
               <div className="shv-field half-width">
                 <label>Gemstone Carat / Dimensions</label>

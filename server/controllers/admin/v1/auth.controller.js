@@ -5,50 +5,56 @@ import bcrypt from "bcrypt"
 
 
 
-export const AdminLogin = async (req,res,next)=>{
+export const AdminLogin = async (req, res, next) => {
     try {
 
-         const {email,password,deviceToken} = req.body || {}
+        const { email, password, deviceToken } = req.body || {}
 
-         if(!email){
-            return next(CustomeError(422,"Email is Required"))
-         }
+        if (!email) {
+            return next(CustomeError(422, "Email is Required"))
+        }
 
-         if(!password){
-            return next(CustomeError(422,"Password is Required"))
-         }
+        if (!password) {
+            return next(CustomeError(422, "Password is Required"))
+        }
 
-         let admin = await UserModel.findOne({email:email,role:'admin'})
+        let admin = await UserModel.findOne({ email: email, role: 'admin' })
 
-         if(!admin){
-            return next(CustomeError(404,"Admin Not Found"))
-         }
+        if (!admin) {
+            return next(CustomeError(404, "Admin Not Found"))
+        }
 
-         const matchPassword = await bcrypt.compare(password, admin.password)
-         if(!matchPassword){
-            return next(CustomeError(403,"password not match"))
-         }
+        const matchPassword = await bcrypt.compare(password, admin.password)
+        if (!matchPassword) {
+            return next(CustomeError(403, "password not match"))
+        }
 
         const token = generateJwtToken(admin)
         const hashAccessToken = generatehashToken(token)
 
 
 
-        const updateData = { $addToSet: { accessToken: hashAccessToken } };
+        const updateData = {
+            $set: {
+                accessToken: [hashAccessToken]
+            }
+        };
 
         if (deviceToken) {
-            updateData.$addToSet.deviceToken = deviceToken;
+            updateData.$addToSet = {
+                deviceToken
+            };
         }
 
         admin = await UserModel.findByIdAndUpdate(admin._id, updateData, { returnDocument: 'after' }).select('name email phone profile createdAt')
 
 
         return res.status(200).json({ success: true, message: "User Register", admin, AccessToken: token })
-        
+
     } catch (error) {
-       return next(error) 
+        return next(error)
     }
-} 
+}
 
 
 

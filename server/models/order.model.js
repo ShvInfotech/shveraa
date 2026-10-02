@@ -150,7 +150,8 @@ const orderSchema = new mongoose.Schema(
             accountType: { type: String, enum: ["savings", "current"] }
           },
           default: null
-        }
+        },
+        refundedAt:{type: Date, default: null},
       },
       default: null
     }

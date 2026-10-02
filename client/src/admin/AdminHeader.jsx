@@ -4,7 +4,7 @@ import {
   Calendar,
   LayoutDashboard,
   ShoppingBag,
-  Truck,
+  RotateCcw,
   Package,
   DollarSign,
   Settings,
@@ -21,7 +21,7 @@ import { logoutAdmin } from '../services/storeService';
 const TAB_ICONS = {
   dashboard: <LayoutDashboard size={16} />,
   orders: <ShoppingBag size={16} />,
-  deliveries: <Truck size={16} />,
+  returns: <RotateCcw size={16} />,
   categories: <Layers size={16} />,
   products: <Package size={16} />,
   'product-editor': <Sparkles size={16} />,
@@ -35,7 +35,7 @@ const TAB_ICONS = {
 const TAB_NAMES = {
   dashboard: 'Dashboard',
   orders: 'Orders',
-  deliveries: 'Track Deliveries',
+  returns: 'Return Management',
   categories: 'Categories',
   products: 'Products',
   'product-editor': 'Jewellery Studio & Editor',

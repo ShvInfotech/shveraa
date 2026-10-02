@@ -4,7 +4,7 @@ import { getImageUrl } from '../services/api';
 
 const STATUS_TABS = ['All', 'pending', 'accepted', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'cancelled'];
 
-const AdminOrders = ({ orders, onUpdateStatus, searchQuery }) => {
+const AdminOrders = ({ orders, onUpdateStatus, searchQuery, isLoading = false }) => {
   const [selectedStatusTab, setSelectedStatusTab] = useState('All');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [selectedOrderIds, setSelectedOrderIds] = useState([]);
@@ -236,7 +236,16 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery }) => {
               </tr>
             </thead>
             <tbody>
-              {filteredOrders.length === 0 ? (
+              {isLoading ? (
+                <tr>
+                  <td
+                    colSpan={selectedStatusTab === 'All' ? 7 : 8}
+                    style={{ textAlign: 'center', padding: '3rem', color: 'var(--admin-text-muted)' }}
+                  >
+                    Loading orders…
+                  </td>
+                </tr>
+              ) : filteredOrders.length === 0 ? (
                 <tr>
                   <td
                     colSpan={selectedStatusTab === 'All' ? 7 : 8}

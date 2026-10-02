@@ -146,6 +146,7 @@ export const RozerpayPaymentVerifyPlaceOrder = async (req, res, next) => {
     let width = 23
     let height = 23
     let quantity = 0
+    let productdescription = ""
     for (const item of cartItems) {
       const product = products.find((p) => p._id.toString() === item.productId);
 
@@ -173,6 +174,7 @@ export const RozerpayPaymentVerifyPlaceOrder = async (req, res, next) => {
         items.push(data)
         weigth += (product.packing.weight || 0) * item.quantity
         quantity += item.quantity
+        productdescription += `${product.name} (${item.size}) x ${item.quantity}, `
       }
     }
 
@@ -214,10 +216,10 @@ export const RozerpayPaymentVerifyPlaceOrder = async (req, res, next) => {
           "phone": address.phone || req.user.phone,
           "order": orderNumber,
           "payment_mode": "Prepaid",
-          "products_desc": "",
+          "products_desc": productdescription,
           "cod_amount": "0",
           "total_amount": totalAmount,
-          "quantity": quantity,
+          "quantity": String(quantity),
           "weight": weigth * 1000,
           "shipment_width": width,
           "shipment_height": height,
@@ -230,7 +232,7 @@ export const RozerpayPaymentVerifyPlaceOrder = async (req, res, next) => {
       }
     }
 
-
+console.log(delhiveryPayload)
     const result = await CreateShippingOrderService(delhiveryPayload)
 
     let waybill = ""

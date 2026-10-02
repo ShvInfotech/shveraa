@@ -16,6 +16,12 @@ if (typeof window !== 'undefined') {
   localStorage.removeItem('shveraa_dyn_products');
   // Coupon data must be sourced from the database, never an old browser cache.
   localStorage.removeItem('shveraa_dyn_coupons');
+  // Admin credentials now live in sessionStorage so they are discarded as soon
+  // as the tab closes. Purge any legacy localStorage copies left behind so an
+  // old admin token can never be replayed.
+  localStorage.removeItem('shveraa_admin_token');
+  localStorage.removeItem('shveraa_admin_session');
+  localStorage.removeItem('shveraa_admin_pwd');
 }
 
 const STORAGE_KEYS = {
@@ -454,7 +460,7 @@ export const useDynamicStore = () => {
    ========================================================================== */
 export const getAdminAuth = () => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.ADMIN_AUTH);
+    const raw = sessionStorage.getItem(STORAGE_KEYS.ADMIN_AUTH);
     if (!raw) return null;
     return JSON.parse(raw);
   } catch {
@@ -474,7 +480,7 @@ export const loginAdmin = async (email, password) => {
     const res = await apiAdminLogin({ email, password, deviceToken });
     if (res?.admin) {
       const adminUser = res.admin;
-      localStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, JSON.stringify(adminUser));
+      sessionStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, JSON.stringify(adminUser));
       notifyStoreUpdated('ADMIN_AUTH_CHANGED', adminUser);
       return { success: true, user: adminUser };
     }
@@ -486,7 +492,7 @@ export const loginAdmin = async (email, password) => {
 
 export const logoutAdmin = async () => {
   await apiAdminLogout();
-  localStorage.removeItem(STORAGE_KEYS.ADMIN_AUTH);
+  sessionStorage.removeItem(STORAGE_KEYS.ADMIN_AUTH);
   notifyStoreUpdated('ADMIN_AUTH_CHANGED', null);
 };
 
@@ -494,6 +500,6 @@ export const updateAdminPassword = (newPassword) => {
   if (!newPassword || newPassword.length < 6) {
     return { success: false, message: 'Password must be at least 6 characters long.' };
   }
-  localStorage.setItem('shveraa_admin_pwd', newPassword);
+  sessionStorage.setItem('shveraa_admin_pwd', newPassword);
   return { success: true, message: 'Admin master passphrase successfully updated.' };
 };

@@ -125,7 +125,7 @@ const AppContent = () => {
   const [isBypassed, setIsBypassed] = useState(() => {
     try {
       const saved = localStorage.getItem('shveraa_bypass_coming_soon');
-      const adminToken = localStorage.getItem('shveraa_admin_token') || localStorage.getItem('shveraa_admin_session');
+      const adminToken = sessionStorage.getItem('shveraa_admin_token') || sessionStorage.getItem('shveraa_admin_session');
       return saved === 'true' || !!adminToken;
     } catch (e) {
       return false;

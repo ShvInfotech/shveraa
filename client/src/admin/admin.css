@@ -2489,6 +2489,40 @@
   white-space: nowrap;
 }
 
+/* Spec dropdown with inline "add value" action */
+.shv-spec-select-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+}
+
+.shv-spec-select-row select {
+  flex: 1;
+  min-width: 0;
+}
+
+.shv-spec-add-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  min-height: 42px;
+  padding: 0;
+  background: #1E2229;
+  border: 1px solid #1E2229;
+  border-radius: 8px;
+  color: #FFFFFF;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.shv-spec-add-btn:hover {
+  background: #a07e52;
+  border-color: #a07e52;
+}
+
 .shv-custom-chip {
   border-color: #a07e52;
   color: #a07e52;

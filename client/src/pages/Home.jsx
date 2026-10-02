@@ -347,16 +347,8 @@ const Home = () => {
       {/* 3. Trending Products Section (Directly after Hero/Trust Ribbon) */}
       <section className="section-products shv-products-section shv-trending-section">
         <div className="container">
-          <div className="shv-section-editorial-header">
-            <div className="shv-trending-live-pill">
-              <span className="shv-trending-pulse" />
-              <Sparkles size={12} />
-              <span>TRENDING NOW</span>
-            </div>
+          <div className="shv-section-editorial-header" style={{ marginBottom: '2.5rem' }}>
             <h2 className="shv-section-heading">Trending 925 Silver Pieces</h2>
-            <p className="shv-section-lead">
-              Discover the most-coveted silhouettes turning heads this season, cast in certified solid silver.
-            </p>
             <div className="shv-header-flourish">
               <span className="shv-flourish-line" />
               <span className="shv-flourish-star">✦</span>
@@ -392,12 +384,8 @@ const Home = () => {
       {/* 4. Shop by Category — Curated Silhouettes */}
       <section className="section-categories shv-categories-section">
         <div className="container">
-          <div className="shv-section-editorial-header">
-            <span className="shv-script-eyebrow">Curated Silhouettes</span>
+          <div className="shv-section-editorial-header" style={{ marginBottom: '2.5rem' }}>
             <h2 className="shv-section-heading">Formed in Pure 925 Silver</h2>
-            <p className="shv-section-lead">
-              Sculpted to be stacked, layered, and collected as personal talismans.
-            </p>
             <div className="shv-header-flourish">
               <span className="shv-flourish-line" />
               <span className="shv-flourish-star">✦</span>
@@ -419,117 +407,6 @@ const Home = () => {
       {/* 6. Shop by Collection — Signature Silversmithing Stories with Live Product List */}
       <ShopByCollection products={bestsellers} loading={loading} />
 
-      {/* 5. The Atelier Philosophy — Authentic Master Silversmithing Story (NO AI Tabs) */}
-      <section className="shv-atelier-story-section">
-        <div className="container">
-          <div className="shv-atelier-grid">
-            {/* Left: Atmospheric Silversmith Craft Photography Stack */}
-            <div className="shv-atelier-media-column">
-              <div className="shv-atelier-main-card">
-                <img
-                  src="/atelier-craftsman.jpg"
-                  alt="Master Silversmith at Work in the Shveraa Atelier"
-                  className="shv-atelier-hero-img"
-                  loading="lazy"
-                />
-                <div className="shv-atelier-img-overlay" />
-
-                {/* Floating Archival Seal */}
-                <div className="shv-atelier-floating-seal" aria-hidden="true">
-                  <svg viewBox="0 0 140 140" className="shv-atelier-seal-svg">
-                    <defs>
-                      <path
-                        id="atelierSealPath"
-                        d="M 70,70 m -48,0 a 48,48 0 1,1 96,0 a 48,48 0 1,1 -96,0"
-                      />
-                    </defs>
-                    <text className="shv-atelier-seal-text">
-                      <textPath href="#atelierSealPath" startOffset="0%">
-                        • SHVERAA ATELIER • HAND FINISHED 925 •
-                      </textPath>
-                    </text>
-                  </svg>
-                  <div className="shv-atelier-seal-center">
-                    <Sparkles size={16} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Overlapping Secondary Macro Hallmark Inscription Card */}
-              <div className="shv-atelier-inset-card">
-                <img
-                  src="/atelier-hallmark.jpg"
-                  alt="Solid 925 Hallmark Engraving on Travertine"
-                  className="shv-atelier-inset-img"
-                  loading="lazy"
-                />
-                <div className="shv-atelier-inset-meta">
-                  <span className="shv-inset-badge">BIS 925 ASSAY</span>
-                  <span className="shv-inset-caption">Every piece hallmarked for lifetime purity</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Right: Poetic Luxury Narrative & 3 Noble Pillars */}
-            <div className="shv-atelier-narrative-column">
-              <span className="shv-script-eyebrow">The Atelier Philosophy</span>
-              <h2 className="shv-atelier-title">
-                Born From Fire, <br />
-                <span className="shv-title-italic">Shaped for a Lifetime.</span>
-              </h2>
-
-              <p className="shv-atelier-lead">
-                We believe silver is more than metal — it is light given permanence. In a world of fleeting fashion, our atelier insists upon the unhurried craft of honest silversmithing.
-              </p>
-
-              {/* 3 Authentic Craft Pillars */}
-              <div className="shv-atelier-pillars">
-                <div className="shv-pillar-item">
-                  <div className="shv-pillar-index">I</div>
-                  <div className="shv-pillar-body">
-                    <h4>Solid Noble Metal Covenant</h4>
-                    <p>
-                      Every piece begins as certified 92.5% sterling silver. We never use cheap brass bases or hollow alloys. What touches your skin holds permanent intrinsic worth.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="shv-pillar-item">
-                  <div className="shv-pillar-index">II</div>
-                  <div className="shv-pillar-body">
-                    <h4>Eighteen Steps of Artisan Finishing</h4>
-                    <p>
-                      Casting, filing, hand-burnishing, and micro-buffing. Veteran hands shape each contour for a featherweight, silk-smooth glide engineered for everyday wear.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="shv-pillar-item">
-                  <div className="shv-pillar-index">III</div>
-                  <div className="shv-pillar-body">
-                    <h4>Triple-Dipped Platinum Shield</h4>
-                    <p>
-                      An ultra-pure electroplate of noble Rhodium locks out oxygen, water, and humidity — giving your silver an impervious mirror brilliance that laughs at tarnish.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="shv-atelier-actions">
-                <Link to="/about" className="shv-btn-editorial-primary">
-                  <span>DISCOVER OUR CRAFT</span>
-                  <ArrowRight size={16} />
-                </Link>
-
-                <div className="shv-atelier-sig-wrap">
-                  <span className="shv-atelier-sig-script">Shveraa Atelier</span>
-                  <span className="shv-atelier-sig-sub">Surat &bull; Mumbai</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Brand Assurance Full-Screen Marquee Ticker Carousel */}
       <BrandTickerRibbon />

@@ -1,67 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import ProductCard from './ProductCard';
 import Loader from './Loader';
 import { fetchProducts } from '../services/api';
 
-const SIGNATURE_COLLECTIONS = [
-  {
-    id: 'rings',
-    categoryKey: 'rings',
-    badge: 'SIGNATURE EDIT',
-    title: 'The Solitaire Treasury',
-    shortName: 'Solitaire Rings',
-    tagline: 'From ₹1,299 • 24 Silhouettes',
-    description: 'Brilliant moissanite solitaires, molten wave bands, and micro-pavé halos.',
-    image: '/hero-ring-banner.jpg',
-    link: '/shop?category=rings',
-  },
-  {
-    id: 'necklaces',
-    categoryKey: 'necklaces',
-    badge: 'NEW ARRIVAL',
-    title: 'Liquid Mercury Chains',
-    shortName: 'Chains & Pendants',
-    tagline: 'From ₹1,899 • 18 Silhouettes',
-    description: 'Italian-engineered herringbone ribbons and fluid snake links that drape like silk.',
-    image: '/hero-necklace-banner.jpg',
-    link: '/shop?category=necklaces',
-  },
-  {
-    id: 'earrings',
-    categoryKey: 'earrings',
-    badge: 'BESTSELLER',
-    title: 'Featherweight Atelier Drops',
-    shortName: 'Sculptural Earrings',
-    tagline: 'From ₹1,199 • 22 Silhouettes',
-    description: 'Hollow-cast sculptural hoops and huggies crafted for weightless all-day radiance.',
-    image: '/hero-earrings-banner.jpg',
-    link: '/shop?category=earrings',
-  },
-  {
-    id: 'bracelets',
-    categoryKey: 'bracelets',
-    badge: 'TIMELESS LUXURY',
-    title: 'Mirage Tennis & Cuffs',
-    shortName: 'Tennis & Cuffs',
-    tagline: 'From ₹1,699 • 16 Silhouettes',
-    description: 'Hand-articulated bezel-set tennis wristlets and contoured molten silver cuffs.',
-    image: '/hero-bracelet-banner.jpg',
-    link: '/shop?category=bracelets',
-  },
-];
-
-const COLLECTION_TABS = [
-  { id: 'all', categoryKey: 'all', name: 'All Curations', icon: '✦' },
-  { id: 'rings', categoryKey: 'rings', name: 'The Solitaire Treasury', icon: '💍' },
-  { id: 'necklaces', categoryKey: 'necklaces', name: 'Liquid Mercury Chains', icon: '✨' },
-  { id: 'earrings', categoryKey: 'earrings', name: 'Featherweight Atelier Drops', icon: '💎' },
-  { id: 'bracelets', categoryKey: 'bracelets', name: 'Mirage Tennis & Cuffs', icon: '⚡' },
-];
-
 const ShopByCollection = ({ products = [], loading = false }) => {
-  const [activeTab, setActiveTab] = useState('all');
   const [catalog, setCatalog] = useState(products || []);
   const [fetching, setFetching] = useState(false);
 
@@ -70,7 +14,6 @@ const ShopByCollection = ({ products = [], loading = false }) => {
     if (products && products.length > 0) {
       setCatalog(products);
     } else if (!catalog.length && !loading) {
-      // Standalone fallback: fetch products if not provided
       setFetching(true);
       fetchProducts()
         .then((res) => {
@@ -83,71 +26,58 @@ const ShopByCollection = ({ products = [], loading = false }) => {
     }
   }, [products, loading]);
 
-  // Filter products for the active collection
+  // Fixed 8 products in mixed categories (rings, necklaces, earrings, bracelets)
   const displayedProducts = useMemo(() => {
     if (!catalog || !catalog.length) return [];
-    if (activeTab === 'all') return catalog.slice(0, 8);
 
-    const key = activeTab.toLowerCase();
-
-    // 1. Direct category match
-    let matches = catalog.filter((p) => {
-      const cat = (p.category || '').toLowerCase();
-      return cat === key || cat.includes(key);
+    const categoryGroups = {};
+    catalog.forEach((p) => {
+      const cat = (p.category || 'curated').toLowerCase().trim();
+      if (!categoryGroups[cat]) categoryGroups[cat] = [];
+      categoryGroups[cat].push(p);
     });
 
-    // 2. Keyword fallback match if direct category count is low
-    if (matches.length < 4) {
-      const keywordMap = {
-        rings: ['ring', 'band', 'solitaire', 'halo'],
-        necklaces: ['necklace', 'chain', 'pendant', 'choker', 'herringbone'],
-        earrings: ['earring', 'hoop', 'huggie', 'drop', 'stud'],
-        bracelets: ['bracelet', 'cuff', 'bangle', 'tennis'],
-      };
-      const keywords = keywordMap[key] || [key];
-      const keywordMatches = catalog.filter((p) => {
-        const name = (p.name || p.title || '').toLowerCase();
-        return keywords.some((kw) => name.includes(kw));
-      });
+    const categoryKeys = Object.keys(categoryGroups);
+    const mixed = [];
+    let round = 0;
 
-      const seenIds = new Set(matches.map((m) => m._id || m.slug));
-      keywordMatches.forEach((p) => {
-        const id = p._id || p.slug;
-        if (!seenIds.has(id)) {
-          matches.push(p);
-          seenIds.add(id);
+    // Round-robin pick from each category to ensure an authentic category mix
+    while (mixed.length < 8 && round < 20) {
+      let addedInRound = false;
+      for (const cat of categoryKeys) {
+        if (categoryGroups[cat][round] && mixed.length < 8) {
+          mixed.push(categoryGroups[cat][round]);
+          addedInRound = true;
         }
-      });
+      }
+      if (!addedInRound) break;
+      round++;
     }
 
-    // 3. Fallback to top products if category empty so UI is never blank
-    if (matches.length === 0) {
-      return catalog.slice(0, 8);
+    // If still less than 8, backfill from remaining catalog
+    if (mixed.length < 8) {
+      const existingIds = new Set(mixed.map((m) => m._id || m.slug));
+      for (const p of catalog) {
+        const pId = p._id || p.slug;
+        if (!existingIds.has(pId)) {
+          mixed.push(p);
+          existingIds.add(pId);
+          if (mixed.length === 8) break;
+        }
+      }
     }
 
-    return matches.slice(0, 8);
-  }, [catalog, activeTab]);
-
-  // Active collection metadata
-  const currentCollection = SIGNATURE_COLLECTIONS.find((c) => c.id === activeTab);
-  const activeTitle = currentCollection ? currentCollection.title : 'All Atelier Pieces';
-  const activeDesc = currentCollection
-    ? currentCollection.description
-    : 'Complete archive of certified solid 925 sterling silver heirlooms, hand-finished in Surat.';
-  const activeShopLink = currentCollection ? currentCollection.link : '/shop';
+    return mixed.slice(0, 8);
+  }, [catalog]);
 
   const isLoading = loading || fetching;
 
   return (
     <section className="section-collections shv-collections-section" id="shop-by-collection">
       <div className="container">
-        {/* Editorial Centered Header */}
-        <div className="shv-section-editorial-header">
-          <span className="shv-script-eyebrow">Signature Curations</span>
-          <h2 className="shv-section-heading">Shop by Collection</h2>
-          <p className="shv-section-lead">
-            Thematic silversmithing stories sculpted for everyday grace, milestone celebrations, and modern muses.
-          </p>
+        {/* Minimal Section Header */}
+        <div className="shv-section-editorial-header" style={{ marginBottom: '2.5rem' }}>
+          <h2 className="shv-section-heading">Signature Curations</h2>
           <div className="shv-header-flourish">
             <span className="shv-flourish-line" />
             <span className="shv-flourish-star">✦</span>
@@ -155,49 +85,13 @@ const ShopByCollection = ({ products = [], loading = false }) => {
           </div>
         </div>
 
-        {/* Collection Filter Tabs */}
-        <div className="shv-collection-tabs-wrap">
-          <div className="shv-collection-tabs-scroll">
-            {COLLECTION_TABS.map((tab) => {
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`shv-collection-tab-pill ${isActive ? 'active' : ''}`}
-                >
-                  <span className="shv-tab-pill-icon">{tab.icon}</span>
-                  <span className="shv-tab-pill-name">{tab.name}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Active Collection Spotlight Strip */}
-        <div className="shv-collection-spotlight-strip">
-          <div className="shv-spotlight-info">
-            <span className="shv-spotlight-badge">
-              <Sparkles size={12} />
-              CURATED COLLECTION
-            </span>
-            <h3 className="shv-spotlight-title">{activeTitle}</h3>
-            <p className="shv-spotlight-desc">{activeDesc}</p>
-          </div>
-          <Link to={activeShopLink} className="shv-spotlight-link">
-            <span>Explore All {activeTitle}</span>
-            <ArrowRight size={14} />
-          </Link>
-        </div>
-
-        {/* Live Product Cards Grid */}
+        {/* Live Product Cards Grid - Fixed 8 Mixed Products */}
         <div className="shv-collection-products-wrap">
           {isLoading ? (
-            <Loader text="Curating collection pieces in pure 925 silver..." />
+            <Loader text="Curating 925 silver collection..." />
           ) : displayedProducts.length === 0 ? (
             <div className="shv-collection-empty">
-              <p>Atelier craftsmen are currently forging new pieces for this collection.</p>
+              <p>Atelier craftsmen are currently forging new pieces.</p>
               <Link to="/shop" className="shv-btn-editorial-outline">
                 <span>BROWSE ENTIRE VAULT</span>
                 <ArrowRight size={14} />
@@ -208,10 +102,7 @@ const ShopByCollection = ({ products = [], loading = false }) => {
               {displayedProducts.map((product) => (
                 <ProductCard
                   key={product._id || product.slug}
-                  product={{
-                    ...product,
-                    badge: product.badge || (currentCollection?.badge ? currentCollection.badge : 'Collection'),
-                  }}
+                  product={product}
                 />
               ))}
             </div>
@@ -219,9 +110,9 @@ const ShopByCollection = ({ products = [], loading = false }) => {
         </div>
 
         {/* Bottom CTA Link to Shop Page */}
-        <div className="shv-collections-footer-cta">
-          <Link to={activeShopLink} className="shv-btn-editorial-outline">
-            <span>VIEW COMPLETE {activeTitle.toUpperCase()} IN SHOP</span>
+        <div className="shv-collections-footer-cta" style={{ marginTop: '3rem' }}>
+          <Link to="/shop" className="shv-btn-editorial-outline">
+            <span>EXPLORE ALL PIECES</span>
             <ArrowRight size={15} />
           </Link>
         </div>

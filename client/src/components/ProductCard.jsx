@@ -173,6 +173,54 @@ const ProductCard = ({ product }) => {
 
           
 
+          {/* Floating Color Variations Overlay on Image */}
+          {availableColors && availableColors.length > 1 && (
+            <div
+              className="product-card-floating-swatches"
+              onMouseEnter={() => setIsSwatchHovering(true)}
+              onMouseLeave={() => setIsSwatchHovering(false)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onTouchEnd={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              {availableColors.map((color) => {
+                const isActive = selectedColor?.toLowerCase() === color.name?.toLowerCase();
+                return (
+                  <button
+                    key={color.id || color.name}
+                    type="button"
+                    onMouseEnter={() => handleVariantHover(color.name)}
+                    onClick={(e) => handleVariantSelect(e, color.name)}
+                    onTouchStart={() => {
+                      touchMovedRef.current = false;
+                    }}
+                    onTouchMove={() => {
+                      touchMovedRef.current = true;
+                    }}
+                    onTouchEnd={(e) => {
+                      if (!touchMovedRef.current) {
+                        handleVariantSelect(e, color.name);
+                      }
+                    }}
+                    className={`product-color-swatch-dot ${isActive ? 'active' : ''}`}
+                    style={{
+                      background: color.gradient || color.hex,
+                      borderColor: color.border || '#CBD5E1',
+                    }}
+                    title={`${color.name}`}
+                    aria-label={`Select ${color.name}`}
+                  >
+                    {isActive && <span className="product-color-swatch-center-dot" />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {/* Wishlist Heart Button */}
           <button
             type="button"
@@ -200,83 +248,11 @@ const ProductCard = ({ product }) => {
           </div>
         </div>
 
-        {/* Product Details */}
+        {/* Product Details (Strictly Only Name & Price - Small Font Focus) */}
         <div className="product-info">
-          <div className="product-meta-row">
-            <span className="product-category-tag">{product.category}</span>
-            {product.rating && (
-              <span className="product-rating-tag">
-                <Star size={11} fill="#B8BCC2" color="#B8BCC2" />
-                <span>{product.rating}</span>
-              </span>
-            )}
-          </div>
-
-          <h3 className="product-title">{product.name}</h3>
-
-          {/* Color Variation Swatches */}
-          <div
-            className="product-card-colors-row"
-            onMouseEnter={() => setIsSwatchHovering(true)}
-            onMouseLeave={() => setIsSwatchHovering(false)}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-            }}
-            onTouchEnd={(e) => {
-              e.stopPropagation();
-            }}
-          >
-            <div className="product-card-swatches-wrap">
-              {availableColors.map((color) => {
-                const isActive = selectedColor === color.name;
-                return (
-                  <button
-                    key={color.id || color.name}
-                    type="button"
-                    onMouseEnter={() => handleVariantHover(color.name)}
-                    onClick={(e) => handleVariantSelect(e, color.name)}
-                    onTouchStart={() => {
-                      touchMovedRef.current = false;
-                    }}
-                    onTouchMove={() => {
-                      touchMovedRef.current = true;
-                    }}
-                    onTouchEnd={(e) => {
-                      if (!touchMovedRef.current) {
-                        handleVariantSelect(e, color.name);
-                      }
-                    }}
-                    className={`product-color-swatch-dot ${isActive ? 'active' : ''}`}
-                    style={{
-                      background: color.gradient || color.hex,
-                      borderColor: color.border || '#CBD5E1',
-                    }}
-                    title={`${color.name} (${color.badge || '925 Silver'})`}
-                    aria-label={`Select ${color.name}`}
-                  >
-                    {isActive && <span className="product-color-swatch-center-dot" />}
-                  </button>
-                );
-              })}
-            </div>
-            <span className="product-color-active-label">
-              {availableColors.find((c) => c.name === selectedColor)?.shortName || selectedColor}
-            </span>
-          </div>
-
+          <h3 className="product-title" title={product.name}>{product.name}</h3>
           <div className="product-price-row">
             <span className="product-price">₹{Number(displayPrice || 0).toLocaleString('en-IN')}</span>
-            {Boolean(product.originalPrice && Number(product.originalPrice) > Number(displayPrice)) ? (
-              <>
-                <span className="product-original-price">
-                  ₹{Number(product.originalPrice).toLocaleString('en-IN')}
-                </span>
-                <span className="product-save-percent">
-                  Save {Math.round(((Number(product.originalPrice) - Number(displayPrice)) / Number(product.originalPrice)) * 100)}%
-                </span>
-              </>
-            ) : null}
           </div>
         </div>
       </Link>

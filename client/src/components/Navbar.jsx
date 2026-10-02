@@ -35,6 +35,7 @@ const Navbar = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [megaMenuOpen, setMegaMenuOpen] = useState(null); // 'shop' | 'collections' | 'personalised' | null
+  const [mobileCollectionsOpen, setMobileCollectionsOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
   const configuredAnnouncements = Array.isArray(settings?.announcements)
@@ -75,6 +76,7 @@ const Navbar = () => {
   const closeAllMenus = () => {
     setMobileMenuOpen(false);
     setMegaMenuOpen(null);
+    setMobileCollectionsOpen(false);
   };
 
   const location = useLocation();
@@ -450,56 +452,157 @@ const Navbar = () => {
         </form>
 
         <div className="drawer-links">
-          <NavLink to="/" onClick={closeAllMenus} className="drawer-link">
+          {/* Main Primary Navigation matching Desktop Header */}
+          <Link
+            to="/"
+            onClick={closeAllMenus}
+            className={`drawer-link ${isHomePage ? 'active' : ''}`}
+          >
             Home
-          </NavLink>
-          <NavLink to="/shop" onClick={closeAllMenus} className="drawer-link">
-            Shop All 925 Silver
-          </NavLink>
-          <NavLink to="/shop?category=personalised" onClick={closeAllMenus} className="drawer-link">
-            Personalised &amp; Name Jewellery
-          </NavLink>
-          <NavLink to="/about" onClick={closeAllMenus} className="drawer-link">
-            Our Atelier Story
-          </NavLink>
-          <NavLink to="/contact" onClick={closeAllMenus} className="drawer-link">
-            Contact &amp; Customer Care
-          </NavLink>
-          <NavLink to="/wishlist" onClick={closeAllMenus} className="drawer-link">
-            My Wishlist ({wishlistCount})
-          </NavLink>
-          <NavLink to="/track-order" onClick={closeAllMenus} className="drawer-link">
-            Track Order Status
-          </NavLink>
-          <NavLink to="/size-guide" onClick={closeAllMenus} className="drawer-link">
-            Ring Size &amp; Silver Care
-          </NavLink>
-          {isAuthenticated ? (
-            <NavLink to="/account" onClick={closeAllMenus} className="drawer-link" style={{ color: 'var(--color-gold, #B08D57)', fontWeight: 600 }}>
-              My Atelier Account &amp; Orders ({user?.name?.split(' ')[0]})
-            </NavLink>
-          ) : (
-            <NavLink to="/login" onClick={closeAllMenus} className="drawer-link" style={{ color: 'var(--color-gold, #B08D57)', fontWeight: 600 }}>
-              Sign In to Atelier Vault
-            </NavLink>
-          )}
-        </div>
+          </Link>
 
-        {/* Categories Section */}
-        <div className="drawer-categories">
-          <div className="drawer-categories-title">Categories</div>
-          <div className="drawer-category-pills">
-            {categories.map((cat) => (
+          {/* Collections with Submenu Accordion */}
+          <div className="drawer-accordion-group">
+            <div className="drawer-accordion-row">
               <Link
-                key={cat.slug || cat.id}
-                to={`/shop?category=${cat.slug}`}
+                to="/shop"
                 onClick={closeAllMenus}
-                className="drawer-cat-chip"
+                className={`drawer-link drawer-accordion-link ${isShopRoute && !currentCategory ? 'active' : ''}`}
               >
-                {cat.name}
+                Collections
               </Link>
-            ))}
+              <button
+                type="button"
+                className="drawer-accordion-toggle"
+                onClick={() => setMobileCollectionsOpen(!mobileCollectionsOpen)}
+                aria-label="Toggle collections menu"
+              >
+                <ChevronDown
+                  size={18}
+                  className={`drawer-chevron ${mobileCollectionsOpen ? 'open' : ''}`}
+                />
+              </button>
+            </div>
+            {mobileCollectionsOpen && (
+              <div className="drawer-submenu">
+                <Link to="/shop" onClick={closeAllMenus} className="drawer-sublink">
+                  <span>✦ View All Collections</span>
+                </Link>
+                {categories.map((cat) => (
+                  <Link
+                    key={cat.slug || cat.id}
+                    to={`/shop?category=${cat.slug}`}
+                    onClick={closeAllMenus}
+                    className={`drawer-sublink ${currentCategory === cat.slug ? 'active' : ''}`}
+                  >
+                    <span>{cat.name}</span>
+                    <span className="drawer-sublink-meta">{cat.subtitle || '925 Silver'}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
+
+          <Link
+            to="/shop?category=rings"
+            onClick={closeAllMenus}
+            className={`drawer-link ${isShopRoute && currentCategory === 'rings' ? 'active' : ''}`}
+          >
+            Rings
+          </Link>
+
+          <Link
+            to="/shop?category=necklaces"
+            onClick={closeAllMenus}
+            className={`drawer-link ${isShopRoute && currentCategory === 'necklaces' ? 'active' : ''}`}
+          >
+            Necklaces
+          </Link>
+
+          <Link
+            to="/shop?category=earrings"
+            onClick={closeAllMenus}
+            className={`drawer-link ${isShopRoute && currentCategory === 'earrings' ? 'active' : ''}`}
+          >
+            Earrings
+          </Link>
+
+          <Link
+            to="/shop?category=bracelets"
+            onClick={closeAllMenus}
+            className={`drawer-link ${isShopRoute && currentCategory === 'bracelets' ? 'active' : ''}`}
+          >
+            Bracelets
+          </Link>
+
+          <Link
+            to="/shop?category=personalised"
+            onClick={closeAllMenus}
+            className={`drawer-link ${isShopRoute && currentCategory === 'personalised' ? 'active' : ''}`}
+          >
+            Custom Jewellery
+          </Link>
+
+          {/* Secondary Support & Utility Links */}
+          <div className="drawer-divider" />
+
+          <Link
+            to="/about"
+            onClick={closeAllMenus}
+            className={`drawer-link drawer-link-secondary ${location.pathname === '/about' ? 'active' : ''}`}
+          >
+            Our Atelier Story
+          </Link>
+
+          <Link
+            to="/contact"
+            onClick={closeAllMenus}
+            className={`drawer-link drawer-link-secondary ${location.pathname === '/contact' ? 'active' : ''}`}
+          >
+            Contact &amp; Customer Care
+          </Link>
+
+          <Link
+            to="/wishlist"
+            onClick={closeAllMenus}
+            className={`drawer-link drawer-link-secondary ${location.pathname === '/wishlist' ? 'active' : ''}`}
+          >
+            My Wishlist ({wishlistCount})
+          </Link>
+
+          <Link
+            to="/track-order"
+            onClick={closeAllMenus}
+            className={`drawer-link drawer-link-secondary ${location.pathname === '/track-order' ? 'active' : ''}`}
+          >
+            Track Order Status
+          </Link>
+
+          <Link
+            to="/size-guide"
+            onClick={closeAllMenus}
+            className={`drawer-link drawer-link-secondary ${location.pathname === '/size-guide' ? 'active' : ''}`}
+          >
+            Ring Size &amp; Silver Care
+          </Link>
+
+          {isAuthenticated ? (
+            <Link
+              to="/account"
+              onClick={closeAllMenus}
+              className="drawer-link drawer-link-secondary drawer-link-account"
+            >
+              My Atelier Account &amp; Orders ({user?.name?.split(' ')[0]})
+            </Link>
+          ) : (
+            <Link
+              to="/login"
+              onClick={closeAllMenus}
+              className="drawer-link drawer-link-secondary drawer-link-account"
+            >
+              Sign In to Atelier Vault
+            </Link>
+          )}
         </div>
 
         {/* Mobile Trust strip */}

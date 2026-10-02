@@ -149,10 +149,10 @@ const ProductDetail = () => {
   const [customEngraving, setCustomEngraving] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
   const [openAccordions, setOpenAccordions] = useState({
-    description: true,
-    details: true,
-    care: true,
-    shipping: true,
+    description: false,
+    details: false,
+    care: false,
+    shipping: false,
   });
 
   const toggleAccordion = (section) => {

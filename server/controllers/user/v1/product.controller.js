@@ -5,11 +5,24 @@ import { withProductImageUrls } from '../../../helper/productImageUrl.js';
 
 export const GetUserProducts = async (req, res, next) => {
   try {
-    const { category, search, bestseller, featured } = req.query || {};
+    const { category, search, bestseller, featured, sort } = req.query || {};
     let filter = {};
 
     if (category && category !== 'all') {
-      filter.category = category.toLowerCase();
+      const cat = category.toLowerCase().trim();
+      if (cat === 'necklaces') {
+        filter.category = { $in: ['necklaces', 'necklace', 'pendants', 'pendant'] };
+      } else if (cat === 'rings') {
+        filter.category = { $in: ['rings', 'ring'] };
+      } else if (cat === 'earrings') {
+        filter.category = { $in: ['earrings', 'earring'] };
+      } else if (cat === 'bracelets') {
+        filter.category = { $in: ['bracelets', 'bracelet'] };
+      } else if (cat === 'anklets') {
+        filter.category = { $in: ['anklets', 'anklet'] };
+      } else {
+        filter.category = { $regex: new RegExp(`^${cat}$`, 'i') };
+      }
     }
     if (bestseller === 'true') {
       filter.bestseller = true;
@@ -25,7 +38,13 @@ export const GetUserProducts = async (req, res, next) => {
       ];
     }
 
-    const products = await V1Product.find(filter).sort({ createdAt: -1 });
+    let sortOption = { createdAt: -1 };
+    if (sort === 'price-asc') sortOption = { price: 1 };
+    else if (sort === 'price-desc') sortOption = { price: -1 };
+    else if (sort === 'rating') sortOption = { rating: -1 };
+    else if (sort === 'newest') sortOption = { createdAt: -1 };
+
+    const products = await V1Product.find(filter).sort(sortOption);
     return res.status(200).json({ success: true, products: products.map((product) => withProductImageUrls(product, req)) });
   } catch (error) {
     return next(error);

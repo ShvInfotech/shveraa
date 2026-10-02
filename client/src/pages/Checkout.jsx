@@ -636,7 +636,7 @@ const Checkout = () => {
                           <span className="shv-delivery-price">+₹249</span>
                         </div>
                         <p className="shv-delivery-desc">
-                          Includes signature velvet keepsake box, hand-tied satin bow, personalized calligraphy card, and priority Jaipur atelier inspection.
+                          Includes signature velvet keepsake box, hand-tied satin bow, personalized calligraphy card, and priority Surat atelier inspection.
                         </p>
                       </div>
                     </label>

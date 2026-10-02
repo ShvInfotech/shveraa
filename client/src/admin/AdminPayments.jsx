@@ -2,9 +2,9 @@ import React from 'react';
 import { DollarSign, ArrowUpRight, CreditCard, Smartphone, Building, RefreshCw, CheckCircle2 } from 'lucide-react';
 
 const AdminPayments = ({ orders }) => {
-  const totalRevenue = orders.reduce((acc, o) => acc + (o.pricing?.total || 0), 0);
-  const paidOrders = orders.filter((o) => o.paymentStatus === 'Paid');
-  const paidRevenue = paidOrders.reduce((acc, o) => acc + (o.pricing?.total || 0), 0);
+  const totalRevenue = orders.reduce((acc, o) => acc + (o.totalAmount || 0), 0);
+  const paidOrders = orders.filter((o) => o.payment.status === 'paid');
+  const paidRevenue = paidOrders.reduce((acc, o) => acc + (o.totalAmount || 0), 0);
   const pendingRevenue = totalRevenue - paidRevenue;
 
   return (
@@ -105,14 +105,14 @@ const AdminPayments = ({ orders }) => {
                   <tr key={ord.orderId}>
                     <td>
                       <span style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--admin-text-muted)' }}>
-                        {txnId}
+                        {ord.payment.paymentId || "COD"}
                       </span>
                     </td>
                     <td>
-                      <strong>{ord.displayId || ord.orderId}</strong>
+                      <strong>{ord.orderNumber}</strong>
                     </td>
                     <td>
-                      <span>{ord.customer.fullName}</span>
+                      <span>{ord.userData.name}</span>
                     </td>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
@@ -123,15 +123,15 @@ const AdminPayments = ({ orders }) => {
                         ) : (
                           <Building size={14} style={{ color: '#64748B' }} />
                         )}
-                        <span>{ord.paymentMethod}</span>
+                        <span>{ord.payment.method}</span>
                       </div>
                     </td>
                     <td>
-                      <strong>₹{(ord.pricing?.total || 0).toLocaleString('en-IN')}</strong>
+                      <strong>₹{(ord.totalAmount || 0).toLocaleString('en-IN')}</strong>
                     </td>
                     <td>
                       <span className={`shv-status-pill ${isPaid ? 'delivered' : ord.paymentStatus === 'Refunded' ? 'cancelled' : 'onhold'}`}>
-                        {ord.paymentStatus}
+                        {ord.payment.status}
                       </span>
                     </td>
                   </tr>

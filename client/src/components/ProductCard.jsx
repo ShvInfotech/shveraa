@@ -170,18 +170,8 @@ const ProductCard = ({ product }) => {
             )}
           </div>
 
-          {/* Badge: Remove Atelier Edit badge per user request */}
-          <div className="product-badges-stack">
-            {product.badge && !/atelier/i.test(product.badge) && (
-              <span className="product-badge product-badge-silver">
-                {product.badge}
-              </span>
-            )}
-            {product.freeShipping !== false && (
-              <span className="product-hallmark-tag" style={{ background: '#10B981', color: '#FFF' }}>Free Delivery</span>
-            )}
-            <span className="product-hallmark-tag">925 BIS</span>
-          </div>
+
+          
 
           {/* Wishlist Heart Button */}
           <button

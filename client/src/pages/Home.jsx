@@ -108,7 +108,7 @@ const UGC_POSTS = [
     id: 2,
     image: '/muse-necklace.jpg',
     tag: '@radhika.desai',
-    location: 'Jaipur • Summer Light',
+    location: 'Surat • Summer Light',
     piece: 'Liquid Silver Herringbone & Medallion',
     likes: '3.1k',
     link: '/shop?category=necklaces',
@@ -242,7 +242,7 @@ const Home = () => {
 
   // Trigger luxury promotional welcome popup on landing if not dismissed
   useEffect(() => {
-    const seen = sessionStorage.getItem('shveraa_welcome_popup_seen');
+    const seen = localStorage.getItem('shveraa_welcome_popup_seen');
     if (!seen) {
       const timer = setTimeout(() => {
         setShowPromoPopup(true);
@@ -253,7 +253,7 @@ const Home = () => {
 
   const handleClosePromoPopup = () => {
     setShowPromoPopup(false);
-    sessionStorage.setItem('shveraa_welcome_popup_seen', 'true');
+    localStorage.setItem('shveraa_welcome_popup_seen', 'true');
   };
 
   return (
@@ -523,7 +523,7 @@ const Home = () => {
 
                 <div className="shv-atelier-sig-wrap">
                   <span className="shv-atelier-sig-script">Shveraa Atelier</span>
-                  <span className="shv-atelier-sig-sub">Jaipur &bull; Mumbai</span>
+                  <span className="shv-atelier-sig-sub">Surat &bull; Mumbai</span>
                 </div>
               </div>
             </div>

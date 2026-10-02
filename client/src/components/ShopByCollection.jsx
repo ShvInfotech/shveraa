@@ -133,7 +133,7 @@ const ShopByCollection = ({ products = [], loading = false }) => {
   const activeTitle = currentCollection ? currentCollection.title : 'All Atelier Pieces';
   const activeDesc = currentCollection
     ? currentCollection.description
-    : 'Complete archive of certified solid 925 sterling silver heirlooms, hand-finished in Jaipur.';
+    : 'Complete archive of certified solid 925 sterling silver heirlooms, hand-finished in Surat.';
   const activeShopLink = currentCollection ? currentCollection.link : '/shop';
 
   const isLoading = loading || fetching;

@@ -103,7 +103,7 @@ const Returns = () => {
           <section className="shv-legal-section">
             <h2>Refund Timelines &amp; Modes of Settlement</h2>
             <p>
-              Once your returned package arrives at our Jaipur Atelier and passes metallurgical inspection, refunds are processed immediately:
+              Once your returned package arrives at our Surat Atelier and passes metallurgical inspection, refunds are processed immediately:
             </p>
             <ul>
               <li><strong>Prepaid Orders (UPI / NetBanking / Cards):</strong> Funds are credited directly back to the originating bank account or card within <strong>2 to 4 business days</strong>, depending on your banking institution.</li>

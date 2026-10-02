@@ -1,4 +1,4 @@
-import  mongoose from"mongoose"
+import mongoose from "mongoose"
 
 const orderSchema = new mongoose.Schema(
   {
@@ -7,7 +7,11 @@ const orderSchema = new mongoose.Schema(
       ref: "users",
       required: true,
     },
-
+    type: {
+      type: String,
+      enum: ["forward", "return", "rto"],
+      default: "forward"
+    },
     orderNumber: {
       type: String,
       required: true,
@@ -105,33 +109,53 @@ const orderSchema = new mongoose.Schema(
     },
 
     rtoData: {
-  type: {
-    waybill: String,
-    status: String,
-    payment: {
-      method: String,
-      status: String,
+      type: {
+        waybill: String,
+        status: String,
+      },
+      default: null,
     },
-  },
-  default: null,
-},
 
-returnData: {
-  type: {
-    waybill: String,
-    status: String,
-    payment: {
-      method: String,
-      status: String,
+    returnData: {
+      type: {
+        waybill: {type:String},
+        status:{ type:String},
+        reason: {type: String},
+      },
+      default: null,
     },
-    accountDetails: {
-      name: String,
-      accountNumber: String,
-      ifscode: String,
-    },
-  },
-  default: null,
-},
+
+    refundData: {
+      type: {
+        method: {
+          type: String,
+          enum: ["razorpay", "cod"],
+          default: "razorpay"
+        },
+        status: {
+          type: String,
+          enum: ["pending", "refunded", "failed"],
+          default: "pending"
+        },
+        refundId: {
+          type: String,
+          default: ""
+        },
+        
+        accountDetails: {
+          type: {
+            accountHolderName: { type: String },
+            accountNumber: { type: String },
+            ifscCode: { type: String, },
+            accountType: { type: String, enum: ["savings", "current"] }
+          },
+          default: null
+        },
+        refundedAt:{type: Date, default: null},
+      },
+      default: null
+    }
+
   },
   {
     timestamps: true,

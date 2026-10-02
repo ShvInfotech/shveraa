@@ -331,7 +331,7 @@ const ComingSoon = ({ onUnlock }) => {
             <span className="shv-triada-modal-eyebrow">THE ATELIER</span>
             <h3 className="shv-triada-modal-title">About Shveraa</h3>
             <p className="shv-triada-modal-desc">
-              Rooted in the royal silversmith traditions of Jaipur, Shveraa crafts authentic, BIS 925 certified sterling silver heirlooms designed for the discerning individual.
+              Rooted in the royal silversmith traditions of Surat, Shveraa crafts authentic, BIS 925 certified sterling silver heirlooms designed for the discerning individual.
             </p>
             <p className="shv-triada-modal-desc" style={{ marginTop: '10px' }}>
               Every creation merges heritage artisanal mastery with sculptural contemporary elegance — engineered to shine across generations.

@@ -58,7 +58,7 @@ export const UserRegister = async (req, res, next) => {
             updateData.$addToSet.deviceToken = deviceToken;
         }
 
-        user = await UserModel.findByIdAndUpdate(user._id, updateData, { returnDocument: 'after' }).select('name email contact profile createdAt')
+        user = await UserModel.findByIdAndUpdate(user._id, updateData, { returnDocument: 'after' }).select('name email phone profile createdAt')
 
 
         return res.status(200).json({ success: true, message: "User Register", user, AccessToken: token })
@@ -107,7 +107,7 @@ export const UserLogin = async (req, res, next) => {
             updateData.$addToSet.deviceToken = deviceToken;
         }
 
-        user = await UserModel.findByIdAndUpdate(user._id, updateData, { returnDocument: 'after' }).select('name email contact profile createdAt')
+        user = await UserModel.findByIdAndUpdate(user._id, updateData, { returnDocument: 'after' }).select('name email phone profile createdAt')
 
 
         return res.status(200).json({ success: true, message: "User Register", user, AccessToken: token })

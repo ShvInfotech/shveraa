@@ -9,7 +9,7 @@ import AdminProducts from './AdminProducts';
 import AdminProductEditor from './AdminProductEditor';
 import AdminCMS from './AdminCMS';
 import AdminOrders from './AdminOrders';
-import AdminDeliveries from './AdminDeliveries';
+import AdminReturns from './AdminReturns';
 import AdminCoupons from './AdminCoupons';
 import AdminPayments from './AdminPayments';
 import AdminSettings from './AdminSettings';
@@ -21,7 +21,6 @@ const AdminLayout = () => {
   const [adminUser, setAdminUser] = useState(() => getAdminAuth());
   const [currentTab, setCurrentTab] = useState('dashboard');
   const [editingProduct, setEditingProduct] = useState(null);
-  const [deliveryFilter, setDeliveryFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -43,14 +42,24 @@ const AdminLayout = () => {
     }
   }, []);
 
+  // Fetch orders as soon as an administrator session is available. This runs on the
+  // very first mount (when a session was already restored from sessionStorage) AND
+  // again right after a fresh login – without the `adminUser` dependency the effect
+  // only fired once while still logged out, so the Orders tab stayed empty until a
+  // manual page refresh.
   useEffect(() => {
+    if (!adminUser) return;
     fetchAllOrders();
+  }, [adminUser, fetchAllOrders]);
+
+  // Drop straight back to the login screen when any admin request returns 401.
+  useEffect(() => {
     const handleUnauthorized = () => setAdminUser(null);
     window.addEventListener('shveraa_admin_unauthorized', handleUnauthorized);
     return () => {
       window.removeEventListener('shveraa_admin_unauthorized', handleUnauthorized);
     };
-  }, [fetchAllOrders]);
+  }, []);
 
   const handleUpdateOrderStatus = async (orderId, newStatus) => {
     // Optimistic update
@@ -84,8 +93,6 @@ const AdminLayout = () => {
       <AdminSidebar
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}
-        deliveryFilter={deliveryFilter}
-        setDeliveryFilter={setDeliveryFilter}
         orderCount={orders.length}
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
@@ -161,18 +168,14 @@ const AdminLayout = () => {
           {currentTab === 'orders' && (
             <AdminOrders
               orders={orders}
+              isLoading={ordersLoading}
               onUpdateStatus={handleUpdateOrderStatus}
               searchQuery={searchQuery}
             />
           )}
 
-          {currentTab === 'deliveries' && (
-            <AdminDeliveries
-              orders={orders}
-              deliveryFilter={deliveryFilter}
-              setDeliveryFilter={setDeliveryFilter}
-              onUpdateStatus={handleUpdateOrderStatus}
-            />
+          {currentTab === 'returns' && (
+            <AdminReturns searchQuery={searchQuery} />
           )}
 
           {currentTab === 'coupons' && (

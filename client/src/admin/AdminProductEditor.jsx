@@ -51,7 +51,7 @@ const FINISH_TYPES = [
   'Vintage Oxidized Patina',
 ];
 
-const PRESET_SIZES = ['US 5', 'US 6', 'US 7', 'US 8', 'US 9', 'US 10', 'Adjustable', 'Free Size'];
+const PRESET_SIZES = ['US 5', 'US 6', 'US 7', 'US 8', 'US 9', 'US 10', 'Free Size'];
 
 const SAMPLE_JEWELRY_IMAGES = [
   'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=900&q=85',
@@ -60,6 +60,88 @@ const SAMPLE_JEWELRY_IMAGES = [
   'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=900&q=85',
   'https://images.unsplash.com/photo-1535632787350-4e68ef0ac584?auto=format&fit=crop&w=900&q=85',
 ];
+
+// Keep the currently selected product value inside its dropdown option list so
+// a value saved on an existing product is never dropped from the select.
+const buildOptionsWithValue = (presets, currentValue) => {
+  if (
+    currentValue &&
+    !presets.some((preset) => preset.toLowerCase() === String(currentValue).toLowerCase())
+  ) {
+    return [...presets, currentValue];
+  }
+  return presets;
+};
+
+// Reusable spec dropdown with an inline "add value" action. A value typed by the
+// admin is appended to that dropdown's option list and selected immediately so
+// it can be saved with the product.
+const SpecSelectField = ({ label, value, options, onChange, onAddOption, placeholder }) => {
+  const [isAdding, setIsAdding] = useState(false);
+  const [draft, setDraft] = useState('');
+  const addInputRef = useRef(null);
+
+  const beginAdd = () => {
+    setDraft('');
+    setIsAdding(true);
+    setTimeout(() => addInputRef.current?.focus(), 0);
+  };
+
+  const cancelAdd = () => {
+    setIsAdding(false);
+    setDraft('');
+  };
+
+  const submitAdd = (e) => {
+    if (e) e.preventDefault();
+    const nextValue = draft.trim();
+    if (!nextValue) return;
+    onAddOption(nextValue);
+    setDraft('');
+    setIsAdding(false);
+  };
+
+  return (
+    <div className="shv-field half-width">
+      <label>{label}</label>
+      <div className="shv-spec-select-row">
+        <select value={value} onChange={(e) => onChange(e.target.value)}>
+          {options.map((opt) => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={beginAdd}
+          className="shv-spec-add-btn"
+          title="Add a new value to this dropdown"
+        >
+          <Plus size={15} />
+        </button>
+      </div>
+
+      {isAdding && (
+        <div className="shv-editor-custom-size-group">
+          <input
+            ref={addInputRef}
+            type="text"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') submitAdd(e);
+              if (e.key === 'Escape') cancelAdd();
+            }}
+            placeholder={placeholder}
+          />
+          <button type="button" onClick={submitAdd} className="shv-size-add-btn">
+            <Plus size={14} />
+            <span>Add</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
   const isEditing = Boolean(product && product._id);
@@ -102,12 +184,7 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
     sku: product?.sku || `SHV-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
     slug: product?.slug || '',
     category: (product?.category || categories[0]?.slug || 'rings').toLowerCase(),
-    collection: product?.collection || 'Atelier Signature',
-    price: product?.price || '',
-    // Keep a missing compare-at MRP as zero. In particular, do not replace it
-    // with an inferred markup when an existing product is updated.
     originalPrice: product?.originalPrice ?? 0,
-    makingCharges: product?.makingCharges || 450,
     metalType: product?.metalType || product?.material || METAL_TYPES[0],
     metalPurity: product?.metalPurity || 'BIS Hallmarked 925 Pure Silver',
     metalWeight: product?.metalWeight || '4.85 g',
@@ -119,10 +196,6 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
     careInstructions: product?.careInstructions || 'Keep away from moisture, chlorine, and perfumes. Wipe with complimentary microfibre cloth.',
     inStock: product ? product.inStock !== false : true,
     freeShipping: product ? product.freeShipping !== false : true,
-    stockCount: product?.stockCount || 24,
-    bestseller: Boolean(product?.bestseller),
-    featured: Boolean(product?.featured),
-    badge: product?.badge && !/atelier/i.test(product.badge) ? product.badge : (product?.bestseller ? 'Bestseller' : ''),
     metaTitle: product?.metaTitle || '',
     metaDescription: product?.metaDescription || '',
     packing: {
@@ -153,6 +226,18 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
   const [previewHover, setPreviewHover] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [apiError, setApiError] = useState('');
+
+  // Spec dropdown option lists. They start from the presets plus any value the
+  // product was already saved with, and grow when the admin adds a new value.
+  const [metalTypeOptions, setMetalTypeOptions] = useState(() =>
+    buildOptionsWithValue(METAL_TYPES, product?.metalType || product?.material || METAL_TYPES[0])
+  );
+  const [finishOptions, setFinishOptions] = useState(() =>
+    buildOptionsWithValue(FINISH_TYPES, product?.finish || FINISH_TYPES[0])
+  );
+  const [gemstoneOptions, setGemstoneOptions] = useState(() =>
+    buildOptionsWithValue(GEMSTONE_TYPES, product?.stone || GEMSTONE_TYPES[0])
+  );
 
   // Add a new variant
   const handleAddVariant = () => {
@@ -442,12 +527,34 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
   };
 
 
+  // Append a custom value to a spec dropdown and select it right away so the
+  // admin can save the product with the freshly added value.
+  const addSpecOption = (currentOptions, setOptions, value, field) => {
+    const existing = currentOptions.find(
+      (option) => option.toLowerCase() === value.toLowerCase()
+    );
+    if (!existing) {
+      setOptions([...currentOptions, value]);
+    }
+    setFormData((prev) => ({ ...prev, [field]: existing || value }));
+  };
+
+  const handleAddMetalType = (value) =>
+    addSpecOption(metalTypeOptions, setMetalTypeOptions, value, 'metalType');
+
+  const handleAddFinish = (value) =>
+    addSpecOption(finishOptions, setFinishOptions, value, 'finish');
+
+  const handleAddGemstone = (value) =>
+    addSpecOption(gemstoneOptions, setGemstoneOptions, value, 'stone');
+
+
   // Save product - calls real API
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     setApiError('');
-    if (!formData.name.trim() || !formData.price) {
-      alert('Please fill in Product Name and Selling Price.');
+    if (!formData.name.trim()) {
+      alert('Please fill in Product Name.');
       return;
     }
 
@@ -462,41 +569,35 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
       })));
 
       const payload = {
-      name: formData.name.trim(),
-      slug: formData.slug || formData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
-      description: formData.description,
-      price: Number(formData.price),
-      originalPrice: Number(formData.originalPrice || 0),
-      category: formData.category,
-      sku: formData.sku.trim(),
-      collection: formData.collection.trim(),
-      makingCharges: Number(formData.makingCharges || 0),
-      material: formData.metalType,
-      metalType: formData.metalType,
-      metalPurity: formData.metalPurity,
-      metalWeight: formData.metalWeight,
-      stone: formData.stone,
-      stoneCarat: formData.stoneCarat,
-      finish: formData.finish,
-      dimensions: formData.dimensions,
-      careInstructions: formData.careInstructions,
-      badge: formData.badge,
-      images: storedImages.length > 0 ? storedImages : [SAMPLE_JEWELRY_IMAGES[0]],
-      featured: Boolean(formData.featured),
-      bestseller: Boolean(formData.bestseller),
-      inStock: Boolean(formData.inStock),
-      freeShipping: Boolean(formData.freeShipping),
-      stockCount: Number(formData.stockCount || 0),
-      metaTitle: formData.metaTitle,
-      metaDescription: formData.metaDescription,
-      packing: {
-        length: Number(formData.packing.length || 0),
-        height: Number(formData.packing.height || 0),
-        width: Number(formData.packing.width || 0),
-        weight: Number(formData.packing.weight || 0),
-      },
-      variants: storedVariants,
-      colors: colors.length > 0 ? colors : ['Pure 925 Silver'],
+        name: formData.name.trim(),
+        slug: formData.slug || formData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+        description: formData.description,
+        price: Number(formData.price || 0),
+        originalPrice: Number(formData.originalPrice || 0),
+        category: formData.category,
+        sku: formData.sku.trim(),
+        material: formData.metalType,
+        metalType: formData.metalType,
+        metalPurity: formData.metalPurity,
+        metalWeight: formData.metalWeight,
+        stone: formData.stone,
+        stoneCarat: formData.stoneCarat,
+        finish: formData.finish,
+        dimensions: formData.dimensions,
+        careInstructions: formData.careInstructions,
+        images: storedImages.length > 0 ? storedImages : [SAMPLE_JEWELRY_IMAGES[0]],
+        inStock: Boolean(formData.inStock),
+        freeShipping: Boolean(formData.freeShipping),
+        metaTitle: formData.metaTitle,
+        metaDescription: formData.metaDescription,
+        packing: {
+          length: Number(formData.packing.length || 0),
+          height: Number(formData.packing.height || 0),
+          width: Number(formData.packing.width || 0),
+          weight: Number(formData.packing.weight || 0),
+        },
+        variants: storedVariants,
+        colors: colors.length > 0 ? colors : ['Pure 925 Silver'],
       };
 
       let savedProduct;
@@ -667,45 +768,7 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
                 </select>
               </div>
 
-              <div className="shv-field half-width">
-                <label>Collection / Theme</label>
-                <input
-                  type="text"
-                  value={formData.collection}
-                  onChange={(e) => setFormData({ ...formData, collection: e.target.value })}
-                  placeholder="Bridal 2026 / Signature Muses"
-                />
-              </div>
-
-              <div className="shv-field half-width">
-                <label>Promotional Badge</label>
-                <input
-                  type="text"
-                  value={formData.badge}
-                  onChange={(e) => setFormData({ ...formData, badge: e.target.value })}
-                  placeholder="Bestseller / Atelier Edit / New"
-                />
-              </div>
-
               <div className="shv-field full-width shv-editor-feature-flags">
-                <label className="shv-editor-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={formData.bestseller}
-                    onChange={(e) => setFormData({ ...formData, bestseller: e.target.checked })}
-                  />
-                  <span>Feature in Bestsellers</span>
-                </label>
-
-                <label className="shv-editor-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={formData.featured}
-                    onChange={(e) => setFormData({ ...formData, featured: e.target.checked })}
-                  />
-                  <span>New Arrival</span>
-                </label>
-
                 <label className="shv-editor-checkbox">
                   <input
                     type="checkbox"
@@ -735,17 +798,14 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
             </div>
 
             <div className="shv-editor-fields-grid">
-              <div className="shv-field half-width">
-                <label>Precious Metal Type</label>
-                <select
-                  value={formData.metalType}
-                  onChange={(e) => setFormData({ ...formData, metalType: e.target.value })}
-                >
-                  {METAL_TYPES.map((m) => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </select>
-              </div>
+              <SpecSelectField
+                label="Precious Metal Type"
+                value={formData.metalType}
+                options={metalTypeOptions}
+                onChange={(val) => setFormData({ ...formData, metalType: val })}
+                onAddOption={handleAddMetalType}
+                placeholder="e.g. 18K Gold Vermeil over 925 Silver"
+              />
 
               <div className="shv-field half-width">
                 <label>Hallmark &amp; Purity Stamp</label>
@@ -767,29 +827,23 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
                 />
               </div>
 
-              <div className="shv-field half-width">
-                <label>Plating &amp; Protective Finish</label>
-                <select
-                  value={formData.finish}
-                  onChange={(e) => setFormData({ ...formData, finish: e.target.value })}
-                >
-                  {FINISH_TYPES.map((f) => (
-                    <option key={f} value={f}>{f}</option>
-                  ))}
-                </select>
-              </div>
+              <SpecSelectField
+                label="Plating &amp; Protective Finish"
+                value={formData.finish}
+                options={finishOptions}
+                onChange={(val) => setFormData({ ...formData, finish: val })}
+                onAddOption={handleAddFinish}
+                placeholder="e.g. 18K Gold Micron Plating"
+              />
 
-              <div className="shv-field half-width">
-                <label>Gemstone / Diamond Type</label>
-                <select
-                  value={formData.stone}
-                  onChange={(e) => setFormData({ ...formData, stone: e.target.value })}
-                >
-                  {GEMSTONE_TYPES.map((g) => (
-                    <option key={g} value={g}>{g}</option>
-                  ))}
-                </select>
-              </div>
+              <SpecSelectField
+                label="Gemstone / Diamond Type"
+                value={formData.stone}
+                options={gemstoneOptions}
+                onChange={(val) => setFormData({ ...formData, stone: val })}
+                onAddOption={handleAddGemstone}
+                placeholder="e.g. Blue Sapphire &amp; 925 Silver"
+              />
 
               <div className="shv-field half-width">
                 <label>Gemstone Carat / Dimensions</label>
@@ -811,140 +865,12 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
                 />
               </div>
 
-              {/* Sizes Available */}
-              <div className="shv-field full-width">
-                <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>Available Sizes &amp; Fit Options</span>
-                  <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 400 }}>
-                    Select preset chips or click "Add Size" below
-                  </span>
-                </label>
-                <div className="shv-editor-chips-wrap">
-                  {PRESET_SIZES.map((sz) => {
-                    const isSelected = sizes.includes(sz);
-                    return (
-                      <button
-                        key={sz}
-                        type="button"
-                        onClick={() => toggleSize(sz)}
-                        className={`shv-size-chip ${isSelected ? 'active' : ''}`}
-                      >
-                        {isSelected && <Check size={13} />}
-                        <span>{sz}</span>
-                      </button>
-                    );
-                  })}
-                  {sizes
-                    .filter((sz) => !PRESET_SIZES.includes(sz))
-                    .map((sz) => (
-                      <button
-                        key={sz}
-                        type="button"
-                        onClick={() => toggleSize(sz)}
-                        className="shv-size-chip active"
-                        style={{ borderColor: '#A07E52', color: '#A07E52', background: '#FDFBF7' }}
-                        title="Custom Size - Click to remove"
-                      >
-                        <Check size={13} />
-                        <span>{sz}</span>
-                        <X size={12} style={{ marginLeft: '4px' }} />
-                      </button>
-                    ))}
-                </div>
 
-                <div className="shv-editor-custom-size-group" style={{ marginTop: '0.75rem' }}>
-                  <input
-                    type="text"
-                    value={customSizeInput}
-                    onChange={(e) => setCustomSizeInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleAddCustomSize(e);
-                      }
-                    }}
-                    placeholder="Custom size (e.g. US 11, 2.4 Bangle, 18cm Bracelet, Free Size)"
-                  />
-                  <button type="button" onClick={handleAddCustomSize} className="shv-size-add-btn">
-                    <Plus size={14} />
-                    <span>Add Size</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Metal / Color Variations Available */}
-              <div className="shv-field full-width">
-                <label>Available Metal &amp; Color Variations</label>
-                <div className="shv-editor-chips-wrap">
-                  {JEWELRY_COLORS.map((col) => {
-                    const isSelected = colors.includes(col.name);
-                    return (
-                      <button
-                        key={col.id}
-                        type="button"
-                        onClick={() => toggleColor(col.name)}
-                        className={`shv-size-chip ${isSelected ? 'active' : ''}`}
-                      >
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            width: '14px',
-                            height: '14px',
-                            borderRadius: '50%',
-                            background: col.gradient || col.hex,
-                            border: `1px solid ${col.border || '#ccc'}`,
-                            marginRight: '6px',
-                            verticalAlign: 'middle',
-                          }}
-                        />
-                        {isSelected && <Check size={13} />}
-                        <span>{col.name}</span>
-                      </button>
-                    );
-                  })}
-                  {colors
-                    .filter((color) => !JEWELRY_COLORS.some((preset) => preset.name.toLowerCase() === color.toLowerCase()))
-                    .map((color) => (
-                      <button
-                        key={color}
-                        type="button"
-                        onClick={() => toggleColor(color)}
-                        className="shv-size-chip active"
-                        style={{ borderColor: '#A07E52', color: '#A07E52', background: '#FDFBF7' }}
-                        title="Custom metal/color variation - Click to remove"
-                      >
-                        <Check size={13} />
-                        <span>{color}</span>
-                        <X size={12} style={{ marginLeft: '4px' }} />
-                      </button>
-                    ))}
-                </div>
-                <div className="shv-editor-custom-size-group" style={{ marginTop: '0.75rem' }}>
-                  <input
-                    type="text"
-                    value={customColorInput}
-                    onChange={(e) => setCustomColorInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleAddCustomColor(e);
-                      }
-                    }}
-                    placeholder="Custom metal/color (e.g. Champagne Gold, Black Rhodium)"
-                  />
-                  <button type="button" onClick={handleAddCustomColor} className="shv-size-add-btn">
-                    <Plus size={14} />
-                    <span>Add Variation</span>
-                  </button>
-                </div>
-                <span style={{ fontSize: '0.76rem', color: '#64748B', marginTop: '4px', display: 'block' }}>
-                  Select preset finishes or add a custom variation. Each selection creates its own size, price, SKU, stock and photo variant.
-                </span>
-              </div>
             </div>
           </div>
 
           {/* SECTION 4: PRICING, MAKING CHARGES & INVENTORY */}
+
           <div className="shv-editor-card">
             <div className="shv-editor-card-header">
               <div className="shv-editor-card-icon">
@@ -952,20 +878,155 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
               </div>
               <div>
                 <h2 className="shv-editor-card-title">Commercials &amp; Inventory</h2>
-                <p className="shv-editor-card-subtitle">Selling prices, compare-at MRP and stock controls.</p>
+                <p className="shv-editor-card-subtitle">
+                  Selling prices, compare-at MRP and stock controls.
+                </p>
               </div>
             </div>
 
             <div className="shv-editor-fields-grid">
-              <div className="shv-field half-width">
-                <label>Selling Price (₹) *</label>
-                <input
-                  type="number"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                  placeholder="3499"
-                  required
-                />
+              <div className="shv-field full-width">
+                <label className="shv-editor-field-label">
+                  <span>Available Sizes &amp; Fit Options</span>
+                  <span className="shv-editor-field-hint">
+                    Select preset chips or add a custom size
+                  </span>
+                </label>
+
+                <div className="shv-editor-chips-wrap">
+                  {PRESET_SIZES.map((sz) => {
+                    const isSelected = sizes.includes(sz);
+
+                    return (
+                      <button
+                        key={sz}
+                        type="button"
+                        onClick={() => toggleSize(sz)}
+                        className={`shv-size-chip ${isSelected ? "active" : ""}`}
+                      >
+                        {isSelected && <Check size={13} />}
+                        <span>{sz}</span>
+                      </button>
+                    );
+                  })}
+
+                  {sizes
+                    .filter((sz) => !PRESET_SIZES.includes(sz))
+                    .map((sz) => (
+                      <button
+                        key={sz}
+                        type="button"
+                        onClick={() => toggleSize(sz)}
+                        className="shv-size-chip active shv-custom-chip"
+                        title="Custom Size - Click to remove"
+                      >
+                        <Check size={13} />
+                        <span>{sz}</span>
+                        <X size={12} />
+                      </button>
+                    ))}
+                </div>
+
+                <div className="shv-editor-custom-size-group">
+                  <input
+                    type="text"
+                    value={customSizeInput}
+                    onChange={(e) => setCustomSizeInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddCustomSize(e);
+                      }
+                    }}
+                    placeholder="e.g. US 11, 2.4 Bangle, 18cm Bracelet, Free Size"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddCustomSize}
+                    className="shv-size-add-btn"
+                  >
+                    <Plus size={14} />
+                    <span>Add Size</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="shv-field full-width">
+                <label>Available Metal &amp; Color Variations</label>
+
+                <div className="shv-editor-chips-wrap">
+                  {JEWELRY_COLORS.map((col) => {
+                    const isSelected = colors.includes(col.name);
+
+                    return (
+                      <button
+                        key={col.id}
+                        type="button"
+                        onClick={() => toggleColor(col.name)}
+                        className={`shv-size-chip ${isSelected ? "active" : ""}`}
+                      >
+                        <span
+                          className="shv-color-dot"
+                          style={{
+                            background: col.gradient || col.hex,
+                            borderColor: col.border || "#ccc",
+                          }}
+                        />
+                        {isSelected && <Check size={13} />}
+                        <span>{col.name}</span>
+                      </button>
+                    );
+                  })}
+
+                  {colors
+                    .filter(
+                      (color) =>
+                        !JEWELRY_COLORS.some(
+                          (preset) =>
+                            preset.name.toLowerCase() === color.toLowerCase()
+                        )
+                    )
+                    .map((color) => (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => toggleColor(color)}
+                        className="shv-size-chip active shv-custom-chip"
+                        title="Custom variation - Click to remove"
+                      >
+                        <Check size={13} />
+                        <span>{color}</span>
+                        <X size={12} />
+                      </button>
+                    ))}
+                </div>
+
+                <div className="shv-editor-custom-size-group">
+                  <input
+                    type="text"
+                    value={customColorInput}
+                    onChange={(e) => setCustomColorInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddCustomColor(e);
+                      }
+                    }}
+                    placeholder="e.g. Champagne Gold, Black Rhodium"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddCustomColor}
+                    className="shv-size-add-btn"
+                  >
+                    <Plus size={14} />
+                    <span>Add Variation</span>
+                  </button>
+                </div>
+
+                <span className="shv-editor-field-description">
+                  Each selection creates its own size, price, SKU, stock and photo variant.
+                </span>
               </div>
 
               <div className="shv-field half-width">
@@ -973,7 +1034,9 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
                 <input
                   type="number"
                   value={formData.originalPrice}
-                  onChange={(e) => setFormData({ ...formData, originalPrice: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, originalPrice: e.target.value })
+                  }
                   placeholder="4999"
                 />
                 {discountPercent && (
@@ -983,41 +1046,29 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
                 )}
               </div>
 
-              <div className="shv-field half-width">
-                <label>Artisan Making Charges (₹ included)</label>
-                <input
-                  type="number"
-                  value={formData.makingCharges}
-                  onChange={(e) => setFormData({ ...formData, makingCharges: e.target.value })}
-                  placeholder="450"
-                />
-              </div>
-
-              <div className="shv-field half-width">
-                <label>Stock Count (units)</label>
-                <input
-                  type="number"
-                  value={formData.stockCount}
-                  onChange={(e) => setFormData({ ...formData, stockCount: e.target.value })}
-                  placeholder="24"
-                />
-              </div>
-
               <div className="shv-field full-width">
                 <label className="shv-editor-checkbox-toggle">
                   <input
                     type="checkbox"
                     checked={formData.inStock}
-                    onChange={(e) => setFormData({ ...formData, inStock: e.target.checked })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, inStock: e.target.checked })
+                    }
                   />
                   <div>
-                    <span className="toggle-title">Piece Available for Purchase (In Stock)</span>
-                    <span className="toggle-desc">When disabled, customer sees 'Sold Out / Made to Order' badge.</span>
+                    <span className="toggle-title">
+                      Piece Available for Purchase (In Stock)
+                    </span>
+                    <span className="toggle-desc">
+                      When disabled, customer sees 'Sold Out / Made to Order' badge.
+                    </span>
                   </div>
                 </label>
               </div>
             </div>
           </div>
+          ```
+
 
           {/* SECTION 4A: PACKING DETAILS */}
           <div className="shv-editor-card">
@@ -1475,9 +1526,9 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
 
                 <div className="shv-preview-pricing">
                   <span className="shv-preview-price">
-                    ₹{Number(formData.price || 0).toLocaleString('en-IN')}
+                    ₹{Number(variants[activeVariantIdx]?.sizes[0]?.price || 0).toLocaleString('en-IN')}
                   </span>
-                  {formData.originalPrice && Number(formData.originalPrice) > Number(formData.price) && (
+                  {formData.originalPrice && Number(formData.originalPrice) > Number(variants[activeVariantIdx]?.sizes[0]?.price) && (
                     <span className="shv-preview-mrp">
                       ₹{Number(formData.originalPrice).toLocaleString('en-IN')}
                     </span>
@@ -1531,7 +1582,7 @@ const AdminProductEditor = ({ product, categories, onBack, onSaveSuccess }) => {
               <div className="shv-summary-row">
                 <span>Inventory:</span>
                 <strong className={formData.inStock ? 'text-green' : 'text-red'}>
-                  {formData.inStock ? `${formData.stockCount} in stock` : 'Out of Stock'}
+                  {formData.inStock ? 'In Stock' : 'Out of Stock'}
                 </strong>
               </div>
               <div className="shv-summary-row">

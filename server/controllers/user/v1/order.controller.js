@@ -6,9 +6,10 @@ import { razorpay, razorpaySignature, } from "../../../config/razorpay.config.js
 import OrderNumberGanrate from 'generate-unique-id'
 import OrderModel from "../../../models/order.model.js";
 import addressModel from "../../../models/address.model.js";
-import { CreateShippingOrderService, PincodeServiceability } from "../../../services/delhiveryApis.js";
+import { CancelShipmentService, CreateShippingOrderService, PincodeServiceability, TrackShipmentService } from "../../../services/delhiveryApis.js";
 import userModel from "../../../models/user.model.js";
-import { sendNotification } from "../../../helper/helper.js";
+import { sendNotification, SendWahtsappMessage } from "../../../helper/helper.js";
+import { RazorpayRefundApi } from "../../../services/razorpayapi.js";
 
 
 
@@ -21,14 +22,14 @@ export const RozerpayPaymentOrder = async (req, res, next) => {
     if (!cartIds || !cartIds?.length) {
       return next(CustomeError(400, "CartIds are required"));
     }
-    console.log(addressId)
+
     const address = await addressModel.findById(addressId)
     if (!address) {
       return next(CustomeError(400, "Address not found"));
     }
 
     const data = await PincodeServiceability(address.pincode)
-    console.log("address Data", data)
+
     if (!data.delivery_codes || data.delivery_codes.length === 0) {
       return next(CustomeError(404, "Delivery Not  Available For The Given Pincode"))
     }
@@ -49,7 +50,6 @@ export const RozerpayPaymentOrder = async (req, res, next) => {
         const variant = Matchcolor?.sizes?.find(
           (size) => size.size === item.size,
         );
-        console.log(variant);
 
         if (variant && variant.stock < item.quantity) {
           return next(
@@ -146,6 +146,7 @@ export const RozerpayPaymentVerifyPlaceOrder = async (req, res, next) => {
     let width = 23
     let height = 23
     let quantity = 0
+    let productdescription = ""
     for (const item of cartItems) {
       const product = products.find((p) => p._id.toString() === item.productId);
 
@@ -173,6 +174,7 @@ export const RozerpayPaymentVerifyPlaceOrder = async (req, res, next) => {
         items.push(data)
         weigth += (product.packing.weight || 0) * item.quantity
         quantity += item.quantity
+        productdescription += `${product.name} (${item.size}) x ${item.quantity}, `
       }
     }
 
@@ -214,10 +216,10 @@ export const RozerpayPaymentVerifyPlaceOrder = async (req, res, next) => {
           "phone": address.phone || req.user.phone,
           "order": orderNumber,
           "payment_mode": "Prepaid",
-          "products_desc": "",
+          "products_desc": productdescription,
           "cod_amount": "0",
           "total_amount": totalAmount,
-          "quantity": quantity,
+          "quantity": String(quantity),
           "weight": weigth * 1000,
           "shipment_width": width,
           "shipment_height": height,
@@ -230,7 +232,7 @@ export const RozerpayPaymentVerifyPlaceOrder = async (req, res, next) => {
       }
     }
 
-
+console.log(delhiveryPayload)
     const result = await CreateShippingOrderService(delhiveryPayload)
 
     let waybill = ""
@@ -305,7 +307,7 @@ export const PlaceCodeOrder = async (req, res, next) => {
 
     const address = await addressModel.findById(addressId)
 
- const data = await PincodeServiceability(address.pincode)
+    const data = await PincodeServiceability(address.pincode)
     console.log("address Data", data)
     if (!data.delivery_codes || data.delivery_codes.length === 0) {
       return next(CustomeError(404, "Delivery Not  Available For The Given Pincode"))
@@ -448,7 +450,7 @@ export const PlaceCodeOrder = async (req, res, next) => {
     const admins = await userModel.find({ role: "admin" }).select("deviceToken");
     const tokens = admins.flatMap(admin => admin.deviceToken || []);
     sendNotification(tokens, "New Order Placed", `Order ${orderNumber} has been placed by ${req.user.name}.`);
-
+    SendWahtsappMessage(9714920969, "order is confrom")
     return res.status(200).json({ success: true, message: "Payment verified and order placed successfully", order: newOrder });
   } catch (error) {
     return next(error);
@@ -465,6 +467,241 @@ export const GetMyOrders = async (req, res, next) => {
     return next(error);
   }
 };
+
+
+export const TrackOrder = async (req, res, next) => {
+  try {
+    const { waybill } = req.body || {};
+
+    if (!waybill) {
+      return next(CustomeError(422, "Waybill Number Is Required"));
+    }
+
+    const result = await TrackShipmentService(waybill);
+
+    const shipment = result?.ShipmentData?.[0]?.Shipment;
+    if (!shipment) {
+      return res.status(200).json({
+        success: false,
+        message: result?.Error || result?.message || "No tracking details found for this waybill yet",
+        Scans: [],
+        status: null,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Tracking Data Fatch Successfully",
+      Scans: shipment.Scans || [],
+      status: shipment.Status || null,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+
+export const CancelShipment = async (req, res, next) => {
+  try {
+    const { waybill, orderId } = req.body || {};
+
+    if (!orderId) {
+      return next(CustomeError(422, "OrderId is Required"));
+    }
+
+    let order = await OrderModel.findOne(waybill ? { waybill, _id: orderId } : { _id: orderId });
+
+    if (!order) {
+      return next(CustomeError(404, "Order not found"));
+    }
+
+    if (!["pending", "accepted"].includes(order.status)) {
+      return next(CustomeError(400, "Order cannot be cancelled at this stage"));
+    }
+
+    const activeWaybill = waybill || order.waybill;
+    if (activeWaybill) {
+      try {
+        await CancelShipmentService(activeWaybill);
+      } catch (shipmentErr) {
+        console.warn("Delhivery cancel warning:", shipmentErr.message);
+      }
+    }
+
+    let updatedOrder;
+    if (order.payment?.method === "razorpay" && order.payment?.status === "paid") {
+      try {
+        const refundResult = await RazorpayRefundApi(order);
+        const refundData = {
+          method: "razorpay",
+          status: "pending",
+          refundId: refundResult?.id || "",
+        };
+        updatedOrder = await OrderModel.findByIdAndUpdate(order._id, { status: "cancelled", payment: { ...order.payment, status: "refunded" }, refundData }, { returnDocument: 'after' });
+      } catch (rfErr) {
+        console.warn("Razorpay refund error:", rfErr.message);
+        updatedOrder = await OrderModel.findByIdAndUpdate(order._id, { status: "cancelled" }, { returnDocument: 'after' });
+      }
+    } else {
+      updatedOrder = await OrderModel.findByIdAndUpdate(order._id, { status: "cancelled" }, { returnDocument: 'after' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Order Cancelled Successfully",
+      order: updatedOrder,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+
+export const ReturnShipment = async (req, res, next) => {
+  try {
+
+    const { orderId, accountDetails, reason } = req.body || {};
+
+    if (!orderId) {
+      return next(CustomeError(422, "OrderId is Required"));
+    }
+
+    let order = await OrderModel.findById(orderId);
+
+    if (!order) {
+      return next(CustomeError(404, "Order not found"));
+    }
+
+    if (order.status !== "delivered") {
+      return next(CustomeError(400, "Return shipment can only be requested for delivered orders"));
+    }
+
+
+
+    const completeAt = new Date(order.completeAt);
+
+    const currentDate = new Date();
+
+    const daysPassed = Math.floor(
+      (currentDate - completeAt) / (1000 * 60 * 60 * 24)
+    );
+
+    if (daysPassed >= 7) {
+      return next(CustomeError(400, "Return period has expired. Returns are allowed only within 7 days of delivery"));
+    }
+
+
+    if (order.payment?.method === "cod") {
+      if (!accountDetails || !accountDetails.accountNumber || !accountDetails.ifscCode || !accountDetails.accountHolderName || !accountDetails.accountType) {
+        return next(CustomeError(422, "Bank account details are required for COD order return"));
+      }
+    }
+
+
+    const productIDs = order.items.map((item) => item.productId);
+    const products = await productModel.find({ _id: { $in: productIDs } });
+
+
+
+
+    const quantity = order.items.reduce((acc, item) => acc + item.quantity, 0);
+    const totalAmount = order.totalAmount;
+    let weigth = 0
+    const width = 23;
+    const height = 23;
+    products.forEach((product) => {
+      weigth += (product.packing.weight || 0) * order.items.find((item) => item.productId.toString() === product._id.toString()).quantity;
+    })
+
+
+
+
+
+
+    const delhiveryPayload = {
+      shipments: [
+        {
+          name: req.user.name,
+
+          // Customer address: parcel pickup location
+          add: order.address.addressline,
+          pin: String(order.address.pincode),
+          city: order.address.city,
+          state: order.address.state,
+          country: "India",
+          phone: order.address.phone || req.user.phone,
+
+          order: `RETURN-${order.orderNumber}`,
+          payment_mode: "Pickup",
+
+          // Seller / return destination address
+          return_name: process.env.SELLER_NAME,
+          return_add: process.env.SELLER_ADDRESS,
+          return_pin: process.env.SELLER_PIN,
+          return_city: process.env.SELLER_CITY,
+          return_state: process.env.SELLER_STATE,
+          return_country: "India",
+          return_phone: process.env.SELLER_PHONE,
+
+          products_desc: "",
+          quantity: quantity,
+          total_amount: totalAmount,
+
+          weight: weigth * 1000,
+          shipment_width: width,
+          shipment_height: height,
+          shipping_mode: "Surface",
+          waybill: ""
+        }
+      ],
+
+      pickup_location: {
+        name: process.env.DELHIVERY_PICKUP_LOCATION
+      }
+    };
+
+
+    const result = await CreateShippingOrderService(delhiveryPayload)
+    let waybill = ""
+    if (result.success && result.packages && result.packages.length > 0) {
+      waybill = result.packages[0].waybill;
+    } else {
+      return next(CustomeError(500, "Failed to create shipping order with Delhivery"));
+    }
+    const returnData = {
+      waybill: waybill,
+      status: "pending",
+      reason: reason || "No reason provided"
+    }
+
+    if (order.payment?.method === "razorpay" && order.payment?.status === "paid") {
+
+      const refundResult = await RazorpayRefundApi(order);
+
+      const refundData = {
+        method: "razorpay",
+        status: "pending",
+        refundId: refundResult?.id || "",
+      };
+      order = await OrderModel.findByIdAndUpdate(order._id, { type: "return", status: "cancelled", payment: { ...order.payment, status: "refunded" }, returnData, refundData }, { returnDocument: 'after' });
+    } else {
+      const refundData = {
+        method: "cod",
+        status: "pending",
+        refundId: "",
+        accountDetails: accountDetails || {}
+      };
+      order = await OrderModel.findByIdAndUpdate(order._id, { type: "return", status: "cancelled", payment: { ...order.payment, status: "refunded" }, returnData, refundData }, { returnDocument: 'after' });
+    }
+
+
+
+    return res.status(200).json({ success: true, message: "Return shipment request created successfully" });
+  } catch (error) {
+    return next(error);
+  }
+}
+
 
 
 

@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { Eye, Printer } from 'lucide-react';
+import { Eye, Printer, CheckSquare } from 'lucide-react';
 import { getImageUrl } from '../services/api';
 
 const STATUS_TABS = ['All', 'pending', 'accepted', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'cancelled'];
 
-const AdminOrders = ({ orders, onUpdateStatus, searchQuery }) => {
+const AdminOrders = ({ orders, onUpdateStatus, searchQuery, isLoading = false }) => {
   const [selectedStatusTab, setSelectedStatusTab] = useState('All');
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [selectedOrderIds, setSelectedOrderIds] = useState([]);
+  const [bulkStatus, setBulkStatus] = useState('');
 
   // Filter orders – uses real DB fields
   const filteredOrders = orders.filter((ord) => {
@@ -26,6 +28,44 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery }) => {
 
     return matchesTab && matchesSearch;
   });
+
+  // Tab-wise selection helpers
+  const currentTabOrderIds = filteredOrders.map((ord) => ord._id || ord.orderNumber);
+  const isAllSelected =
+    currentTabOrderIds.length > 0 &&
+    currentTabOrderIds.every((id) => selectedOrderIds.includes(id));
+
+  // Switch tab and reset selection so selection stays tab-wise
+  const handleTabChange = (tab) => {
+    setSelectedStatusTab(tab);
+    setSelectedOrderIds([]);
+    setBulkStatus('');
+  };
+
+  const handleToggleSelect = (id) => {
+    setSelectedOrderIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleToggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedOrderIds([]);
+    } else {
+      setSelectedOrderIds(currentTabOrderIds);
+    }
+  };
+
+  const handleApplyBulkStatus = async () => {
+    if (!bulkStatus || selectedOrderIds.length === 0) return;
+    if (onUpdateStatus) {
+      for (const id of selectedOrderIds) {
+        await onUpdateStatus(id, bulkStatus);
+      }
+    }
+    setSelectedOrderIds([]);
+    setBulkStatus('');
+  };
 
   const getStatusBadgeClass = (status) => {
     switch ((status || '').toLowerCase()) {
@@ -58,7 +98,7 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery }) => {
             <button
               key={tab}
               type="button"
-              onClick={() => setSelectedStatusTab(tab)}
+              onClick={() => handleTabChange(tab)}
               className="shv-table-filter-btn"
               style={{
                 background: selectedStatusTab === tab ? '#1E2229' : '#FFFFFF',
@@ -75,10 +115,117 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery }) => {
 
       {/* Orders Table Card */}
       <div className="shv-admin-table-card">
+        {/* Bulk Action & Select All Bar - Hidden in 'All' tab */}
+        {selectedStatusTab !== 'All' && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '0.75rem 1.25rem',
+              background: selectedOrderIds.length > 0 ? '#F1F5F9' : '#FAFAFB',
+              borderBottom: '1px solid var(--admin-border)',
+              flexWrap: 'wrap',
+              gap: '0.75rem',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <button
+                type="button"
+                onClick={handleToggleSelectAll}
+                className="shv-table-filter-btn"
+                style={{
+                  background: isAllSelected ? '#1E2229' : '#FFFFFF',
+                  color: isAllSelected ? '#FFFFFF' : 'var(--admin-text-main)',
+                  borderColor: isAllSelected ? '#1E2229' : 'var(--admin-border)',
+                  fontSize: '0.8rem',
+                  padding: '0.4rem 0.85rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                <CheckSquare size={14} />
+                <span>{isAllSelected ? 'Deselect All' : `Select All (${filteredOrders.length})`}</span>
+              </button>
+
+              {selectedOrderIds.length > 0 && (
+                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--admin-text-main)' }}>
+                  {selectedOrderIds.length} of {filteredOrders.length} orders selected
+                </span>
+              )}
+            </div>
+
+            {selectedOrderIds.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.8rem', color: 'var(--admin-text-muted)', fontWeight: 500 }}>
+                  Change Status:
+                </span>
+                <select
+                  value={bulkStatus}
+                  onChange={(e) => setBulkStatus(e.target.value)}
+                  className="shv-overview-select"
+                  style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem', textTransform: 'capitalize' }}
+                >
+                  <option value="">Choose new status...</option>
+                  <option value="pending">Pending</option>
+                  <option value="accepted">Accepted</option>
+                  <option value="processing">Processing</option>
+                  <option value="shipped">Shipped</option>
+                  <option value="out_for_delivery">Out for Delivery</option>
+                  <option value="delivered">Delivered</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+                <button
+                  type="button"
+                  disabled={!bulkStatus}
+                  onClick={handleApplyBulkStatus}
+                  className="shv-btn-primary"
+                  style={{
+                    padding: '0.35rem 0.85rem',
+                    fontSize: '0.8rem',
+                    opacity: bulkStatus ? 1 : 0.5,
+                    cursor: bulkStatus ? 'pointer' : 'not-allowed',
+                  }}
+                >
+                  Apply
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedOrderIds([])}
+                  className="shv-btn-secondary"
+                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
+                >
+                  Clear
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="shv-admin-table-wrap">
           <table className="shv-admin-table">
             <thead>
               <tr>
+                {/* Select column - Hidden in 'All' tab */}
+                {selectedStatusTab !== 'All' && (
+                  <th style={{ width: '44px', textAlign: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={isAllSelected}
+                      onChange={handleToggleSelectAll}
+                      style={{
+                        cursor: 'pointer',
+                        width: '16px',
+                        height: '16px',
+                        accentColor: '#1E2229',
+                      }}
+                      title={isAllSelected ? 'Deselect all orders in this tab' : 'Select all orders in this tab'}
+                    />
+                  </th>
+                )}
                 <th>Order ID</th>
                 <th>Shipping Address</th>
                 <th>Silhouettes &amp; Qty</th>
@@ -89,15 +236,29 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery }) => {
               </tr>
             </thead>
             <tbody>
-              {filteredOrders.length === 0 ? (
+              {isLoading ? (
                 <tr>
-                  <td colSpan="7" style={{ textAlign: 'center', padding: '3rem', color: 'var(--admin-text-muted)' }}>
+                  <td
+                    colSpan={selectedStatusTab === 'All' ? 7 : 8}
+                    style={{ textAlign: 'center', padding: '3rem', color: 'var(--admin-text-muted)' }}
+                  >
+                    Loading orders…
+                  </td>
+                </tr>
+              ) : filteredOrders.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={selectedStatusTab === 'All' ? 7 : 8}
+                    style={{ textAlign: 'center', padding: '3rem', color: 'var(--admin-text-muted)' }}
+                  >
                     No orders found matching your active filter.
                   </td>
                 </tr>
               ) : (
                 filteredOrders.map((ord) => {
                   const orderRef = ord.orderNumber || ord._id;
+                  const orderKey = ord._id || ord.orderNumber;
+                  const isChecked = selectedOrderIds.includes(orderKey);
                   const itemCount = (ord.items || []).reduce((acc, i) => acc + (i.quantity || i.qty || 1), 0);
                   const firstItem = (ord.items || [])[0];
                   const placedDate = ord.createdAt
@@ -107,7 +268,27 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery }) => {
                   const addrPhone = ord.address?.phone || '';
 
                   return (
-                    <tr key={ord._id || orderRef}>
+                    <tr
+                      key={ord._id || orderRef}
+                      style={{ background: isChecked ? '#F8FAFC' : undefined }}
+                    >
+                      {/* Select Checkbox Cell - Hidden in 'All' tab */}
+                      {selectedStatusTab !== 'All' && (
+                        <td style={{ width: '44px', textAlign: 'center' }}>
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => handleToggleSelect(orderKey)}
+                            style={{
+                              cursor: 'pointer',
+                              width: '16px',
+                              height: '16px',
+                              accentColor: '#1E2229',
+                            }}
+                            aria-label={`Select order ${orderRef}`}
+                          />
+                        </td>
+                      )}
                       <td>
                         <strong className="shv-table-order-id">{orderRef}</strong>
                         <div style={{ fontSize: '0.74rem', color: 'var(--admin-text-muted)' }}>{placedDate}</div>
@@ -158,20 +339,7 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery }) => {
                         </div>
                       </td>
                       <td>
-                        <select
-                          value={ord.status || 'pending'}
-                          onChange={(e) => onUpdateStatus(ord._id || orderRef, e.target.value)}
-                          className={`shv-status-pill ${getStatusBadgeClass(ord.status)}`}
-                          style={{ border: 'none', outline: 'none', cursor: 'pointer', fontFamily: 'inherit', textTransform: 'capitalize' }}
-                        >
-                          <option value="pending">Pending</option>
-                          <option value="accepted">Accepted</option>
-                          <option value="processing">Processing</option>
-                          <option value="shipped">Shipped</option>
-                          <option value="out_for_delivery">Out for Delivery</option>
-                          <option value="delivered">Delivered</option>
-                          <option value="cancelled">Cancelled</option>
-                        </select>
+                          <p className={`shv-status-pill ${getStatusBadgeClass(ord.status)}`}>{ord.status || 'pending'}</p>
                       </td>
                       <td>
                         <button

@@ -33,6 +33,20 @@ import { getProductColors } from '../services/storeService';
 import ProductCard from '../components/ProductCard';
 import Loader from '../components/Loader';
 
+// "Free Size" is a placeholder used for one-size jewellery pieces. It is not a
+// real selectable option, so it must never be shown as a size pill to shoppers.
+const isFreeSize = (value) =>
+  String(typeof value === 'object' && value !== null ? value.size : value ?? '')
+    .trim()
+    .toLowerCase() === 'free size';
+
+// Returns the first genuinely selectable size (skipping "Free Size" when other
+// sizes exist) so a sensible default is preselected.
+const pickDefaultSize = (sizes = []) => {
+  const normalized = (sizes || []).map((s) => (typeof s === 'object' && s !== null ? s.size : s));
+  return normalized.find((s) => s && !isFreeSize(s)) ?? normalized[0] ?? '';
+};
+
 // Product Care Icons (Image 3)
 const AvoidWaterIcon = ({ size = 52 }) => (
   <svg width={size} height={size} viewBox="0 0 54 54" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -120,7 +134,7 @@ const SEED_REVIEWS = [
   {
     id: 'rev-4',
     name: 'Pooja Varma',
-    city: 'Jaipur',
+    city: 'Surat',
     rating: 4,
     date: 'Jul 29, 2026',
     verified: true,
@@ -280,12 +294,11 @@ const ProductDetail = () => {
             const activeVar = matchedVar || data.variants[0];
             setSelectedColor(activeVar.color);
             if (activeVar.sizes && activeVar.sizes.length > 0) {
-              const firstSz = activeVar.sizes[0];
-              setSelectedSize(typeof firstSz === 'object' ? firstSz.size : firstSz);
+              setSelectedSize(pickDefaultSize(activeVar.sizes));
             }
           } else {
             if (data.sizes && data.sizes.length > 0) {
-              setSelectedSize(data.sizes[0]);
+              setSelectedSize(pickDefaultSize(data.sizes));
             }
             const colors = getProductColors(data);
             const queryColor = searchParams.get('color') || location.state?.selectedColor;
@@ -398,6 +411,10 @@ const ProductDetail = () => {
     ? activeVariant.sizes.map((s) => (typeof s === 'object' ? s.size : s))
     : (product.sizes || []);
 
+  // Hide the "Free Size" placeholder from the selectable pills. When a product
+  // only offers "Free Size", the whole size selector is hidden as well.
+  const visibleSizes = (availableSizes || []).filter((size) => size && !isFreeSize(size));
+
   const activeSizeObj = hasVariants && activeVariant?.sizes
     ? activeVariant.sizes.find((s) => (typeof s === 'object' ? s.size : s) === selectedSize)
     : null;
@@ -416,8 +433,7 @@ const ProductDetail = () => {
     if (hasVariants) {
       const v = product.variants.find((varItem) => varItem.color?.toLowerCase() === colorName.toLowerCase());
       if (v && v.sizes && v.sizes.length > 0) {
-        const firstSz = v.sizes[0];
-        setSelectedSize(typeof firstSz === 'object' ? firstSz.size : firstSz);
+        setSelectedSize(pickDefaultSize(v.sizes));
       }
     }
   };
@@ -788,8 +804,8 @@ const ProductDetail = () => {
               </div>
             )}
 
-            {/* Size Selector */}
-            {availableSizes && availableSizes.length > 0 && (
+            {/* Size Selector (hidden for "Free Size" / one-size products) */}
+            {visibleSizes.length > 0 && (
               <div style={{ marginBottom: '1.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <label style={{ fontSize: '0.82rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
@@ -800,7 +816,7 @@ const ProductDetail = () => {
                   </Link>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'gap', gap: '8px' }}>
-                  {availableSizes.map((size) => (
+                  {visibleSizes.map((size) => (
                     <button
                       key={size}
                       type="button"
@@ -1084,7 +1100,7 @@ const ProductDetail = () => {
                   <div className="shv-pdp-accordion-body">
                     <div className="shv-pdp-shipping-text">
                       <p>
-                        Free delivery across india on all orders. Shipping within Delhi/NCR will take 2-3 working days. To find out more, refer to our{' '}
+                        Free delivery across india on all orders. Shipping within Surat will take 2-3 working days. To find out more, refer to our{' '}
                         <Link to="/shipping" className="shv-pdp-inline-link">
                           Shipping Policy
                         </Link>

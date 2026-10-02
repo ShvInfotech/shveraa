@@ -67,7 +67,7 @@ const TrackOrder = () => {
       },
       {
         title: 'Sealed with Holographic Tamper Ribbon',
-        detail: 'Handed over to BlueDart Air Express at Jaipur Cargo Terminal',
+        detail: 'Handed over to BlueDart Air Express at Surat Cargo Terminal',
         time: '09 Sep 2026, 06:10 PM',
         status: 'active',
       },

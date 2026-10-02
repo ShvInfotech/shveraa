@@ -77,7 +77,9 @@ export const apiUploadImage = async (file) => {
   const formData = new FormData();
   formData.append('image', file);
   
-  const token = localStorage.getItem('shveraa_admin_token') || localStorage.getItem('shveraa_user_token');
+  // Admin credentials live in sessionStorage (wiped when the tab closes) while
+  // the customer session stays in localStorage.
+  const token = sessionStorage.getItem('shveraa_admin_token') || localStorage.getItem('shveraa_user_token');
   const headers = {};
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
@@ -257,7 +259,7 @@ export const apiFetch = async (url, options = {}) => {
 
   const isAdminUrl = url.includes('/admin');
   
-  const adminToken = localStorage.getItem('shveraa_admin_token');
+  const adminToken = sessionStorage.getItem('shveraa_admin_token');
   const userToken = localStorage.getItem('shveraa_user_token');
 
   const tokenToUse = isAdminUrl ? adminToken : userToken;
@@ -271,15 +273,39 @@ export const apiFetch = async (url, options = {}) => {
     headers,
   });
 
-  // Handle 401 Unauthorized (Expired / Invalid Token / Blocked Account)
+  // Handle 401 Unauthorized (Expired / Invalid Token / Blocked / Revoked session)
   if (response.status === 401) {
     if (isAdminUrl) {
-      localStorage.removeItem('shveraa_admin_token');
-      localStorage.removeItem('shveraa_admin_session');
+      // 1. Wipe the admin session so the stale token can never be replayed.
+      sessionStorage.removeItem('shveraa_admin_token');
+      sessionStorage.removeItem('shveraa_admin_session');
+
       if (typeof window !== 'undefined') {
+        // 2. Notify any mounted admin tree so it drops straight back to the login screen.
         window.dispatchEvent(new CustomEvent('shveraa_admin_unauthorized'));
-        if (window.location.pathname.startsWith('/admin')) {
-          window.location.href = '/admin';
+
+        // 3. Hard-redirect to the admin login page exactly once, even when several
+        //    admin requests fail with 401 at the same time.
+        if (!window.__shveraaAdminRedirecting) {
+          window.__shveraaAdminRedirecting = true;
+
+          // Remember why we were bounced so the login screen can explain itself.
+          try {
+            sessionStorage.setItem(
+              'shveraa_admin_notice',
+              'Your admin session has expired or is no longer valid. Please sign in again.'
+            );
+          } catch {
+            // sessionStorage may be unavailable (private mode) – the redirect still proceeds.
+          }
+
+          if (window.location.pathname.startsWith('/admin')) {
+            // Already inside the admin app → reload to a clean, unauthenticated state.
+            window.location.reload();
+          } else {
+            // Send the user to the admin portal (renders the login page when signed out).
+            window.location.href = '/admin';
+          }
         }
       }
     } else {
@@ -394,8 +420,8 @@ export const apiAdminLogin = async ({ email, password, deviceToken }) => {
     throw new Error(data.message || 'Admin login failed');
   }
   if (data.AccessToken) {
-    localStorage.setItem('shveraa_admin_token', data.AccessToken);
-    localStorage.setItem('shveraa_admin_session', JSON.stringify(data.admin));
+    sessionStorage.setItem('shveraa_admin_token', data.AccessToken);
+    sessionStorage.setItem('shveraa_admin_session', JSON.stringify(data.admin));
   }
   return data;
 };
@@ -423,8 +449,8 @@ export const apiAdminLogout = async () => {
   } catch (err) {
     console.error('Admin logout error:', err);
   } finally {
-    localStorage.removeItem('shveraa_admin_token');
-    localStorage.removeItem('shveraa_admin_session');
+    sessionStorage.removeItem('shveraa_admin_token');
+    sessionStorage.removeItem('shveraa_admin_session');
   }
 };
 
@@ -558,7 +584,7 @@ export const apiAdminGetCoupons = async () => {
 };
 
 export const apiDeleteUploadedImage = async (url) => {
-  const token = localStorage.getItem('shveraa_admin_token');
+  const token = sessionStorage.getItem('shveraa_admin_token');
   const res = await apiFetch('/api/v1/admin/upload', {
     method: 'DELETE',
     body: JSON.stringify({ url }),
@@ -880,6 +906,28 @@ export const apiCODPlaceOrder = async ({
   return data;
 };
 
+
+export const apiReturnOrderRequest = async ({
+  orderId,
+  accountDetails,
+  reason,
+}) => {
+  const res = await apiFetch('/api/v1/user/order/return-order', {
+    method: 'POST',
+    body: JSON.stringify({
+      orderId,
+      accountDetails,
+      reason,
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to submit return request');
+  return data;
+};
+
+
+
+
 /* ==========================================================================
    ORDER LISTING APIs
    ========================================================================== */
@@ -903,6 +951,36 @@ export const apiAdminGetAllOrders = async ({ page = 1, limit = 100, status, sear
   return data; // { success, orders, total }
 };
 
+// Fetch admin Return + RTO orders → GET /admin/orders/return-rto
+// Omit `type` to receive BOTH return and RTO orders mixed in one list.
+// Pass "return" or "rto" to request a single flow.
+export const apiAdminGetRTOReturnOrders = async (type) => {
+  const flowType = type === 'rto' || type === 'return' ? `/${type}` : '';
+  const res = await apiFetch(`/api/v1/admin/orders/return-rto${flowType}`);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to fetch return / RTO orders');
+  return data; // { success, count, data: [...] }
+};
 
+// Live Delhivery Track Order API
+export const apiTrackOrder = async (waybill) => {
+  const res = await apiFetch('/api/v1/user/order/track-order', {
+    method: 'POST',
+    body: JSON.stringify({ waybill }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to fetch tracking data');
+  return data; // { success, message, Scans, status }
+};
 
+// Cancel order API
+export const apiCancelOrder = async (orderId, waybill) => {
+  const res = await apiFetch('/api/v1/user/order/cancel-order', {
+    method: 'POST',
+    body: JSON.stringify({ orderId, waybill }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to cancel order');
+  return data;
+};
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Shield, Lock, Mail, Eye, EyeOff, Sparkles, ArrowRight, ArrowLeft, KeyRound } from 'lucide-react';
 import { loginAdmin } from '../services/storeService';
@@ -8,8 +8,24 @@ const AdminLogin = ({ onLoginSuccess }) => {
   const [password, setPassword] = useState('shveraa2026');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(() => {
+    // Show a one-time notice when the interceptor bounced us here after a 401.
+    try {
+      return sessionStorage.getItem('shveraa_admin_notice') || '';
+    } catch {
+      return '';
+    }
+  });
   const [isLoading, setIsLoading] = useState(false);
+
+  // Clear the one-time notice once it has been surfaced.
+  useEffect(() => {
+    try {
+      sessionStorage.removeItem('shveraa_admin_notice');
+    } catch {
+      // sessionStorage unavailable – nothing to clear.
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -17,27 +17,23 @@ const HERO_SLIDES = [
   {
     id: 1,
     num: '01',
-    tagline: 'MORE THAN JEWELLERY',
-    titleLine1: 'A Brighter',
-    titleLine2: 'You, Every',
+    tagline: 'PURE 925 SILVER',
+    titleLine1: 'A Brighter You,',
+    titleLine2: 'Every',
     titleAccent: 'Day.',
-    subtitle: 'Minimal designs. Maximum meaning.',
-    description: 'Pure 925 silver, crafted to be a part of your story.',
+    subtitle: 'Minimal designs, crafted for everyday radiance.',
     image: '/hero-ring-banner.jpg',
-    archBadge: 'CRAFTED TO LAST',
     link: '/shop?category=rings',
   },
   {
     id: 2,
     num: '02',
-    tagline: 'TIMELESS SILHOUETTES',
+    tagline: 'TIMELESS ELEGANCE',
     titleLine1: 'Elegance In',
     titleLine2: 'Every Fine',
     titleAccent: 'Detail.',
-    subtitle: 'Layered radiance. Platinum luster.',
-    description: 'Triple rhodium-shielded chains that capture every ray of light.',
+    subtitle: 'Layered radiance with a lifetime platinum luster.',
     image: '/hero-necklace-banner.jpg',
-    archBadge: 'HAND FINISHED',
     link: '/shop?category=necklaces',
   },
   {
@@ -47,10 +43,8 @@ const HERO_SLIDES = [
     titleLine1: 'Pure Form,',
     titleLine2: 'Featherweight',
     titleAccent: 'Grace.',
-    subtitle: 'Sculptural hoops & diamond-cut drops.',
-    description: 'Hypoallergenic solid 925 sterling silver for effortless 24/7 wear.',
+    subtitle: 'Hypoallergenic solid 925 silver for effortless wear.',
     image: '/hero-earrings-banner.jpg',
-    archBadge: 'BIS 925 CERTIFIED',
     link: '/shop?category=earrings',
   },
   {
@@ -60,58 +54,9 @@ const HERO_SLIDES = [
     titleLine1: 'Confidence,',
     titleLine2: 'Sculpted in',
     titleAccent: 'Silver.',
-    subtitle: 'Solid cuffs & engraved personal keepsakes.',
-    description: 'Master artisan silversmithing with a lifetime authenticity guarantee.',
+    subtitle: 'Master artisan silversmithing with certified purity.',
     image: '/hero-bracelet-banner.jpg',
-    archBadge: 'LIFETIME SHINE',
     link: '/shop?category=bracelets',
-  },
-];
-
-const TRUST_FEATURES = [
-  {
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
-        <path d="M12 2L14.4 9.6L22 12L14.4 14.4L12 22L9.6 14.4L2 12L9.6 9.6L12 2Z" />
-      </svg>
-    ),
-    line1: 'TIMELESS',
-    line2: 'DESIGNS',
-  },
-  {
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
-        <polygon points="6 3 18 3 22 9 12 22 2 9 6 3" />
-        <line x1="2" y1="9" x2="22" y2="9" />
-        <polyline points="12 22 7.5 9 10.5 3" />
-        <polyline points="12 22 16.5 9 13.5 3" />
-      </svg>
-    ),
-    line1: '925',
-    line2: 'PURE SILVER',
-  },
-  {
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
-        <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
-        <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
-      </svg>
-    ),
-    line1: 'SKIN',
-    line2: 'FRIENDLY',
-  },
-  {
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
-        <rect x="3" y="8" width="18" height="14" rx="2" />
-        <path d="M12 8v14" />
-        <path d="M19 12H5" />
-        <path d="M12 8a3 3 0 1 0-3-3c0 2 3 3 3 3Z" />
-        <path d="M12 8a3 3 0 1 1 3-3c0 2-3 3-3 3Z" />
-      </svg>
-    ),
-    line1: 'PERFECT',
-    line2: 'FOR GIFTING',
   },
 ];
 
@@ -233,95 +178,35 @@ const HeroSection = ({ heroImage, slides: propSlides }) => {
 
       {/* 4. Main Hero Core Container */}
       <div className="shv-hero-main-layout">
-        {/* Left Side: Typography & CTAs */}
+        {/* Left Side: Minimal Typography & Primary Action */}
         <div className={`shv-hero-editorial-left ${isFading ? 'shv-fade-out' : 'shv-fade-in'}`}>
-          <span className="shv-hero-pretitle">{slide.tagline}</span>
+          {slide.tagline && <span className="shv-hero-pretitle">{slide.tagline}</span>}
 
           <h1 className="shv-hero-headline">
-            {slide.isCms ? slide.title : <>
-              {slide.titleLine1} <br />
-              {slide.titleLine2} <br />
-              <span className="shv-hero-headline-italic">{slide.titleAccent}</span>
-            </>}
+            {slide.isCms ? (
+              slide.title
+            ) : (
+              <>
+                {slide.titleLine1} <br />
+                {slide.titleLine2}{' '}
+                {slide.titleAccent && (
+                  <span className="shv-hero-headline-italic">{slide.titleAccent}</span>
+                )}
+              </>
+            )}
           </h1>
 
-          <p className="shv-hero-lead-text">
-            {slide.subtitle} {slide.description && <><br />{slide.description}</>}
-          </p>
+          {slide.subtitle && (
+            <p className="shv-hero-lead-text">
+              {slide.subtitle}
+            </p>
+          )}
 
           <div className="shv-hero-button-group">
             <Link to={slide.link} className="shv-btn-shop-collection">
-              <span>{slide.ctaText || 'SHOP COLLECTION'}</span>
+              <span>{slide.ctaText || 'EXPLORE COLLECTION'}</span>
               <ArrowRight size={17} className="shv-btn-arrow" />
             </Link>
-
-            <button
-              type="button"
-              className="shv-btn-watch-story"
-              onClick={() => setVideoOpen(true)}
-              aria-label="Watch Our Story"
-            >
-              <span className="shv-play-btn-circle">
-                <Play size={13} fill="#18181A" color="#18181A" />
-              </span>
-              <span className="shv-watch-story-label">
-                WATCH <br />
-                OUR STORY
-              </span>
-            </button>
-          </div>
-        </div>
-
-        {/* Center Area: Arch Badge & Rotating 925 Stamp */}
-        <div className="shv-hero-center-anchors">
-          {/* Subtle Arch Inscription */}
-          <div className="shv-arch-inscription">
-            <span className="shv-arch-inscription-text">{slide.archBadge}</span>
-            <div className="shv-arch-inscription-rule" />
-          </div>
-
-          {/* Authentic 925 Silver Circular Seal */}
-          <div className="shv-circular-seal-badge" aria-hidden="true">
-            <svg viewBox="0 0 130 130" className="shv-seal-svg">
-              <defs>
-                <path
-                  id="shvSealPath"
-                  d="M 65,65 m -44,0 a 44,44 0 1,1 88,0 a 44,44 0 1,1 -88,0"
-                />
-              </defs>
-              <text className="shv-seal-text-circle">
-                <textPath href="#shvSealPath" startOffset="0%">
-                  • 925 SILVER • MADE WITH LOVE •
-                </textPath>
-              </text>
-            </svg>
-            <div className="shv-seal-center-star">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="#3D3731">
-                <path d="M12 0L14.2 9.8L24 12L14.2 14.2L12 24L9.8 14.2L0 12L9.8 9.8L12 0Z" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Side: Vertical Luxury Trust Badges & Signature */}
-        <div className="shv-hero-right-rail">
-          <div className="shv-trust-badges-vertical">
-            {TRUST_FEATURES.map((feat, i) => (
-              <div key={i} className="shv-trust-feature-unit">
-                <div className="shv-trust-icon-box">{feat.icon}</div>
-                <div className="shv-trust-text-stack">
-                  <span className="shv-trust-line">{feat.line1}</span>
-                  <span className="shv-trust-line">{feat.line2}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Bottom Right Handwritten Atelier Signature */}
-          <div className="shv-bottom-right-signature">
-            <span className="shv-signature-script">Shveraa</span>
-            <span className="shv-signature-tagline">EVERY DETAIL</span>
-            <span className="shv-signature-subtag">A FEELING</span>
           </div>
         </div>
       </div>

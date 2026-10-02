@@ -1854,14 +1854,15 @@ h4 { font-size: 1.15rem; }
 
 @media (min-width: 992px) {
   .shv-hero-main-layout {
-    grid-template-columns: 1.15fr 0.9fr 0.35fr;
+    grid-template-columns: 1fr;
     padding: 130px 44px 24px 96px;
-    min-height: 560px;
+    min-height: 540px;
   }
 }
 
 @media (min-width: 1280px) {
   .shv-hero-main-layout {
+    grid-template-columns: 1fr;
     padding: 138px 60px 28px 110px;
   }
 }

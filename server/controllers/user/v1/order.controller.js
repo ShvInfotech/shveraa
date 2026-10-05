@@ -3,8 +3,10 @@ import cartModel from "../../../models/cart.model.js";
 import productModel from "../../../models/product.model.js";
 import couponModel from "../../../models/coupon.model.js";
 import { razorpay, razorpaySignature, } from "../../../config/razorpay.config.js";
-import OrderNumberGanrate from 'generate-unique-id'
 import OrderModel from "../../../models/order.model.js";
+
+const generateOrderNumber = () =>
+  "SHV_" + Math.floor(100000 + Math.random() * 900000) + Date.now().toString().slice(-6);
 import addressModel from "../../../models/address.model.js";
 import { CancelShipmentService, CreateShippingOrderService, PincodeServiceability, TrackShipmentService } from "../../../services/delhiveryApis.js";
 import userModel from "../../../models/user.model.js";
@@ -201,7 +203,7 @@ export const RozerpayPaymentVerifyPlaceOrder = async (req, res, next) => {
 
 
     const address = await addressModel.findById(addressId)
-    const orderNumber = "SHV_" + OrderNumberGanrate({ length: 6, useLetters: false }) + Date.now().toString().slice(-6)
+    const orderNumber = generateOrderNumber();
     const totalAmount = price - discount + Number(shippingCost);
 
     const delhiveryPayload = {
@@ -382,7 +384,7 @@ export const PlaceCodeOrder = async (req, res, next) => {
 
 
 
-    const orderNumber = "SHV_" + OrderNumberGanrate({ length: 6, useLetters: false }) + Date.now().toString().slice(-6)
+    const orderNumber = generateOrderNumber();
     const totalAmount = price - discount + Number(shippingCost);
 
     const delhiveryPayload = {

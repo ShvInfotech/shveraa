@@ -12,6 +12,12 @@ const withImageUrl = (image, req) => {
 // the backend domain, matching the category-image API behaviour.
 export const withProductImageUrls = (product, req) => {
   const productData = product.toObject ? product.toObject() : { ...product };
+  if (Array.isArray(productData.images)) {
+    productData.images = productData.images.map((img) => withImageUrl(img, req));
+  }
+  if (productData.image) {
+    productData.image = withImageUrl(productData.image, req);
+  }
   productData.variants = (productData.variants || []).map((variant) => ({
     ...variant,
     images: (variant.images || []).map((image) => withImageUrl(image, req)),

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Heart, ShoppingBag, Star } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { getProductColors } from '../services/storeService';
+import { getImageUrl } from '../services/api';
 
 const getColorVisuals = (colorName) => {
   const c = (colorName || '').toLowerCase().trim();
@@ -93,10 +94,12 @@ const ProductCard = ({ product }) => {
     ? product.variants.find((v) => v.color?.toLowerCase() === selectedColor?.toLowerCase()) || product.variants[0]
     : null;
 
-  const primaryImage = (activeVariant?.images || product.images || []).filter(Boolean)[0] || product.image || '';
-  const secondaryImage = hasVariants
+  const rawPrimaryImage = (activeVariant?.images || product.images || []).filter(Boolean)[0] || product.image || '';
+  const primaryImage = getImageUrl(rawPrimaryImage);
+  const rawSecondaryImage = hasVariants
     ? (activeVariant?.images || []).filter(Boolean)[1] || ''
     : (product.images || []).filter(Boolean)[1] || product.secondaryImage || '';
+  const secondaryImage = getImageUrl(rawSecondaryImage);
 
   // Compute price if variant size has dynamic price
   const displayPrice = activeVariant?.sizes?.[0]?.price || product.price;

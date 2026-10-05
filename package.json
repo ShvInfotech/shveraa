@@ -1,0 +1,11 @@
+{
+  "name": "shveraa-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "deploy.bat",
+    "deploy:server": "deploy.bat server",
+    "deploy:client": "deploy.bat client",
+    "deploy:all": "deploy.bat all"
+  }
+}

@@ -108,7 +108,7 @@ export const CancelShipmentService = async (waybill) => {
         "Accept": "application/json",
         "Authorization": `Token ${process.env.DELHIVERY_AUTH_TOKEN}`,
       },
-      body:JSON.stringify({
+      body: JSON.stringify({
         "waybill": waybill,
         "cancellation": "true"
       })
@@ -123,6 +123,54 @@ export const CancelShipmentService = async (waybill) => {
   }
 }
 
+
+
+export const LabelGenerationService = async (waybills) => {
+  try {
+    const wbns = waybills.join(",");
+
+    const response = await fetch(`${delhiveryURL}api/p/packing_slip?wbns=${wbns}&pdf=true&pdf_size=`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Token ${process.env.DELHIVERY_AUTH_TOKEN}`,
+      }
+    });
+
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Track Order Error:", error);
+    throw error;
+  }
+}
+
+
+export const PickupGenerationService = async (time,date,count) => {
+  try {
+    const response = await fetch(`${delhiveryURL}fm/request/new/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Token ${process.env.DELHIVERY_AUTH_TOKEN}`,
+      },
+      body: JSON.stringify({
+        pickup_time: time,
+        pickup_date: date,
+        pickup_location: process.env.DELHIVERY_PICKUP_LOCATION,
+        expected_package_count: count
+      })
+    });
+
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Track Order Error:", error);
+    throw error;
+  }
+}
 
 
 

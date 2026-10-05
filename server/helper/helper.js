@@ -4,6 +4,7 @@ import bcrypt from 'bcrypt'
 import { getMessaging } from 'firebase-admin/messaging';
 import firebaseadmin from '../config/firebase.js';
 import userModel from '../models/user.model.js';
+import { PDFDocument } from "pdf-lib";
 
 
 export const hashUserPassword = (password) => {
@@ -104,6 +105,32 @@ export const SendWahtsappMessage = async (number, message) => {
     }
 }
 
+
+
+
+
+
+
+
+export const mergeLabelPDFs = async (packages = []) => {
+  const mergedPdf = await PDFDocument.create();
+
+  for (const pkg of packages) {
+    if (!pkg.pdf_encoding) continue;
+
+    const pdfBytes = Buffer.from(pkg.pdf_encoding, "base64");
+    const pdf = await PDFDocument.load(pdfBytes);
+
+    const pages = await mergedPdf.copyPages(
+      pdf,
+      pdf.getPageIndices()
+    );
+
+    pages.forEach((page) => mergedPdf.addPage(page));
+  }
+
+  return Buffer.from(await mergedPdf.save());
+};
 
 
 

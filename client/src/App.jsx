@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { CartProvider, useCart } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
@@ -29,7 +29,6 @@ import SizeGuide from './pages/SizeGuide';
 import Search from './pages/Search';
 import NotFound from './pages/NotFound';
 import ShippingCancellation from './pages/ShippingCancellation';
-import ComingSoon from './pages/ComingSoon';
 import AdminLayout from './admin/AdminLayout';
 
 // Scroll to top and Meta Pixel route tracker on navigation
@@ -68,57 +67,8 @@ const GlobalToast = () => {
   );
 };
 
-// Owner Preview Indicator for Live Store Browsing
-const OwnerPreviewIndicator = ({ onLock }) => {
-  const [minimized, setMinimized] = useState(false);
-
-  if (minimized) {
-    return (
-      <button
-        type="button"
-        onClick={() => setMinimized(false)}
-        className="shv-owner-preview-minimized"
-        title="Owner Mode Active • Click to expand"
-      >
-        <span className="shv-owner-pulse-dot" />
-        <span>Owner Mode</span>
-      </button>
-    );
-  }
-
-  return (
-    <div className="shv-owner-preview-banner">
-      <div className="shv-owner-preview-left">
-        <span className="shv-owner-pulse-dot" />
-        <div className="shv-owner-preview-text">
-          <strong>Owner Preview Mode</strong>
-          <span>Visitors see Coming Soon</span>
-        </div>
-      </div>
-      <div className="shv-owner-preview-actions">
-        <button
-          type="button"
-          onClick={onLock}
-          className="shv-owner-preview-btn-lock"
-          title="Preview what public visitors see"
-        >
-          View Coming Soon
-        </button>
-        <button
-          type="button"
-          onClick={() => setMinimized(true)}
-          className="shv-owner-preview-btn-close"
-          title="Minimize indicator"
-        >
-          ✕
-        </button>
-      </div>
-    </div>
-  );
-};
-
 const AppContent = () => {
-  const { pathname, search } = useLocation();
+  const { pathname } = useLocation();
   const isAdmin = pathname.startsWith('/admin');
   const { showToast } = useCart();
 
@@ -134,49 +84,9 @@ const AppContent = () => {
     };
   }, [showToast]);
 
-  // Check for Coming Soon mode and owner bypass
-  const [isBypassed, setIsBypassed] = useState(() => {
-    try {
-      const saved = localStorage.getItem('shveraa_bypass_coming_soon');
-      const adminToken = sessionStorage.getItem('shveraa_admin_token') || sessionStorage.getItem('shveraa_admin_session');
-      return saved === 'true' || !!adminToken;
-    } catch (e) {
-      return false;
-    }
-  });
-
-  // Handle URL query parameters (?preview=shveraa or ?lock=true)
-  useEffect(() => {
-    try {
-      const params = new URLSearchParams(search);
-      const previewParam = params.get('preview') || params.get('access') || params.get('bypass');
-      const lockParam = params.get('lock');
-
-      if (lockParam === 'true') {
-        localStorage.removeItem('shveraa_bypass_coming_soon');
-        setIsBypassed(false);
-        window.history.replaceState({}, '', pathname);
-        return;
-      }
-
-      if (
-        previewParam === 'shveraa' ||
-        previewParam === 'true' ||
-        previewParam === 'shveraa2026' ||
-        previewParam === 'admin'
-      ) {
-        localStorage.setItem('shveraa_bypass_coming_soon', 'true');
-        setIsBypassed(true);
-        window.history.replaceState({}, '', pathname);
-      }
-    } catch (e) {
-      // Ignore
-    }
-  }, [search, pathname]);
-
   // Silky Smooth Scrolling for Storefront (bypassed on Admin and touch/mobile devices for native 120Hz physics)
   useEffect(() => {
-    if (isAdmin || !isBypassed) return;
+    if (isAdmin) return;
 
     // On mobile and touch devices, native kinetic compositor scrolling is far smoother than JS interpolation
     const isTouchDevice =
@@ -206,7 +116,7 @@ const AppContent = () => {
       cancelAnimationFrame(rafId);
       lenis.destroy();
     };
-  }, [isAdmin, isBypassed]);
+  }, [isAdmin]);
 
   if (isAdmin) {
     return (
@@ -215,11 +125,6 @@ const AppContent = () => {
         <Route path="/admin" element={<AdminLayout />} />
       </Routes>
     );
-  }
-
-  // Public visitors see Coming Soon
-  if (!isBypassed) {
-    return <ComingSoon onUnlock={() => setIsBypassed(true)} />;
   }
 
   return (
@@ -259,12 +164,6 @@ const AppContent = () => {
       <Footer />
       <CartDrawer />
       <GlobalToast />
-      <OwnerPreviewIndicator
-        onLock={() => {
-          localStorage.removeItem('shveraa_bypass_coming_soon');
-          setIsBypassed(false);
-        }}
-      />
     </div>
   );
 };

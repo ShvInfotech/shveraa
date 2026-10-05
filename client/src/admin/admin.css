@@ -1103,6 +1103,18 @@
 }
 
 /* ==========================================================================
+   LABEL DOWNLOAD SPINNER
+   ========================================================================== */
+.shv-admin-spin {
+  animation: shvAdminSpin 1s linear infinite;
+}
+
+@keyframes shvAdminSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ==========================================================================
    HEADER ACTION ENHANCEMENTS
    ========================================================================== */
 .shv-admin-live-store-btn {

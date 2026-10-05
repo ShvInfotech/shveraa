@@ -1,14 +1,20 @@
 import React, { useState } from 'react';
-import { Eye, Printer, CheckSquare } from 'lucide-react';
-import { getImageUrl } from '../services/api';
+import { Eye, Printer, CheckSquare, Download, LoaderCircle, CircleAlert, CircleCheck } from 'lucide-react';
+import { getImageUrl, apiAdminDownloadLabels, downloadBlobFile } from '../services/api';
 
 const STATUS_TABS = ['All', 'pending', 'accepted', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'cancelled'];
+
+// Today in YYYY-MM-DD, used as the default Delhivery pickup date.
+const todayISODate = () => new Date().toISOString().slice(0, 10);
 
 const AdminOrders = ({ orders, onUpdateStatus, searchQuery, isLoading = false }) => {
   const [selectedStatusTab, setSelectedStatusTab] = useState('All');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [selectedOrderIds, setSelectedOrderIds] = useState([]);
-  const [bulkStatus, setBulkStatus] = useState('');
+  const [isDownloadingLabels, setIsDownloadingLabels] = useState(false);
+  const [labelNotice, setLabelNotice] = useState(null);
+  const [pickupDate, setPickupDate] = useState(todayISODate);
+  const [pickupTime, setPickupTime] = useState('10:00');
 
   // Filter orders – uses real DB fields
   const filteredOrders = orders.filter((ord) => {
@@ -39,7 +45,7 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery, isLoading = false })
   const handleTabChange = (tab) => {
     setSelectedStatusTab(tab);
     setSelectedOrderIds([]);
-    setBulkStatus('');
+    setLabelNotice(null);
   };
 
   const handleToggleSelect = (id) => {
@@ -56,15 +62,68 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery, isLoading = false })
     }
   };
 
-  const handleApplyBulkStatus = async () => {
-    if (!bulkStatus || selectedOrderIds.length === 0) return;
-    if (onUpdateStatus) {
-      for (const id of selectedOrderIds) {
-        await onUpdateStatus(id, bulkStatus);
-      }
+  // Ask the server for the packing slips of every selected order and save the
+  // merged PDF straight to disk. A pending batch additionally books a Delhivery
+  // pickup, so it needs the chosen date/time; every other status omits them.
+  const handleDownloadLabels = async () => {
+    if (selectedOrderIds.length === 0 || isDownloadingLabels) return;
+
+    const isPending = selectedStatusTab === 'pending';
+
+    if (isPending && (!pickupDate || !pickupTime)) {
+      setLabelNotice({ tone: 'error', text: 'Select a pickup date and time before generating labels.' });
+      return;
     }
-    setSelectedOrderIds([]);
-    setBulkStatus('');
+
+    const selectedOrders = filteredOrders.filter((ord) =>
+      selectedOrderIds.includes(ord._id || ord.orderNumber)
+    );
+
+    // Orders without a waybill cannot be shipped, so they are reported instead of sent.
+    const waybills = selectedOrders.map((ord) => ord.waybill).filter(Boolean);
+    const skippedCount = selectedOrders.length - waybills.length;
+    if (waybills.length === 0) {
+      setLabelNotice({
+        tone: 'error',
+        text: 'None of the selected orders have a waybill yet.',
+      });
+      return;
+    }
+
+    setIsDownloadingLabels(true);
+    setLabelNotice(null);
+
+    try {
+      const { blob, fileName } = await apiAdminDownloadLabels({
+        waybills,
+        type: selectedStatusTab,
+        time: pickupTime,
+        date: pickupDate,
+      });
+
+      downloadBlobFile(blob, fileName);
+
+      // The server moves pending orders to accepted once their pickup is booked,
+      // so mirror that locally to keep the current tab consistent.
+      if (isPending && onUpdateStatus) {
+        selectedOrders.forEach((ord) => {
+          if (ord.waybill) onUpdateStatus(ord._id || ord.orderNumber, 'accepted');
+        });
+      }
+
+      setSelectedOrderIds([]);
+      setLabelNotice({
+        tone: 'success',
+        text:
+          `Downloaded ${waybills.length} label${waybills.length === 1 ? '' : 's'}.` +
+          (skippedCount > 0 ? ` ${skippedCount} order(s) skipped — no waybill.` : ''),
+      });
+    } catch (err) {
+      console.error('Admin: Label download failed:', err);
+      setLabelNotice({ tone: 'error', text: err.message || 'Failed to download labels.' });
+    } finally {
+      setIsDownloadingLabels(false);
+    }
   };
 
   const getStatusBadgeClass = (status) => {
@@ -161,45 +220,69 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery, isLoading = false })
             {selectedOrderIds.length > 0 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '0.8rem', color: 'var(--admin-text-muted)', fontWeight: 500 }}>
-                  Change Status:
+                  Download Label:
                 </span>
-                <select
-                  value={bulkStatus}
-                  onChange={(e) => setBulkStatus(e.target.value)}
-                  className="shv-overview-select"
-                  style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem', textTransform: 'capitalize' }}
-                >
-                  <option value="">Choose new status...</option>
-                  <option value="pending">Pending</option>
-                  <option value="accepted">Accepted</option>
-                  <option value="processing">Processing</option>
-                  <option value="shipped">Shipped</option>
-                  <option value="out_for_delivery">Out for Delivery</option>
-                  <option value="delivered">Delivered</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
+
+                {/* Only a pending batch books a Delhivery pickup, so only it needs a slot. */}
+                {selectedStatusTab === 'pending' && (
+                  <>
+                    <input
+                      type="date"
+                      value={pickupDate}
+                      onChange={(e) => setPickupDate(e.target.value)}
+                      className="shv-overview-select"
+                      aria-label="Pickup date"
+                      style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem' }}
+                    />
+                    <input
+                      type="time"
+                      value={pickupTime}
+                      onChange={(e) => setPickupTime(e.target.value)}
+                      className="shv-overview-select"
+                      aria-label="Pickup time"
+                      style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem' }}
+                    />
+                  </>
+                )}
+
                 <button
                   type="button"
-                  disabled={!bulkStatus}
-                  onClick={handleApplyBulkStatus}
+                  disabled={isDownloadingLabels}
+                  onClick={handleDownloadLabels}
                   className="shv-btn-primary"
                   style={{
                     padding: '0.35rem 0.85rem',
                     fontSize: '0.8rem',
-                    opacity: bulkStatus ? 1 : 0.5,
-                    cursor: bulkStatus ? 'pointer' : 'not-allowed',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    opacity: isDownloadingLabels ? 0.6 : 1,
+                    cursor: isDownloadingLabels ? 'progress' : 'pointer',
                   }}
                 >
-                  Apply
+                  {isDownloadingLabels ? (
+                    <LoaderCircle size={14} className="shv-admin-spin" />
+                  ) : (
+                    <Download size={14} />
+                  )}
+                  <span>{isDownloadingLabels ? 'Generating…' : 'Download Label'}</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedOrderIds([])}
-                  className="shv-btn-secondary"
-                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
-                >
-                  Clear
-                </button>
+
+                {labelNotice && (
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      color: labelNotice.tone === 'error' ? 'var(--admin-red)' : 'var(--admin-green)',
+                    }}
+                  >
+                    {labelNotice.tone === 'error' ? <CircleAlert size={14} /> : <CircleCheck size={14} />}
+                    <span>{labelNotice.text}</span>
+                  </span>
+                )}
               </div>
             )}
           </div>

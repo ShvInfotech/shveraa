@@ -1,4 +1,7 @@
+import { mergeLabelPDFs } from "../../../helper/helper.js";
+import { CustomeError } from "../../../middleware/globelError.js";
 import orderModel from "../../../models/order.model.js";
+import { LabelGenerationService, PickupGenerationService } from "../../../services/delhiveryApis.js";
 
 
 
@@ -50,6 +53,7 @@ export const GetAllOrders = async (req, res, next) => {
                 "userData.email": 1,
                 "userData.phone": 1,
                 orderNumber: 1,
+                waybill: 1,
                 address: 1,
                 status: 1,
                 createdAt: 1,
@@ -157,3 +161,53 @@ export const GetRTOReturnOrders = async (req, res, next) => {
     return next(error);
   }
 };
+
+export const GetLabels = async (req, res, next) => {
+  try {
+
+
+
+    const { waybills, time, date, type } = req.body || {}
+
+    if (!waybills || !Array.isArray(waybills) || waybills.length === 0) {
+      return next(CustomeError(400, "waybills is required and should be a non-empty array"))
+    }
+
+
+    const result = await LabelGenerationService(waybills)
+
+    const mergedPdf = await mergeLabelPDFs(result.packages)
+
+    const generatedWaybills = result.packages.map(
+      (pkg) => String(pkg.wbn)
+    );
+
+
+
+    if (type === "pending") {
+       await PickupGenerationService(time, date, generatedWaybills.length)
+      await orderModel.updateMany(
+        {
+          waybill: { $in: generatedWaybills },
+          status: "pending"
+        },
+        {
+          $set: { status: "accepted" }
+        }
+      );
+    }
+
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=labels.pdf"
+    );
+
+    res.send(mergedPdf);
+
+
+  } catch (error) {
+    return next(error);
+  }
+}

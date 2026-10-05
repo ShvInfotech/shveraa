@@ -964,6 +964,57 @@ export const apiAdminGetRTOReturnOrders = async (type) => {
   return data; // { success, count, data: [...] }
 };
 
+// Generate packing-slip labels for the selected orders and download the merged PDF.
+// POST /api/v1/admin/orders/labels → responds with the raw PDF bytes, so this reads
+// the response as a blob instead of JSON.
+export const apiAdminDownloadLabels = async ({ waybills, type, time, date }) => {
+  const payload = { waybills, type };
+  // Only the "pending" flow books a Delhivery pickup request, so only that flow
+  // sends a pickup slot – every other status must omit date/time entirely.
+  if (type === 'pending') {
+    payload.time = time;
+    payload.date = date;
+  }
+
+  const res = await apiFetch('/api/v1/admin/orders/labels', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+
+  // Failures come back as JSON from the global error handler, never as a PDF.
+  if (!res.ok) {
+    let message = 'Failed to generate labels';
+    try {
+      const data = await res.json();
+      message = data.message || message;
+    } catch {
+      /* non-JSON error body – keep the default message */
+    }
+    throw new Error(message);
+  }
+
+  const blob = await res.blob();
+
+  // Honour the filename the server asked for via Content-Disposition.
+  const disposition = res.headers.get('content-disposition') || '';
+  const fileNameMatch = /filename="?([^";]+)"?/.exec(disposition);
+
+  return { blob, fileName: fileNameMatch ? fileNameMatch[1] : 'labels.pdf' };
+};
+
+// Save a binary API response (PDF, etc.) straight to the user's downloads.
+export const downloadBlobFile = (blob, fileName) => {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  // Revoke on the next tick so the browser has started the download first.
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+
 // Live Delhivery Track Order API
 export const apiTrackOrder = async (waybill) => {
   const res = await apiFetch('/api/v1/user/order/track-order', {

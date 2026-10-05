@@ -65,6 +65,9 @@ export const RozerpayRefundWebhook = async (req, res, next) => {
 
 export const DelhiveryScanWebhook = async (req, res, next) => {
   try {
+
+
+        
      const statusMapping = {
   "UD:Manifested": "pending",
   "UD:Not Picked": "pending",
@@ -98,6 +101,44 @@ export const DelhiveryScanWebhook = async (req, res, next) => {
 // const statusKey = `${status.StatusType}:${status.Status}`;
 // const newStatus = statusMapping[statusKey];
 console.log("Delhivery webhook",req.body)
+// {
+//     "Shipment": {
+//         "Status": {
+//             "Status": "Manifested",
+//             "StatusDateTime": "2019-01-09T17:10:42.767",
+//             "StatusType": "UD",
+//             "StatusLocation": "Chandigarh_Raiprkln_C (Chandigarh)",
+//             "Instructions": "Manifest uploaded"
+//         },
+//         "PickUpDate": "2019-01-09 17:10:42.543",
+//         "NSLCode": "X-UCI",
+//         "Sortcode": "IXC/MDP",
+//         "ReferenceNo": "28",
+//         "AWB": "XXXXXXXXXXXX"
+//     }
+// }
+
+const { shipment } = req.body;
+
+
+   if(shipment.status =="UD" && shipment.Status =="Manifested"){
+    await orderModel.findOneAndUpdate({ waybill: shipment.AWB }, { $set: { status: "pending" } }, { returnDocument: 'after' });
+   }
+
+    if(shipment.status =="UD" && shipment.Status =="Not Picked"){
+    await orderModel.findOneAndUpdate({ waybill: shipment.AWB }, { $set: { status: "pending" } }, { returnDocument: 'after' });
+   }
+
+   if(shipment.status =="UD" && shipment.Status =="In Transit"){
+    await orderModel.findOneAndUpdate({ waybill: shipment.AWB }, { $set: { status: "shipped" } }, { returnDocument: 'after' });
+   }
+
+
+    if(shipment.status =="UD" && shipment.Status =="Pending"){
+    await orderModel.findOneAndUpdate({ waybill: shipment.AWB }, { $set: { status: "out_for_delivery" } }, { returnDocument: 'after' });
+   }
+
+
    return res.status(200).json({ success: true, message: "Webhook received successfully" });
   } catch (error) {
     return next(error);

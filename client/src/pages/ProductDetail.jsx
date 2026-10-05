@@ -32,6 +32,7 @@ import { fetchProductById, fetchProducts, apiCheckPincodeDetails } from '../serv
 import { getProductColors } from '../services/storeService';
 import ProductCard from '../components/ProductCard';
 import Loader from '../components/Loader';
+import { trackPixelEvent } from '../utils/metaPixel';
 
 // "Free Size" is a placeholder used for one-size jewellery pieces. It is not a
 // real selectable option, so it must never be shown as a size pill to shoppers.
@@ -286,6 +287,13 @@ const ProductDetail = () => {
         const data = await fetchProductById(id);
         if (data) {
           setProduct(data);
+          trackPixelEvent('ViewContent', {
+            content_name: data.name,
+            content_ids: [data._id || data.slug],
+            content_type: 'product',
+            value: Number(data.salePrice || data.price || 0),
+            currency: 'INR',
+          });
           if (data.variants && Array.isArray(data.variants) && data.variants.length > 0) {
             const queryColor = searchParams.get('color') || location.state?.selectedColor;
             const matchedVar = queryColor

@@ -10,6 +10,7 @@ import {
   apiToggleWishlist,
   fetchProducts,
 } from '../services/api';
+import { trackPixelEvent } from '../utils/metaPixel';
 
 const CartContext = createContext();
 
@@ -172,6 +173,15 @@ export const CartProvider = ({ children }) => {
       const response = await apiAddToCart(cartItem);
       setCart(Array.isArray(response?.cart) ? response.cart : []);
       setAppliedCoupon(null);
+      if (response?.added !== false) {
+        trackPixelEvent('AddToCart', {
+          content_name: product.name,
+          content_ids: [product._id || product.slug],
+          content_type: 'product',
+          value: Number(cartItem.price || product.price || 0),
+          currency: 'INR',
+        });
+      }
       showToast(response?.added === false ? 'This colour and size is already in your bag' : `Added "${product.name}" to your bag`);
       if (!options.silent) setIsCartOpen(true);
       return true;
@@ -227,6 +237,15 @@ export const CartProvider = ({ children }) => {
 
     setWishlist(prev => {
       const exists = prev.some(i => String(typeof i === 'object' ? (i._id || i.slug) : i) === productId);
+      if (!exists) {
+        trackPixelEvent('AddToWishlist', {
+          content_name: product.name,
+          content_ids: [productId],
+          content_type: 'product',
+          value: Number(product.price || 0),
+          currency: 'INR',
+        });
+      }
       showToast(exists ? `Removed "${product.name || 'Item'}" from your wishlist` : `Saved "${product.name || 'Item'}" to your wishlist`);
       return exists
         ? prev.filter(i => String(typeof i === 'object' ? (i._id || i.slug) : i) !== productId)

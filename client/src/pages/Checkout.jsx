@@ -26,6 +26,7 @@ import {
   getImageUrl,
   apiCODPlaceOrder,
 } from '../services/api';
+import { trackPixelEvent } from '../utils/metaPixel';
 
 const loadRazorpayScript = () => {
   return new Promise((resolve) => {
@@ -72,6 +73,21 @@ const Checkout = () => {
   const [selectedAddrId, setSelectedAddrId] = useState(null);
   const [isSavingAddress, setIsSavingAddress] = useState(false);
   const [addressNotice, setAddressNotice] = useState('');
+
+  // Track Meta Pixel InitiateCheckout event
+  const initiatedCheckoutRef = useRef(false);
+  useEffect(() => {
+    if (!initiatedCheckoutRef.current && cart && cart.length > 0) {
+      initiatedCheckoutRef.current = true;
+      trackPixelEvent('InitiateCheckout', {
+        num_items: cart.reduce((sum, item) => sum + (item.quantity || 1), 0),
+        value: Number(cartTotal || 0),
+        currency: 'INR',
+        content_ids: cart.map((i) => i.productId || i._id).filter(Boolean),
+        content_type: 'product',
+      });
+    }
+  }, [cart, cartTotal]);
 
   useEffect(() => {
     const fetchAddresses = async () => {

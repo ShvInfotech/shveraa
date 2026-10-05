@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import {
   CheckCircle2,
@@ -19,6 +19,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { getImageUrl } from '../services/api';
 import { downloadOrderInvoicePDF } from '../utils/invoiceGenerator';
+import { trackPixelEvent } from '../utils/metaPixel';
 
 const OrderSuccess = () => {
   const location = useLocation();
@@ -77,6 +78,23 @@ const OrderSuccess = () => {
   const order = savedOrder || fallbackOrder;
 
   const orderReference = order.orderNumber || order.orderId || order._id || 'SHV-ORDER';
+
+  // Track Meta Pixel Purchase event
+  const trackedOrderRef = useRef(null);
+  useEffect(() => {
+    if (order && orderReference && trackedOrderRef.current !== orderReference) {
+      trackedOrderRef.current = orderReference;
+      const orderVal = Number(order.pricing?.total || order.total || order.totalAmount || 0);
+      const items = order.items || [];
+      trackPixelEvent('Purchase', {
+        value: orderVal,
+        currency: 'INR',
+        content_ids: items.map((i) => i.id || i.productId || i._id).filter(Boolean),
+        content_type: 'product',
+        num_items: items.reduce((sum, i) => sum + (i.quantity || 1), 0),
+      });
+    }
+  }, [orderReference, order]);
 
 
   const customerFullName =order.customer?.fullName ||user?.name ||'Valued Patron';

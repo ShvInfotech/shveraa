@@ -66,6 +66,7 @@ const getColorVisuals = (colorName) => {
 const ProductCard = ({ product }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isSwatchHovering, setIsSwatchHovering] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
   const touchMovedRef = useRef(false);
   const { addToCart, toggleWishlist, isInWishlist } = useCart();
 
@@ -149,7 +150,7 @@ const ProductCard = ({ product }) => {
         className="product-card-link"
       >
         {/* Image Container with Second Image Hover Crossfade */}
-        <div className="product-image-container">
+        <div className={`product-image-container ${imgLoaded ? 'loaded' : ''}`}>
           <div className="product-image-stack">
             {primaryImage ? (
               <img
@@ -157,7 +158,8 @@ const ProductCard = ({ product }) => {
                 alt={product.name}
                 loading="lazy"
                 decoding="async"
-                className="product-main-img product-img-primary"
+                onLoad={() => setImgLoaded(true)}
+                className={`product-main-img product-img-primary ${imgLoaded ? 'loaded' : ''}`}
               />
             ) : (
               <div className="product-image-empty" aria-label="Product image unavailable" />

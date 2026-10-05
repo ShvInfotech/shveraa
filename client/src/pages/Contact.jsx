@@ -38,7 +38,7 @@ const Contact = () => {
     },
     {
       q: 'What is your returns and size exchange policy?',
-      a: 'We offer a 30-day hassle-free return and exchange policy on all unworn items in their original presentation packaging. Zero hidden fees, and we schedule free doorstep courier pickups.',
+      a: 'We offer a 2-3 days easy return and exchange policy on all unworn items in their original presentation packaging. Zero hidden fees, and we schedule free doorstep courier pickups.',
     },
     {
       q: 'Can I request custom laser engraving or custom non-standard sizes?',

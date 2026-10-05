@@ -94,9 +94,9 @@ const Terms = () => {
           </section>
 
           <section className="shv-legal-section">
-            <h2>5. 30-Day Returns &amp; Bespoke Exclusions</h2>
+            <h2>5. 2-3 Days Returns &amp; Bespoke Exclusions</h2>
             <p>
-              We stand firmly behind the design and durability of our jewellery. Patrons are entitled to return or exchange eligible pieces within <strong>30 calendar days</strong> of delivery, provided the piece is in pristine, unworn condition with all certificates and packaging intact.
+              We stand firmly behind the design and durability of our jewellery. Patrons are entitled to return or exchange eligible pieces within <strong>2-3 calendar days</strong> of delivery, provided the piece is in pristine, unworn condition with all certificates and packaging intact.
             </p>
             <p>
               <em>Note on Custom Orders:</em> Pieces that have undergone bespoke laser engraving, personalized monogramming, or custom non-standard sizing are crafted individually and cannot be returned for cash refund, unless a manufacturing defect is validated by our master silversmiths. For full instructions, consult our <Link to="/returns">Return &amp; Exchange Policy</Link>.

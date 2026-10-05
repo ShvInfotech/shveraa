@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   ShoppingBag,
   Menu,
@@ -7,7 +7,6 @@ import {
   Search,
   Heart,
   Sparkles,
-  ChevronDown,
   ArrowRight,
   ShieldCheck,
   Award,
@@ -27,15 +26,13 @@ const DEFAULT_ANNOUNCEMENTS = [
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const { categories, settings } = useDynamicStore();
+  const { settings } = useDynamicStore();
   const { user, isAuthenticated, logout } = useAuth();
   const { cartItemCount, openCart, wishlistCount } = useCart();
   const [announcementIdx, setAnnouncementIdx] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [megaMenuOpen, setMegaMenuOpen] = useState(null); // 'shop' | 'collections' | 'personalised' | null
-  const [mobileCollectionsOpen, setMobileCollectionsOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
   const configuredAnnouncements = Array.isArray(settings?.announcements)
@@ -75,8 +72,6 @@ const Navbar = () => {
 
   const closeAllMenus = () => {
     setMobileMenuOpen(false);
-    setMegaMenuOpen(null);
-    setMobileCollectionsOpen(false);
   };
 
   const location = useLocation();
@@ -278,60 +273,7 @@ const Navbar = () => {
               Home
             </Link>
 
-            {/* Mega-menu: Collections */}
-            <div
-              className="nav-dropdown-trigger"
-              onMouseEnter={() => setMegaMenuOpen('shop')}
-              onMouseLeave={() => setMegaMenuOpen(null)}
-            >
-              <Link
-                to="/shop"
-                className={`nav-link ${isShopRoute && !currentCategory ? 'active' : ''}`}
-              >
-                <span>Collections</span>
-                <ChevronDown size={13} className="nav-chevron" />
-              </Link>
-
-              {megaMenuOpen === 'shop' && (
-                <div className="mega-menu">
-                  <div className="mega-menu-inner">
-                    <div className="mega-col">
-                      <span className="mega-col-title">Shop by Silhouette</span>
-                      <ul className="mega-links">
-                        {categories.map((cat) => (
-                          <li key={cat.slug || cat.id}>
-                            <Link
-                              to={`/shop?category=${cat.slug}`}
-                              onClick={closeAllMenus}
-                              className="mega-link"
-                            >
-                              <span>{cat.name}</span>
-                              <span className="mega-link-sub">{cat.subtitle || '925 Silver'}</span>
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {/* Editorial Feature Image */}
-                    <div className="mega-col mega-featured-card">
-                      <img
-                        src="/hero-ring-banner.jpg"
-                        alt="Liquid Silver Collection"
-                      />
-                      <div className="mega-card-content">
-                        <span className="mega-card-tag">NEW DROP</span>
-                        <h4>The Solitaire Leaf Edit</h4>
-                        <Link to="/shop" onClick={closeAllMenus} className="mega-card-link">
-                          Explore Edit <ArrowRight size={13} />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
+            {/* Collections and Custom Jewellery temporarily hidden per request */}
             <Link
               to="/shop?category=rings"
               className={`nav-link ${isShopRoute && currentCategory === 'rings' ? 'active' : ''}`}
@@ -358,13 +300,6 @@ const Navbar = () => {
               className={`nav-link ${isShopRoute && currentCategory === 'bracelets' ? 'active' : ''}`}
             >
               Bracelets
-            </Link>
-
-            <Link
-              to="/shop?category=personalised"
-              className={`nav-link ${isShopRoute && currentCategory === 'personalised' ? 'active' : ''}`}
-            >
-              Custom Jewellery
             </Link>
           </nav>
         </div>
@@ -455,48 +390,7 @@ const Navbar = () => {
             Home
           </Link>
 
-          {/* Collections with Submenu Accordion */}
-          <div className="drawer-accordion-group">
-            <div className="drawer-accordion-row">
-              <Link
-                to="/shop"
-                onClick={closeAllMenus}
-                className={`drawer-link drawer-accordion-link ${isShopRoute && !currentCategory ? 'active' : ''}`}
-              >
-                Collections
-              </Link>
-              <button
-                type="button"
-                className="drawer-accordion-toggle"
-                onClick={() => setMobileCollectionsOpen(!mobileCollectionsOpen)}
-                aria-label="Toggle collections menu"
-              >
-                <ChevronDown
-                  size={18}
-                  className={`drawer-chevron ${mobileCollectionsOpen ? 'open' : ''}`}
-                />
-              </button>
-            </div>
-            {mobileCollectionsOpen && (
-              <div className="drawer-submenu">
-                <Link to="/shop" onClick={closeAllMenus} className="drawer-sublink">
-                  <span>✦ View All Collections</span>
-                </Link>
-                {categories.map((cat) => (
-                  <Link
-                    key={cat.slug || cat.id}
-                    to={`/shop?category=${cat.slug}`}
-                    onClick={closeAllMenus}
-                    className={`drawer-sublink ${currentCategory === cat.slug ? 'active' : ''}`}
-                  >
-                    <span>{cat.name}</span>
-                    <span className="drawer-sublink-meta">{cat.subtitle || '925 Silver'}</span>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-
+          {/* Collections and Custom Jewellery temporarily hidden per request */}
           <Link
             to="/shop?category=rings"
             onClick={closeAllMenus}
@@ -527,14 +421,6 @@ const Navbar = () => {
             className={`drawer-link ${isShopRoute && currentCategory === 'bracelets' ? 'active' : ''}`}
           >
             Bracelets
-          </Link>
-
-          <Link
-            to="/shop?category=personalised"
-            onClick={closeAllMenus}
-            className={`drawer-link ${isShopRoute && currentCategory === 'personalised' ? 'active' : ''}`}
-          >
-            Custom Jewellery
           </Link>
 
           {/* Secondary Support & Utility Links */}

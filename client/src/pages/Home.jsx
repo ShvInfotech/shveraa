@@ -336,7 +336,7 @@ const Home = () => {
                 <RotateCcw size={20} strokeWidth={1.4} />
               </div>
               <div className="shv-trust-ribbon-info">
-                <h4>30-DAY GRACE PERIOD</h4>
+                <h4>2-3 DAYS RETURN PERIOD</h4>
                 <p>Effortless Doorstep Returns &amp; Fit Swap</p>
               </div>
             </div>

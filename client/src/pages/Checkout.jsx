@@ -836,7 +836,7 @@ const Checkout = () => {
                   <ArrowRight size={16} />
                 </button>
                 <p className="shv-order-security-note">
-                  ✦ By placing your order, you agree to Shveraa's 30-Day Doorstep Grace Period &amp; BIS 925 Hallmark Guarantee.
+                  ✦ By placing your order, you agree to Shveraa's 2-3 Days Doorstep Return Window &amp; BIS 925 Hallmark Guarantee.
                 </p>
               </div>
             </form>

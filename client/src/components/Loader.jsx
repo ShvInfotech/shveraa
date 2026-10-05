@@ -1,17 +1,20 @@
 import React from 'react';
+import { Sparkles } from 'lucide-react';
 
-const Loader = ({ text = 'Loading Jewellery Collection...' }) => {
+const Loader = ({ text = 'Curating 925 Sterling Silver Pieces...' }) => {
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '260px',
-      gap: '16px',
-    }}>
-      <div className="spinner"></div>
-      <p style={{ fontSize: '0.88rem', color: '#6B6560', letterSpacing: '0.04em' }}>{text}</p>
+    <div className="shv-luxury-loader-wrap" role="status" aria-live="polite">
+      <div className="shv-luxury-loader-ring-outer">
+        <div className="shv-loader-ring-spin" />
+        <div className="shv-loader-gem-pulse">
+          <Sparkles size={16} />
+        </div>
+      </div>
+      <div className="shv-loader-brand-title">SHVÈRAA</div>
+      <p className="shv-loader-subtext">{text}</p>
+      <div className="shv-loader-bar">
+        <div className="shv-loader-bar-fill" />
+      </div>
     </div>
   );
 };

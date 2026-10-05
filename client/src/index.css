@@ -15657,3 +15657,129 @@ html, body {
   border-color: #FDA4AF;
   color: #E11D48;
 }
+
+
+/* ==========================================================
+   LUXURY BRAND LOADER (SHVERAA)
+   ========================================================== */
+.shv-luxury-loader-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 48vh;
+  padding: 60px 20px;
+  text-align: center;
+  width: 100%;
+}
+
+.shv-luxury-loader-ring-outer {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.shv-loader-ring-spin {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(160, 126, 82, 0.18);
+  border-top-color: #A07E52;
+  border-right-color: #C5A880;
+  animation: shvSpin 1s cubic-bezier(0.5, 0.1, 0.4, 0.9) infinite;
+}
+
+.shv-loader-gem-pulse {
+  color: #A07E52;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: shvPulse 1.8s ease-in-out infinite;
+}
+
+.shv-loader-brand-title {
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  letter-spacing: 0.28em;
+  font-weight: 600;
+  color: #1F1B17;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.shv-loader-subtext {
+  font-size: 0.82rem;
+  letter-spacing: 0.05em;
+  color: #78716C;
+  margin: 0 0 16px 0;
+  max-width: 320px;
+  line-height: 1.5;
+}
+
+.shv-loader-bar {
+  width: 120px;
+  height: 2px;
+  background: rgba(160, 126, 82, 0.16);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+
+.shv-loader-bar-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 45%;
+  background: linear-gradient(90deg, #A07E52, #D4AF37, #A07E52);
+  border-radius: 2px;
+  animation: shvBarGlide 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes shvSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes shvPulse {
+  0%, 100% { transform: scale(0.92); opacity: 0.7; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
+
+@keyframes shvBarGlide {
+  0% { left: -50%; width: 30%; }
+  50% { width: 60%; }
+  100% { left: 110%; width: 30%; }
+}
+
+/* ==========================================================
+   IMAGE LOAD SHIMMER FOR PRODUCT CARDS
+   ========================================================== */
+.product-image-container:not(.loaded)::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #F3F1EC 0%, #FAF8F5 50%, #F3F1EC 100%);
+  background-size: 200% 100%;
+  animation: shvShimmer 1.6s infinite ease-in-out;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.product-img-primary {
+  opacity: 0;
+  transition: opacity 0.35s ease, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.product-img-primary.loaded {
+  opacity: 1 !important;
+}
+
+@keyframes shvShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}

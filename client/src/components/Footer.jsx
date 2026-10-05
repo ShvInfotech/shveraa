@@ -38,7 +38,7 @@ const Footer = () => {
           <div className="footer-trust-col">
             <RotateCcw size={22} className="footer-trust-icon" />
             <div>
-              <div className="footer-trust-title">30-Day Hassle-Free Returns</div>
+              <div className="footer-trust-title">2-3 Days Easy Returns</div>
               <div className="footer-trust-sub">100% money-back satisfaction guarantee</div>
             </div>
           </div>
@@ -103,7 +103,7 @@ const Footer = () => {
                 <Link to="/wishlist" className="footer-link">Curated Wishlist</Link>
               </li>
               <li>
-                <Link to="/return-policy" className="footer-link">30-Day Returns &amp; Exchanges</Link>
+                <Link to="/return-policy" className="footer-link">2-3 Days Returns &amp; Exchanges</Link>
               </li>
               <li>
                 <Link to="/account" className="footer-link">My Atelier Account &amp; Orders</Link>

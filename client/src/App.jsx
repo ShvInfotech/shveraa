@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { CartProvider, useCart } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
@@ -32,12 +32,25 @@ import ShippingCancellation from './pages/ShippingCancellation';
 import ComingSoon from './pages/ComingSoon';
 import AdminLayout from './admin/AdminLayout';
 
-// Scroll to top helper on route navigation
+// Scroll to top and Meta Pixel route tracker on navigation
 const ScrollToTop = () => {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
+  const isFirstRender = useRef(true);
+
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [pathname]);
+
+    // Track SPA route navigation with Meta Pixel (skip initial render handled by index.html)
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    if (typeof window.fbq === 'function') {
+      window.fbq('track', 'PageView');
+    }
+  }, [pathname, search]);
+
   return null;
 };
 

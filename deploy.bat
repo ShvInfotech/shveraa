@@ -48,8 +48,8 @@ if %ERRORLEVEL% neq 0 (
     goto END
 )
 
-echo [3/3] Extracting on server and restarting %PM2_APP%...
-ssh %SERVER_USER%@%SERVER_IP% "cd %REMOTE_SERVER_DIR% && tar -xzf update_server.tar.gz && rm -f update_server.tar.gz && pm2 restart %PM2_APP%"
+echo [3/3] Extracting on server, installing dependencies and restarting %PM2_APP%...
+ssh %SERVER_USER%@%SERVER_IP% "cd %REMOTE_SERVER_DIR% && tar -xzf update_server.tar.gz && rm -f update_server.tar.gz && npm install --omit=dev && pm2 restart %PM2_APP%"
 del update_server.tar.gz >nul 2>&1
 
 echo.

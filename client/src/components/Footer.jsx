@@ -94,9 +94,6 @@ const Footer = () => {
                 <Link to="/contact" className="footer-link">Contact Us &amp; WhatsApp</Link>
               </li>
               <li>
-                <Link to="/shop?bestseller=true" className="footer-link">Bestsellers Edit</Link>
-              </li>
-              <li>
                 <Link to="/track-order" className="footer-link">Track Air Express Order</Link>
               </li>
               <li>

@@ -149,9 +149,6 @@ const Wishlist = () => {
                 <span>Explore 925 Silver Treasury</span>
                 <ArrowRight size={16} />
               </Link>
-              <Link to="/shop?bestseller=true" className="btn btn-outline btn-lg">
-                View Bestsellers
-              </Link>
             </div>
 
             {/* Recommended Bestsellers */}

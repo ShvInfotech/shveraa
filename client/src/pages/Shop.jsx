@@ -80,13 +80,15 @@ const CATEGORY_EDITORIAL = {
   },
 };
 
-const SUB_CATEGORIES = [
-  { id: 'engagement', name: 'Engagement Rings', keywords: ['solitaire', 'halo', 'engagement', 'lumina', 'ring'] },
-  { id: 'necklaces', name: 'Necklaces', keywords: ['necklace', 'chain', 'herringbone', 'paperclip'] },
-  { id: 'pendants', name: 'Pendants With Chain', keywords: ['pendant', 'medallion', 'nameplate', 'talisman'] },
-  { id: 'studs', name: 'Stud Earrings', keywords: ['stud', 'huggie', 'hoop', 'teardrop', 'earring'] },
-  { id: 'tennis', name: 'Tennis Bracelets', keywords: ['tennis', 'cuff', 'bracelet', 'bangle'] },
-  { id: 'wedding', name: 'Wedding Rings', keywords: ['band', 'wave', 'stacking', 'wedding'] },
+// Price filter buckets — deliberately start at ₹1,000 (no sub-₹100 ranges).
+// Stored as data so the checkbox list, the live counts and the actual product
+// filtering all read from one source of truth and can never drift apart.
+const PRICE_FILTERS = [
+  { id: 'under1000', label: 'Under ₹1,000', max: 1000 },
+  { id: '1000-2000', label: '₹1,000 – ₹2,000', min: 1000, max: 2000 },
+  { id: '2000-3000', label: '₹2,000 – ₹3,000', min: 2000, max: 3000 },
+  { id: '3000-5000', label: '₹3,000 – ₹5,000', min: 3000, max: 5000 },
+  { id: 'above5000', label: 'Above ₹5,000', min: 5000 },
 ];
 
 const Shop = () => {
@@ -104,7 +106,6 @@ const Shop = () => {
   const [collapsedSections, setCollapsedSections] = useState({
     sort: true,
     category: true,
-    subCategory: true,
     metal: true,
     price: true,
   });
@@ -117,10 +118,8 @@ const Shop = () => {
   };
 
   const selectedCategory = searchParams.get('category') || 'all';
-  const selectedSubCategory = searchParams.get('subCategory') || '';
   const selectedSort = searchParams.get('sort') || 'featured';
   const searchQuery = searchParams.get('search') || '';
-  const bestsellerOnly = searchParams.get('bestseller') === 'true';
   const wishlistOnly = searchParams.get('wishlist') === 'true';
   const maxPriceParam = searchParams.get('maxPrice') || '';
   const selectedColorParam = searchParams.get('color') || 'all';
@@ -162,7 +161,6 @@ const Shop = () => {
         if (selectedCategory !== 'all') params.category = selectedCategory;
         if (selectedSort !== 'featured') params.sort = selectedSort;
         if (searchQuery) params.search = searchQuery;
-        if (bestsellerOnly) params.bestseller = 'true';
 
         let data = await fetchProducts(params);
 
@@ -183,20 +181,6 @@ const Shop = () => {
         if (wishlistOnly) {
           const wishlistIds = new Set(wishlist.map((w) => String(w._id || w.slug)));
           data = data.filter((p) => wishlistIds.has(String(p._id || p.slug)));
-        }
-
-        if (bestsellerOnly) {
-          data = data.filter((p) => Boolean(p.bestseller));
-        }
-
-        if (selectedSubCategory) {
-          const targetSub = SUB_CATEGORIES.find((s) => s.id === selectedSubCategory);
-          if (targetSub) {
-            data = data.filter((p) => {
-              const text = `${p.name || ''} ${p.description || ''} ${p.category || ''} ${p.material || ''} ${p.finish || ''}`.toLowerCase();
-              return targetSub.keywords.some((kw) => text.includes(kw));
-            });
-          }
         }
 
         if (selectedColorParam && selectedColorParam !== 'all') {
@@ -224,21 +208,15 @@ const Shop = () => {
         }
 
         if (maxPriceParam) {
-          data = data.filter((p) => {
-            const price = Number(p.price) || 0;
-            if (maxPriceParam === 'under100') return price <= 100;
-            if (maxPriceParam === '100-150') return price >= 100 && price <= 150;
-            if (maxPriceParam === '150-180') return price >= 150 && price <= 180;
-            if (maxPriceParam === 'above180') return price >= 180;
-            if (maxPriceParam === 'under1500' || maxPriceParam === '1500') return price <= 1500;
-            if (maxPriceParam === '1500-2000') return price >= 1500 && price <= 2000;
-            if (maxPriceParam === '2000-3000' || maxPriceParam === '2000') return price >= 2000 && price <= 3000;
-            if (maxPriceParam === '3000') return price <= 3000;
-            if (maxPriceParam === 'above3000') return price >= 3000;
-            const numericMax = Number(maxPriceParam);
-            if (!isNaN(numericMax)) return price <= numericMax;
-            return true;
-          });
+          const bucket = PRICE_FILTERS.find((pf) => pf.id === maxPriceParam);
+          if (bucket) {
+            data = data.filter((p) => {
+              const price = Number(p.price) || 0;
+              if (bucket.min != null && price < bucket.min) return false;
+              if (bucket.max != null && price > bucket.max) return false;
+              return true;
+            });
+          }
         }
 
         // Apply Client-side Sorting
@@ -261,7 +239,7 @@ const Shop = () => {
     };
 
     loadProducts();
-  }, [selectedCategory, selectedSubCategory, selectedSort, searchQuery, bestsellerOnly, wishlistOnly, maxPriceParam, selectedColorParam, wishlist, reloadTrigger, allProducts]);
+  }, [selectedCategory, selectedSort, searchQuery, wishlistOnly, maxPriceParam, selectedColorParam, wishlist, reloadTrigger, allProducts]);
 
   const updateFilter = (key, val) => {
     const newParams = new URLSearchParams(searchParams);
@@ -311,28 +289,13 @@ const Shop = () => {
 
   const activeFiltersCount =
     (selectedCategory !== 'all' ? 1 : 0) +
-    (selectedSubCategory ? 1 : 0) +
     (selectedSort !== 'featured' ? 1 : 0) +
     (searchQuery ? 1 : 0) +
-    (bestsellerOnly ? 1 : 0) +
     (wishlistOnly ? 1 : 0) +
     (maxPriceParam ? 1 : 0) +
     (selectedColorParam !== 'all' ? 1 : 0);
 
-  const maxCatalogPrice = Math.max(...allProducts.map((p) => Number(p.price) || 0), 0);
-  const priceOptions = maxCatalogPrice > 500
-    ? [
-        { id: 'under1500', label: 'Under ₹1,500', max: 1500 },
-        { id: '1500-2000', label: '₹1,500 – ₹2,000', min: 1500, max: 2000 },
-        { id: '2000-3000', label: '₹2,000 – ₹3,000', min: 2000, max: 3000 },
-        { id: 'above3000', label: 'Above ₹3,000', min: 3000 },
-      ]
-    : [
-        { id: 'under100', label: 'Under ₹100', max: 100 },
-        { id: '100-150', label: '₹100 – ₹150', min: 100, max: 150 },
-        { id: '150-180', label: '₹150 – ₹180', min: 150, max: 180 },
-        { id: 'above180', label: 'Above ₹180', min: 180 },
-      ];
+  const priceOptions = PRICE_FILTERS;
 
   const getCategoryCount = (slug) => {
     const cat = (slug || '').toLowerCase();
@@ -345,13 +308,6 @@ const Shop = () => {
       if (cat === 'anklets') return pCat.includes('anklet');
       return pCat === cat;
     }).length;
-  };
-
-  const getSubCategoryCount = (sub) => {
-    return allProducts.filter((p) => {
-      const text = `${p.name || ''} ${p.description || ''} ${p.category || ''} ${p.material || ''} ${p.finish || ''}`.toLowerCase();
-      return sub.keywords.some((kw) => text.includes(kw));
-    }).length || 0;
   };
 
   const getMetalCount = (metalId) => {
@@ -381,9 +337,8 @@ const Shop = () => {
   const getPriceCount = (pr) => {
     return allProducts.filter((p) => {
       const price = Number(p.price) || 0;
-      if (pr.min && pr.max) return price >= pr.min && price <= pr.max;
-      if (pr.min) return price >= pr.min;
-      if (pr.max) return price <= pr.max;
+      if (pr.min != null && price < pr.min) return false;
+      if (pr.max != null && price > pr.max) return false;
       return true;
     }).length;
   };
@@ -478,48 +433,7 @@ const Shop = () => {
         )}
       </div>
 
-      {/* 2. SUB CATEGORY */}
-      <div className="shv-ref-filter-group">
-        <button
-          type="button"
-          className="shv-ref-group-header"
-          onClick={() => toggleSection('subCategory')}
-        >
-          <span className="shv-ref-group-title">SUB CATEGORY</span>
-          {collapsedSections.subCategory ? (
-            <ChevronDown size={16} className="shv-ref-chevron collapsed" />
-          ) : (
-            <ChevronUp size={16} className="shv-ref-chevron" />
-          )}
-        </button>
-
-        {!collapsedSections.subCategory && (
-          <div className="shv-ref-options-list">
-            {SUB_CATEGORIES.map((sub) => {
-              const isChecked = selectedSubCategory === sub.id;
-              const count = getSubCategoryCount(sub);
-              return (
-                <label key={sub.id} className="shv-ref-checkbox-row">
-                  <input
-                    type="checkbox"
-                    checked={isChecked}
-                    onChange={() => updateFilter('subCategory', isChecked ? '' : sub.id)}
-                    className="shv-ref-hidden-checkbox"
-                  />
-                  <span className={`shv-ref-checkbox-box ${isChecked ? 'checked' : ''}`}>
-                    {isChecked && <Check size={11} strokeWidth={2.6} />}
-                  </span>
-                  <span className="shv-ref-label-text">
-                    {sub.name} <span className="shv-ref-count">({count})</span>
-                  </span>
-                </label>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* 3. METAL & FINISH */}
+      {/* 2. METAL & FINISH */}
       <div className="shv-ref-filter-group">
         <button
           type="button"
@@ -560,7 +474,7 @@ const Shop = () => {
         )}
       </div>
 
-      {/* 4. PRICE */}
+      {/* 3. PRICE */}
       <div className="shv-ref-filter-group">
         <button
           type="button"
@@ -685,7 +599,7 @@ const Shop = () => {
             </div>
 
             {/* 4. Active Filters Dismissible Tag Strip */}
-            {(searchQuery || wishlistOnly || bestsellerOnly || maxPriceParam || selectedSubCategory || (selectedCategory !== 'all' && !wishlistOnly) || (selectedColorParam && selectedColorParam !== 'all')) && (
+            {(searchQuery || wishlistOnly || maxPriceParam || (selectedCategory !== 'all' && !wishlistOnly) || (selectedColorParam && selectedColorParam !== 'all')) && (
               <div className="shv-active-tags-strip">
                 <span className="shv-active-label">Active Filters:</span>
 
@@ -707,15 +621,6 @@ const Shop = () => {
                   </div>
                 )}
 
-                {selectedSubCategory && (
-                  <div className="shv-active-tag">
-                    <span>Subcategory: {SUB_CATEGORIES.find((s) => s.id === selectedSubCategory)?.name || selectedSubCategory}</span>
-                    <button onClick={() => updateFilter('subCategory', '')} aria-label="Remove subcategory filter">
-                      <X size={12} />
-                    </button>
-                  </div>
-                )}
-
                 {wishlistOnly && (
                   <div className="shv-active-tag">
                     <Heart size={12} fill="#E11D48" color="#E11D48" />
@@ -726,19 +631,9 @@ const Shop = () => {
                   </div>
                 )}
 
-                {bestsellerOnly && (
-                  <div className="shv-active-tag">
-                    <Sparkles size={12} />
-                    <span>Bestsellers</span>
-                    <button onClick={() => updateFilter('bestseller', '')} aria-label="Remove bestseller filter">
-                      <X size={12} />
-                    </button>
-                  </div>
-                )}
-
                 {maxPriceParam && (
                   <div className="shv-active-tag">
-                    <span>{priceOptions.find((p) => p.id === maxPriceParam)?.label || (maxPriceParam === 'above3000' ? 'Above ₹3,000' : `Price: ₹${maxPriceParam}`)}</span>
+                    <span>{priceOptions.find((p) => p.id === maxPriceParam)?.label || `Price: ₹${maxPriceParam}`}</span>
                     <button onClick={() => updateFilter('maxPrice', '')} aria-label="Remove price filter">
                       <X size={12} />
                     </button>

@@ -221,26 +221,63 @@ const Checkout = () => {
     navigate('/order-success', { state: { order: orderData } });
   };
 
-  const handleCodOrder = async() => {
+  const ensureShippingAddress = async () => {
+    let currentAddressId = selectedAddrId && selectedAddrId !== '__new__' ? selectedAddrId : '';
+
+    if (!currentAddressId) {
+      if (!fullName.trim() || !phone.trim() || !address.trim() || !city.trim() || !pincode.trim()) {
+        throw new Error('Please fill in all required shipping address fields (Name, Phone, Address, City, PIN code).');
+      }
+
+      if (!user) {
+        throw new Error('Please sign in to complete your checkout and save your delivery address.');
+      }
+
+      const saveRes = await apiAddUserAddress({
+        fullName: fullName.trim(),
+        phone: phone.trim(),
+        street: address.trim(),
+        locality: apartment.trim(),
+        city: city.trim(),
+        state: stateName,
+        pincode: pincode.trim(),
+        label: 'Home',
+        isDefault: savedAddresses.length === 0,
+      });
+
+      if (saveRes?.address?._id) {
+        currentAddressId = saveRes.address._id;
+        setSelectedAddrId(currentAddressId);
+        setSavedAddresses((prev) => [...prev, saveRes.address]);
+      } else {
+        throw new Error(saveRes?.message || 'Could not save shipping address. Please make sure you are signed in.');
+      }
+    }
+
+    return currentAddressId;
+  };
+
+  const handleCodOrder = async () => {
+    setIsPlacingOrder(true);
+    setFormError('');
     try {
       const cartIds = cart.map((item) => item._id || item.id).filter(Boolean);
-    const couponId = appliedCoupon?.coupenId || '';
-    const addressId = selectedAddrId && selectedAddrId !== '__new__' ? selectedAddrId : '';
+      const couponId = appliedCoupon?.coupenId || '';
+      const addressId = await ensureShippingAddress();
 
-   const verifyRes = await apiCODPlaceOrder({
-      cartIds,
-      couponId,
-      shippingCost: shippingCost,
-      addressId,
-    })
+      const verifyRes = await apiCODPlaceOrder({
+        cartIds,
+        couponId,
+        shippingCost: shippingCost,
+        addressId,
+      });
 
-
-     const placedOrderData = verifyRes?.order;
+      const placedOrderData = verifyRes?.order;
       await finishOrder(placedOrderData);
     } catch (error) {
-       console.error('Payment verification failed:', error);
-            setFormError(error.message || 'Please try again or contact support.');
-            setIsPlacingOrder(false);
+      console.error('Payment verification failed:', error);
+      setFormError(error.message || 'Please try again or contact support.');
+      setIsPlacingOrder(false);
     }
   };
 
@@ -262,21 +299,21 @@ const Checkout = () => {
     setFormError('');
 
     try {
-
+      const addressId = await ensureShippingAddress();
       const couponId = appliedCoupon?.coupenId || '';
       const data = await apiCreatePaymentOrder({
         cartIds,
         couponId,
         shippingCost: shippingCost,
-        addressId: selectedAddrId && selectedAddrId !== '__new__' ? selectedAddrId : '',
+        addressId,
       });
 
       const order = data?.order;
       if (!order || !order.id) {
-        throw new Error('Failed to create Razorpay payment order from server.');
+        throw new Error(data?.message || 'Failed to create Razorpay payment order from server.');
       }
 
-      const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TVSL7tlw4NS59L';
+      const razorpayKey = data?.key_id || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TVSL7tlw4NS59L';
 
       const options = {
         key: razorpayKey,
@@ -289,7 +326,7 @@ const Checkout = () => {
         handler: async function (response) {
           try {
             setIsPlacingOrder(true);
-            const addressId = selectedAddrId && selectedAddrId !== '__new__' ? selectedAddrId : '';
+            const currentAddrId = addressId || (selectedAddrId && selectedAddrId !== '__new__' ? selectedAddrId : '');
 
             const verifyRes = await apiVerifyPaymentPlaceOrder({
               razorpay_order_id: response.razorpay_order_id,
@@ -298,7 +335,7 @@ const Checkout = () => {
               cartIds,
               couponId,
               shippingCost: shippingCost,
-              addressId,
+              addressId: currentAddrId,
             });
 
 

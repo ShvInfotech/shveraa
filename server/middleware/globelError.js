@@ -69,17 +69,10 @@ const GlobelErrorHandaling = async (error, req, res, next) => {
         });
     }
 
-    if (error.statuscode) {
-        return res.status(error.statuscode).json({
-            success: false,
-            message: error.message
-        });
-    }
-
-
-    return res.status(500).json({
+    const statusCode = error.statuscode || error.statusCode || error.status || 500;
+    return res.status(statusCode).json({
         success: false,
-        message: "Internal Server Error"
+        message: error.message || "Internal Server Error"
     });
 }
 

@@ -32,3 +32,6 @@ client/.env.*
 server/.env
 server/.env.*
 !server/.env.example
+
+*.tar.gz
+

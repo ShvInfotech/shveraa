@@ -1,8 +1,9 @@
+import mongoose from "mongoose";
 import { CustomeError } from "../../../middleware/globelError.js";
 import cartModel from "../../../models/cart.model.js";
 import productModel from "../../../models/product.model.js";
 import couponModel from "../../../models/coupon.model.js";
-import { razorpay, razorpaySignature, } from "../../../config/razorpay.config.js";
+import { razorpay, razorpaySignature, getRazorpayKeyId } from "../../../config/razorpay.config.js";
 import OrderModel from "../../../models/order.model.js";
 
 const generateOrderNumber = () =>
@@ -25,15 +26,22 @@ export const RozerpayPaymentOrder = async (req, res, next) => {
       return next(CustomeError(400, "CartIds are required"));
     }
 
-    const address = await addressModel.findById(addressId)
-    if (!address) {
-      return next(CustomeError(400, "Address not found"));
+    if (!addressId || !mongoose.isValidObjectId(addressId)) {
+      return next(CustomeError(400, "Valid delivery address is required. Please select or add an address."));
     }
 
-    const data = await PincodeServiceability(address.pincode)
+    const address = await addressModel.findById(addressId);
+    if (!address) {
+      return next(CustomeError(400, "Delivery address not found"));
+    }
 
-    if (!data.delivery_codes || data.delivery_codes.length === 0) {
-      return next(CustomeError(404, "Delivery Not  Available For The Given Pincode"))
+    try {
+      const data = await PincodeServiceability(address.pincode);
+      if (data && data.delivery_codes && data.delivery_codes.length === 0) {
+        return next(CustomeError(404, "Delivery not available for the given pincode"));
+      }
+    } catch (pincodeErr) {
+      console.warn("Delhivery pincode serviceability check skipped:", pincodeErr.message);
     }
 
     const cartItems = await cartModel.find({ _id: { $in: cartIds } });
@@ -96,9 +104,15 @@ export const RozerpayPaymentOrder = async (req, res, next) => {
       receipt: `rcpt_${Date.now()}`,
     };
 
-    let order = await razorpay.orders.create(options);
+    let order;
+    try {
+      order = await razorpay.orders.create(options);
+    } catch (rzpErr) {
+      console.error("Razorpay order creation error:", rzpErr);
+      return next(CustomeError(500, `Payment gateway error: ${rzpErr.error?.description || rzpErr.message || "Failed to create Razorpay order. Please check Razorpay keys."}`));
+    }
 
-    return res.status(200).json({ order });
+    return res.status(200).json({ order, key_id: getRazorpayKeyId() });
   } catch (error) {
     return next(error);
   }
@@ -202,7 +216,14 @@ export const RozerpayPaymentVerifyPlaceOrder = async (req, res, next) => {
 
 
 
-    const address = await addressModel.findById(addressId)
+    if (!addressId || !mongoose.isValidObjectId(addressId)) {
+      return next(CustomeError(400, "Valid delivery address is required"));
+    }
+
+    const address = await addressModel.findById(addressId);
+    if (!address) {
+      return next(CustomeError(400, "Delivery address not found"));
+    }
     const orderNumber = generateOrderNumber();
     const totalAmount = price - discount + Number(shippingCost);
 
@@ -240,16 +261,26 @@ export const RozerpayPaymentVerifyPlaceOrder = async (req, res, next) => {
       }
     }
 
-    console.log(delhiveryPayload)
-    const result = await CreateShippingOrderService(delhiveryPayload)
+    let waybill = "";
+    try {
+      console.log(`[Delhivery] Attempting to create shipment for paid order ${orderNumber}...`);
+      const result = await CreateShippingOrderService(delhiveryPayload);
+      console.log(`[Delhivery] Order ${orderNumber} response:`, JSON.stringify(result));
 
-    let waybill = ""
-    if (result.success && result.packages && result.packages.length > 0) {
-      waybill = result.packages[0].waybill;
-    } else {
-      return next(CustomeError(500, "Failed to create shipping order with Delhivery"));
+      if (result && result.success && result.packages && result.packages.length > 0) {
+        const pkg = result.packages[0];
+        if (pkg.status !== "Fail" && pkg.waybill) {
+          waybill = pkg.waybill;
+          console.log(`[Delhivery] Shipment created successfully! Waybill: ${waybill}`);
+        } else {
+          console.warn("[Delhivery] Shipment package marked as Fail:", pkg.remarks || pkg);
+        }
+      } else {
+        console.warn("[Delhivery] Shipment creation did not return success:", result?.rmk || result);
+      }
+    } catch (delErr) {
+      console.error("[Delhivery] Error invoking CreateShippingOrderService:", delErr.message);
     }
-
 
     const orderData = {
       userId: req.user._id,
@@ -279,9 +310,14 @@ export const RozerpayPaymentVerifyPlaceOrder = async (req, res, next) => {
       },
     };
 
-
     const newOrder = await OrderModel.create(orderData);
 
+    // Clear cart items for this order
+    try {
+      await cartModel.deleteMany({ _id: { $in: cartIds } });
+    } catch (cartErr) {
+      console.warn("Could not delete cart items:", cartErr.message);
+    }
 
     const admins = await userModel.find({ role: "admin" }).select("deviceToken");
     const tokens = admins.flatMap(admin => admin.deviceToken || []);
@@ -313,12 +349,23 @@ export const PlaceCodeOrder = async (req, res, next) => {
     }
 
 
-    const address = await addressModel.findById(addressId)
+    if (!addressId || !mongoose.isValidObjectId(addressId)) {
+      return next(CustomeError(400, "Valid delivery address is required"));
+    }
 
-    const data = await PincodeServiceability(address.pincode)
-    console.log("address Data", data)
-    if (!data.delivery_codes || data.delivery_codes.length === 0) {
-      return next(CustomeError(404, "Delivery Not  Available For The Given Pincode"))
+    const address = await addressModel.findById(addressId);
+    if (!address) {
+      return next(CustomeError(400, "Delivery address not found"));
+    }
+
+    try {
+      const data = await PincodeServiceability(address.pincode);
+      console.log("address Data", data);
+      if (data && data.delivery_codes && data.delivery_codes.length === 0) {
+        return next(CustomeError(404, "Delivery not available for the given pincode"));
+      }
+    } catch (pincodeErr) {
+      console.warn("Delhivery check skipped:", pincodeErr.message);
     }
 
     const cartItems = await cartModel.find({ _id: { $in: cartIds } });
@@ -420,16 +467,26 @@ export const PlaceCodeOrder = async (req, res, next) => {
         "name": process.env.DELHIVERY_PICKUP_LOCATION,
       }
     }
-    console.log(delhiveryPayload)
+    let waybill = "";
+    try {
+      console.log(`[Delhivery] Attempting to create COD shipment for order ${orderNumber}...`);
+      const result = await CreateShippingOrderService(delhiveryPayload);
+      console.log(`[Delhivery] COD Order ${orderNumber} response:`, JSON.stringify(result));
 
-    const result = await CreateShippingOrderService(delhiveryPayload)
-    let waybill = ""
-    if (result.success && result.packages && result.packages.length > 0) {
-      waybill = result.packages[0].waybill;
-    } else {
-      return next(CustomeError(500, "Failed to create shipping order with Delhivery"));
+      if (result && result.success && result.packages && result.packages.length > 0) {
+        const pkg = result.packages[0];
+        if (pkg.status !== "Fail" && pkg.waybill) {
+          waybill = pkg.waybill;
+          console.log(`[Delhivery] COD Shipment created successfully! Waybill: ${waybill}`);
+        } else {
+          console.warn("[Delhivery] COD Shipment package marked as Fail:", pkg.remarks || pkg);
+        }
+      } else {
+        console.warn("[Delhivery] COD Shipment creation did not return success:", result?.rmk || result);
+      }
+    } catch (delErr) {
+      console.error("[Delhivery] Error invoking CreateShippingOrderService for COD:", delErr.message);
     }
-
 
     const orderData = {
       userId: req.user._id,
@@ -459,15 +516,20 @@ export const PlaceCodeOrder = async (req, res, next) => {
       },
     };
 
-
     const newOrder = await OrderModel.create(orderData);
 
+    // Clear cart items for this order
+    try {
+      await cartModel.deleteMany({ _id: { $in: cartIds } });
+    } catch (cartErr) {
+      console.warn("Could not delete cart items:", cartErr.message);
+    }
 
     const admins = await userModel.find({ role: "admin" }).select("deviceToken");
     const tokens = admins.flatMap(admin => admin.deviceToken || []);
     sendNotification(tokens, "New Order Placed", `Order ${orderNumber} has been placed by ${req.user.name}.`);
-    SendWahtsappMessage(9714920969, "order is confrom")
-    return res.status(200).json({ success: true, message: "Payment verified and order placed successfully", order: newOrder });
+    SendWahtsappMessage(9714920969, "order is confrom");
+    return res.status(200).json({ success: true, message: "Order placed successfully", order: newOrder });
   } catch (error) {
     return next(error);
   }

@@ -174,7 +174,7 @@ export const RozerpayPaymentVerifyPlaceOrder = async (req, res, next) => {
         items.push(data)
         weigth += (product.packing.weight || 0) * item.quantity
         quantity += item.quantity
-        productdescription += `${product.name} (${item.size}) x ${item.quantity}, `
+        productdescription += `${product.name}_${item.color}_(${item.size}) x ${item.quantity}, `
       }
     }
 
@@ -224,6 +224,12 @@ export const RozerpayPaymentVerifyPlaceOrder = async (req, res, next) => {
           "shipment_width": width,
           "shipment_height": height,
           "shipping_mode": "Surface",
+          "return_pin": process.env.SELLER_PIN,
+          "return_city": process.env.SELLER_CITY,
+          "return_phone": process.env.SELLER_PHONE,
+          "return_add": process.env.SELLER_ADDRESS,
+          "return_state": process.env.SELLER_STATE,
+          "return_country": "India",
           "waybill": ""
         }
       ],
@@ -232,7 +238,7 @@ export const RozerpayPaymentVerifyPlaceOrder = async (req, res, next) => {
       }
     }
 
-console.log(delhiveryPayload)
+    console.log(delhiveryPayload)
     const result = await CreateShippingOrderService(delhiveryPayload)
 
     let waybill = ""
@@ -322,6 +328,7 @@ export const PlaceCodeOrder = async (req, res, next) => {
     let width = 23
     let height = 23
     let quantity = 0
+    let productdescription = ""
     for (const item of cartItems) {
       const product = products.find((p) => p._id.toString() === item.productId);
 
@@ -349,6 +356,7 @@ export const PlaceCodeOrder = async (req, res, next) => {
         items.push(data)
         weigth += (product.packing.weight || 0) * item.quantity
         quantity += item.quantity
+        productdescription += `${product.name}_${item.color}_(${item.size}) x ${item.quantity}, `
       }
     }
 
@@ -389,7 +397,7 @@ export const PlaceCodeOrder = async (req, res, next) => {
           "phone": address.phone || req.user.phone,
           "order": orderNumber,
           "payment_mode": "COD",
-          "products_desc": "",
+          "products_desc": productdescription,
           "cod_amount": totalAmount,
           "total_amount": totalAmount,
           "quantity": quantity,
@@ -397,14 +405,20 @@ export const PlaceCodeOrder = async (req, res, next) => {
           "shipment_width": width,
           "shipment_height": height,
           "shipping_mode": "Surface",
-          "waybill": ""
+          "waybill": "",
+          "return_pin": process.env.SELLER_PIN,
+          "return_city": process.env.SELLER_CITY,
+          "return_phone": process.env.SELLER_PHONE,
+          "return_add": process.env.SELLER_ADDRESS,
+          "return_state": process.env.SELLER_STATE,
+          "return_country": "India",
         }
       ],
       "pickup_location": {
         "name": process.env.DELHIVERY_PICKUP_LOCATION,
       }
     }
-  console.log(delhiveryPayload)
+    console.log(delhiveryPayload)
 
     const result = await CreateShippingOrderService(delhiveryPayload)
     let waybill = ""

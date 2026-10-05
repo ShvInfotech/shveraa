@@ -97,6 +97,7 @@ export const DelhiveryScanWebhook = async (req, res, next) => {
 
 // const statusKey = `${status.StatusType}:${status.Status}`;
 // const newStatus = statusMapping[statusKey];
+console.log("Delhivery webhook",req.body)
    return res.status(200).json({ success: true, message: "Webhook received successfully" });
   } catch (error) {
     return next(error);

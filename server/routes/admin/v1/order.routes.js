@@ -12,4 +12,5 @@ router.get('/all', verifyjwtAccessToken, checkRole('admin'), GetAllOrders);
 // GET /api/v1/admin/orders/return-rto/:type – a single flow ("return" | "rto")
 router.get('/return-rto', verifyjwtAccessToken, checkRole('admin'), GetRTOReturnOrders);
 router.get('/return-rto/:type', verifyjwtAccessToken, checkRole('admin'), GetRTOReturnOrders);
+router.get('/labels',)
 export default router;

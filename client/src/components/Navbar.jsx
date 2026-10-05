@@ -170,12 +170,6 @@ const Navbar = () => {
               <Search size={19} strokeWidth={1.9} />
             </Link>
 
-            {/* Wishlist Link with Badge */}
-            <Link to="/wishlist" className="action-btn" aria-label="Saved Items" title="My Wishlist">
-              <Heart size={19} strokeWidth={1.9} />
-              {wishlistCount > 0 && <span className="cart-badge">{wishlistCount}</span>}
-            </Link>
-
             {/* User Account / Profile Dropdown */}
             {isAuthenticated ? (
               <div
@@ -225,7 +219,7 @@ const Navbar = () => {
                       <span>Saved Delivery Addresses</span>
                     </Link>
                     <Link
-                      to="/wishlist"
+                      to="/account?tab=wishlist"
                       onClick={() => setUserDropdownOpen(false)}
                       className="shv-dropdown-item"
                     >
@@ -563,9 +557,9 @@ const Navbar = () => {
           </Link>
 
           <Link
-            to="/wishlist"
+            to={isAuthenticated ? '/account?tab=wishlist' : '/login'}
             onClick={closeAllMenus}
-            className={`drawer-link drawer-link-secondary ${location.pathname === '/wishlist' ? 'active' : ''}`}
+            className={`drawer-link drawer-link-secondary ${location.pathname === '/account' && location.search.includes('wishlist') ? 'active' : ''}`}
           >
             My Wishlist ({wishlistCount})
           </Link>

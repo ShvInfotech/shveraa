@@ -10,9 +10,7 @@ import {
   LogOut,
   Clock,
   Truck,
-  ExternalLink,
   Printer,
-  ChevronRight,
   Sparkles,
   CheckCircle2,
   Edit3,
@@ -23,17 +21,11 @@ import {
   ArrowRight,
   Copy,
   Check,
-  User,
   ShoppingBag,
   RefreshCw,
-  FileText,
-  Download,
   Trash,
   RotateCcw,
-  Building2,
-  CreditCard,
   AlertCircle,
-  X,
 } from 'lucide-react';
 
 import {
@@ -53,13 +45,15 @@ import { downloadOrderInvoicePDF } from '../utils/invoiceGenerator';
 
 const Account = () => {
   const { user, isAuthenticated, logout } = useAuth();
-  const { wishlistCount } = useCart();
+  const { wishlist, toggleWishlist, addToCart, wishlistCount, showToast } = useCart();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Active tab state: 'orders' | 'addresses' | 'security'
-  const initialTab = searchParams.get('tab') || 'orders';
-  const [activeTab, setActiveTab] = useState(initialTab);
+  // Active tab derived directly from URL query param: 'orders' | 'addresses' | 'wishlist' | 'security'
+  const tabParam = searchParams.get('tab');
+  const activeTab = ['orders', 'addresses', 'wishlist', 'security'].includes(tabParam) ? tabParam : 'orders';
+
+  const [selectedSizes, setSelectedSizes] = useState({});
   const [copiedOrderId, setCopiedOrderId] = useState(null);
   const [addressSavedNotice, setAddressSavedNotice] = useState('');
   const [passwordSavedNotice, setPasswordSavedNotice] = useState(false);
@@ -399,8 +393,72 @@ const Account = () => {
   }, [isAuthenticated]);
 
   const handleTabChange = (tabName) => {
-    setActiveTab(tabName);
     setSearchParams({ tab: tabName });
+  };
+
+  const handleSizeChange = (productId, size) => {
+    setSelectedSizes((prev) => ({
+      ...prev,
+      [productId]: size,
+    }));
+  };
+
+  const getVariantSizes = (product) => {
+    const sizes = product.variants?.[0]?.sizes || product.sizes || [];
+    return sizes
+      .map((size) => (typeof size === 'object' ? size.size : size))
+      .filter(Boolean);
+  };
+
+  const getCartSelection = (product, chosenSize) => {
+    const variant = product.variants?.[0];
+    const firstVariantSize = getVariantSizes(product)[0];
+
+    return {
+      size: chosenSize || firstVariantSize || 'Standard',
+      options: {
+        color: variant?.color || product.selectedColor || product.color || '',
+        variantId: variant?._id || variant?.id || variant?.sku || '',
+        image: variant?.images?.[0] || variant?.image || product.images?.[0] || product.image || '',
+      },
+    };
+  };
+
+  const handleMoveToBag = async (product) => {
+    const id = product._id || product.slug;
+    const { size, options } = getCartSelection(product, selectedSizes[id]);
+    const added = await addToCart(product, size, 1, options);
+
+    if (added) {
+      toggleWishlist(product);
+      if (showToast) {
+        showToast(`Moved "${product.name}" to your shopping bag!`);
+      }
+    }
+  };
+
+  const handleMoveAllToBag = async () => {
+    if (!wishlist || wishlist.length === 0) return;
+    const movedProducts = [];
+    for (const product of wishlist) {
+      const id = product._id || product.slug;
+      const { size, options } = getCartSelection(product, selectedSizes[id]);
+      const added = await addToCart(product, size, 1, { ...options, silent: true });
+      if (added) movedProducts.push(product);
+    }
+    movedProducts.forEach((product) => toggleWishlist(product));
+    if (movedProducts.length > 0 && showToast) {
+      showToast('All preserved silhouettes moved to your shopping bag!');
+    }
+  };
+
+  const handleClearWishlist = () => {
+    if (window.confirm('Are you sure you want to clear all preserved pieces from your wishlist?')) {
+      [...wishlist].forEach((p) => toggleWishlist(p));
+      if (showToast) {
+        showToast('Wishlist cleared.');
+      }
+    }
   };
 
   const copyOrderId = (id) => {
@@ -533,15 +591,15 @@ const Account = () => {
             <span>Saved Addresses</span>
           </button>
 
-          <Link
-            to="/shop?wishlist=true"
-            className="shv-acc-tab-btn"
-            style={{ textDecoration: 'none' }}
+          <button
+            type="button"
+            className={`shv-acc-tab-btn ${activeTab === 'wishlist' ? 'active' : ''}`}
+            onClick={() => handleTabChange('wishlist')}
           >
             <Heart size={17} />
             <span>Curated Wishlist</span>
             {wishlistCount > 0 && <span className="shv-acc-tab-count">{wishlistCount}</span>}
-          </Link>
+          </button>
 
           <button
             type="button"
@@ -907,6 +965,181 @@ const Account = () => {
                 <p>Save home, workplace, or a gifting recipient address.</p>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Tab 3: Curated Wishlist Content */}
+        {activeTab === 'wishlist' && (
+          <div className="shv-wishlist-tab-view">
+            {wishlist.length === 0 ? (
+              <div className="shv-orders-empty-state">
+                <Heart size={44} className="shv-empty-icon" style={{ opacity: 0.4 }} />
+                <h3>Your Atelier Wishlist is Empty</h3>
+                <p>Preserve your favorite 925 sterling silver silhouettes to review or acquire whenever you're ready.</p>
+                <Link to="/shop" className="btn btn-primary">
+                  Explore 925 Silver Creations <ArrowRight size={15} />
+                </Link>
+              </div>
+            ) : (
+              <>
+                {/* Wishlist Actions Toolbar */}
+                <div className="shv-wishlist-toolbar">
+                  <div className="shv-wishlist-toolbar-info">
+                    <span className="shv-wishlist-counter-badge">
+                      <strong>{wishlist.length}</strong> {wishlist.length === 1 ? 'Design' : 'Designs'} in Vault
+                    </span>
+                    <span className="shv-wishlist-stock-status">
+                      ✦ Complimentary Insured Express Shipping on All Silver Pieces
+                    </span>
+                  </div>
+
+                  <div className="shv-wishlist-toolbar-actions">
+                    <button
+                      type="button"
+                      onClick={handleMoveAllToBag}
+                      className="btn btn-primary btn-sm shv-wishlist-bulk-btn"
+                    >
+                      <ShoppingBag size={14} />
+                      <span>Move All to Bag</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleClearWishlist}
+                      className="shv-wishlist-clear-btn"
+                    >
+                      <Trash size={13} />
+                      <span>Clear Wishlist</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 4-Column Responsive Grid */}
+                <div className="shv-shop-products-grid col-4" style={{ marginTop: '1.5rem' }}>
+                  {wishlist.map((product) => {
+                    const prodId = product._id || product.slug;
+                    const variantSizes = getVariantSizes(product);
+                    const currentSize = selectedSizes[prodId] || variantSizes[0] || 'Standard';
+                    const firstVariant = product.variants?.[0];
+                    const imageSrc =
+                      firstVariant?.images?.[0] ||
+                      (product.images && product.images[0]) ||
+                      product.image ||
+                      '/hero-ring-banner.jpg';
+                    const secondaryImg =
+                      firstVariant?.images?.[1] ||
+                      (product.images && product.images[1]) ||
+                      imageSrc;
+
+                    return (
+                      <div key={prodId} className="shv-wishlist-item-card">
+                        {/* Card Media with Smooth Image Stack */}
+                        <div className="product-image-container">
+                          <Link
+                            to={`/product/${product.slug || product._id}`}
+                            className="product-image-link"
+                          >
+                            <div className="product-image-stack">
+                              <img
+                                src={imageSrc}
+                                alt={product.name}
+                                loading="lazy"
+                                className="product-main-img product-img-primary"
+                                onError={(e) => {
+                                  e.currentTarget.src = '/hero-ring-banner.jpg';
+                                }}
+                              />
+                              {secondaryImg && secondaryImg !== imageSrc && (
+                                <img
+                                  src={secondaryImg}
+                                  alt={`${product.name} Alternate`}
+                                  loading="lazy"
+                                  className="product-main-img product-img-secondary"
+                                />
+                              )}
+                            </div>
+                          </Link>
+
+                          {/* Remove Button */}
+                          <button
+                            type="button"
+                            onClick={() => toggleWishlist(product)}
+                            className="shv-wishlist-remove-btn"
+                            title="Remove from wishlist"
+                            aria-label={`Remove ${product.name} from wishlist`}
+                          >
+                            <Trash size={15} />
+                          </button>
+
+                          {/* Hallmarks Badge Stack */}
+                          <div className="product-badges-stack">
+                            {product.badge && !/atelier/i.test(product.badge) && (
+                              <span className="product-badge product-badge-silver">
+                                {product.badge}
+                              </span>
+                            )}
+                            <span className="product-hallmark-tag">925 BIS</span>
+                          </div>
+                        </div>
+
+                        {/* Card Content & Details */}
+                        <div className="shv-wishlist-card-body">
+                          <div className="shv-wishlist-card-info">
+                            <span className="shv-wishlist-cat-label">
+                              {product.category ? product.category.toUpperCase() : '925 STERLING SILVER'}
+                            </span>
+                            <h3 className="shv-wishlist-prod-title">
+                              <Link to={`/product/${product.slug || product._id}`}>
+                                {product.name}
+                              </Link>
+                            </h3>
+
+                            <div className="shv-wishlist-price-row">
+                              <span className="shv-wishlist-price">
+                                ₹{Number(product.price || 0).toLocaleString('en-IN')}
+                              </span>
+                              {Boolean(product.originalPrice && Number(product.originalPrice) > Number(product.price)) && (
+                                <span className="shv-wishlist-orig-price">
+                                  ₹{Number(product.originalPrice).toLocaleString('en-IN')}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Size selector if variants exist */}
+                            {variantSizes.length > 1 && (
+                              <div className="shv-wishlist-size-row">
+                                <span className="shv-wishlist-size-label">Size:</span>
+                                <div className="shv-wishlist-size-pills">
+                                  {variantSizes.map((size) => (
+                                    <button
+                                      key={size}
+                                      type="button"
+                                      onClick={() => handleSizeChange(prodId, size)}
+                                      className={`shv-wishlist-size-pill ${currentSize === size ? 'active' : ''}`}
+                                    >
+                                      {size}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Move to Bag Action Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleMoveToBag(product)}
+                            className="btn btn-primary btn-sm shv-wishlist-add-btn"
+                          >
+                            <ShoppingBag size={14} />
+                            <span>Move to Bag</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
         )}
 

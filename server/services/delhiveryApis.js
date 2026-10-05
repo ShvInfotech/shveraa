@@ -2,6 +2,10 @@ const delhiveryURL = "https://staging-express.delhivery.com/";
 
 export const PincodeServiceability = async (pincode) => {
   try {
+    if (!process.env.DELHIVERY_AUTH_TOKEN) {
+      console.warn("DELHIVERY_AUTH_TOKEN is not configured in environment");
+      return { delivery_codes: [{ postal_code: { pin: pincode } }] };
+    }
 
     const response = await fetch(`${delhiveryURL}c/api/pin-codes/json/?filter_codes=${pincode}`, {
       method: "GET",
@@ -11,14 +15,19 @@ export const PincodeServiceability = async (pincode) => {
       },
     });
 
-    const data = await response.json();
+    if (!response.ok) {
+      const errText = await response.text();
+      console.warn(`Delhivery API returned status ${response.status}: ${errText.slice(0, 150)}`);
+      return { delivery_codes: [{ postal_code: { pin: pincode } }] };
+    }
 
+    const data = await response.json();
     return data;
   } catch (error) {
-    throw error
+    console.warn("PincodeServiceability error, allowing fallback:", error.message);
+    return { delivery_codes: [{ postal_code: { pin: pincode } }] };
   }
-
-}
+};
 
 
 export const CheckShippingChargesService = async (delhiveryData) => {

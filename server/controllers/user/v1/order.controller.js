@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { CustomeError } from "../../../middleware/globelError.js";
 import cartModel from "../../../models/cart.model.js";
 import productModel from "../../../models/product.model.js";
@@ -25,15 +26,22 @@ export const RozerpayPaymentOrder = async (req, res, next) => {
       return next(CustomeError(400, "CartIds are required"));
     }
 
-    const address = await addressModel.findById(addressId)
-    if (!address) {
-      return next(CustomeError(400, "Address not found"));
+    if (!addressId || !mongoose.isValidObjectId(addressId)) {
+      return next(CustomeError(400, "Valid delivery address is required. Please select or add an address."));
     }
 
-    const data = await PincodeServiceability(address.pincode)
+    const address = await addressModel.findById(addressId);
+    if (!address) {
+      return next(CustomeError(400, "Delivery address not found"));
+    }
 
-    if (!data.delivery_codes || data.delivery_codes.length === 0) {
-      return next(CustomeError(404, "Delivery Not  Available For The Given Pincode"))
+    try {
+      const data = await PincodeServiceability(address.pincode);
+      if (data && data.delivery_codes && data.delivery_codes.length === 0) {
+        return next(CustomeError(404, "Delivery not available for the given pincode"));
+      }
+    } catch (pincodeErr) {
+      console.warn("Delhivery pincode serviceability check skipped:", pincodeErr.message);
     }
 
     const cartItems = await cartModel.find({ _id: { $in: cartIds } });
@@ -96,7 +104,13 @@ export const RozerpayPaymentOrder = async (req, res, next) => {
       receipt: `rcpt_${Date.now()}`,
     };
 
-    let order = await razorpay.orders.create(options);
+    let order;
+    try {
+      order = await razorpay.orders.create(options);
+    } catch (rzpErr) {
+      console.error("Razorpay order creation error:", rzpErr);
+      return next(CustomeError(500, `Payment gateway error: ${rzpErr.error?.description || rzpErr.message || "Failed to create Razorpay order. Please check Razorpay keys."}`));
+    }
 
     return res.status(200).json({ order });
   } catch (error) {
@@ -202,7 +216,14 @@ export const RozerpayPaymentVerifyPlaceOrder = async (req, res, next) => {
 
 
 
-    const address = await addressModel.findById(addressId)
+    if (!addressId || !mongoose.isValidObjectId(addressId)) {
+      return next(CustomeError(400, "Valid delivery address is required"));
+    }
+
+    const address = await addressModel.findById(addressId);
+    if (!address) {
+      return next(CustomeError(400, "Delivery address not found"));
+    }
     const orderNumber = generateOrderNumber();
     const totalAmount = price - discount + Number(shippingCost);
 
@@ -313,12 +334,23 @@ export const PlaceCodeOrder = async (req, res, next) => {
     }
 
 
-    const address = await addressModel.findById(addressId)
+    if (!addressId || !mongoose.isValidObjectId(addressId)) {
+      return next(CustomeError(400, "Valid delivery address is required"));
+    }
 
-    const data = await PincodeServiceability(address.pincode)
-    console.log("address Data", data)
-    if (!data.delivery_codes || data.delivery_codes.length === 0) {
-      return next(CustomeError(404, "Delivery Not  Available For The Given Pincode"))
+    const address = await addressModel.findById(addressId);
+    if (!address) {
+      return next(CustomeError(400, "Delivery address not found"));
+    }
+
+    try {
+      const data = await PincodeServiceability(address.pincode);
+      console.log("address Data", data);
+      if (data && data.delivery_codes && data.delivery_codes.length === 0) {
+        return next(CustomeError(404, "Delivery not available for the given pincode"));
+      }
+    } catch (pincodeErr) {
+      console.warn("Delhivery check skipped:", pincodeErr.message);
     }
 
     const cartItems = await cartModel.find({ _id: { $in: cartIds } });

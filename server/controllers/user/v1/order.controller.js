@@ -3,7 +3,7 @@ import { CustomeError } from "../../../middleware/globelError.js";
 import cartModel from "../../../models/cart.model.js";
 import productModel from "../../../models/product.model.js";
 import couponModel from "../../../models/coupon.model.js";
-import { razorpay, razorpaySignature, } from "../../../config/razorpay.config.js";
+import { razorpay, razorpaySignature, getRazorpayKeyId } from "../../../config/razorpay.config.js";
 import OrderModel from "../../../models/order.model.js";
 
 const generateOrderNumber = () =>
@@ -112,7 +112,7 @@ export const RozerpayPaymentOrder = async (req, res, next) => {
       return next(CustomeError(500, `Payment gateway error: ${rzpErr.error?.description || rzpErr.message || "Failed to create Razorpay order. Please check Razorpay keys."}`));
     }
 
-    return res.status(200).json({ order });
+    return res.status(200).json({ order, key_id: getRazorpayKeyId() });
   } catch (error) {
     return next(error);
   }

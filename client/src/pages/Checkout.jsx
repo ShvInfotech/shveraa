@@ -313,7 +313,7 @@ const Checkout = () => {
         throw new Error(data?.message || 'Failed to create Razorpay payment order from server.');
       }
 
-      const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TVSL7tlw4NS59L';
+      const razorpayKey = data?.key_id || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TVSL7tlw4NS59L';
 
       const options = {
         key: razorpayKey,

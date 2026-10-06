@@ -931,6 +931,21 @@ export const apiReturnOrderRequest = async ({
 
 
 /* ==========================================================================
+   ADMIN DASHBOARD API
+   ========================================================================== */
+
+// Aggregated Dashboard overview for the admin panel →
+// GET /admin/dashboard/stats?range=8m | this-month | year
+// Returns { success, dashboard: { stats, overview, upcomingDeliveries, buyingHistory } }.
+export const apiAdminGetDashboardStats = async (range = '8m') => {
+  const params = new URLSearchParams({ range });
+  const res = await apiFetch(`/api/v1/admin/dashboard/stats?${params.toString()}`);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to fetch dashboard stats');
+  return data;
+};
+
+/* ==========================================================================
    ORDER LISTING APIs
    ========================================================================== */
 

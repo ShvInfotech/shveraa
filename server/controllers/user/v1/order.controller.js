@@ -754,12 +754,12 @@ export const ReturnShipment = async (req, res, next) => {
 
     if (order.payment?.method === "razorpay" && order.payment?.status === "paid") {
 
-      const refundResult = await RazorpayRefundApi(order);
+      
 
       const refundData = {
         method: "razorpay",
         status: "pending",
-        refundId: refundResult?.id || "",
+        refundId: "",
       };
       order = await OrderModel.findByIdAndUpdate(order._id, { type: "return", status: "cancelled", payment: { ...order.payment, status: "refunded" }, returnData, refundData }, { returnDocument: 'after' });
     } else {

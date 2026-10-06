@@ -110,8 +110,8 @@ const orderSchema = new mongoose.Schema(
 
     rtoData: {
       type: {
-        waybill: String,
         status: String,
+        completeAt: Date,
       },
       default: null,
     },
@@ -121,6 +121,7 @@ const orderSchema = new mongoose.Schema(
         waybill: {type:String},
         status:{ type:String},
         reason: {type: String},
+        completeAt: {type: Date}
       },
       default: null,
     },

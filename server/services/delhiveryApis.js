@@ -181,7 +181,7 @@ export const CancelShipmentService = async (waybill) => {
 export const LabelGenerationService = async (waybills) => {
   try {
     const wbns = waybills.join(",");
-
+console.log(process.env.DELHIVERY_AUTH_TOKEN)
     const response = await fetch(`${getDelhiveryURL()}api/p/packing_slip?wbns=${wbns}&pdf=true&pdf_size=`, {
       method: "GET",
       headers: {

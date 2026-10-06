@@ -1,180 +1,343 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Clock,
-  Truck,
-  PackageCheck,
-  TrendingUp,
-  TrendingDown,
-  SlidersHorizontal,
-  CheckCircle2,
   AlertCircle,
-  XCircle,
-  Calendar,
   Box,
+  Clock,
+  PackageCheck,
+  SlidersHorizontal,
+  Truck,
+  XCircle,
 } from 'lucide-react';
-import { MONTHLY_SALES_CHART } from './adminData';
+import { apiAdminGetDashboardStats, getImageUrl } from '../services/api';
+import { getAdminAuth } from '../services/storeService';
 
-const AdminDashboard = ({ orders, onSelectOrder }) => {
-  const [selectedMonth, setSelectedMonth] = useState('Aug');
-  const [timeRange, setTimeRange] = useState('Last Month');
+/* --------------------------------------------------------------------------
+   Helpers
+   -------------------------------------------------------------------------- */
+// The live API uses the slug statuses from the order model
+// ("pending" | "accepted" | "processing" | "shipped" | "out_for_delivery" |
+// "delivered" | "cancelled") while legacy seeded orders use display statuses
+// ("Scheduled" | "On The Way" | "On Hold"). Both are mapped here so the
+// Dashboard renders correct pills for either source.
+const STATUS_LABELS = {
+  pending: 'Pending',
+  accepted: 'Accepted',
+  processing: 'Processing',
+  shipped: 'Shipped',
+  out_for_delivery: 'Out for Delivery',
+  delivered: 'Delivered',
+  cancelled: 'Cancelled',
+  scheduled: 'Scheduled',
+  'on the way': 'On The Way',
+  'on hold': 'On Hold',
+};
+
+const getStatusBadgeClass = (status) => {
+  switch ((status || '').toLowerCase()) {
+    case 'delivered':
+      return 'delivered';
+    case 'shipped':
+    case 'out_for_delivery':
+    case 'on the way':
+      return 'ontheway';
+    case 'cancelled':
+      return 'cancelled';
+    case 'accepted':
+    case 'processing':
+    case 'on hold':
+      return 'onhold';
+    default:
+      return 'scheduled';
+  }
+};
+
+const STATUS_ICONS = {
+  scheduled: <Box size={13} />,
+  ontheway: <Truck size={13} />,
+  delivered: <PackageCheck size={13} />,
+  onhold: <Clock size={13} />,
+  cancelled: <XCircle size={13} />,
+};
+
+const statusLabel = (status) => {
+  const key = (status || '').toLowerCase();
+  return STATUS_LABELS[key] || status || 'Pending';
+};
+
+const formatDateValue = (value) => {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return typeof value === 'string' ? value : '—';
+  return date.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+};
+
+const trendPercent = (current, previous) => {
+  if (!previous) return current > 0 ? 100 : 0;
+  return Math.round(((current - previous) / previous) * 1000) / 10;
+};
+
+// Converts a list of numbers into an SVG path used by the stat-card sparklines.
+const buildSparkPath = (values) => {
+  if (!Array.isArray(values) || values.length < 2) return 'M5 20 L95 20';
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  const span = Math.max(max - min, 1);
+  const step = 90 / (values.length - 1);
+  return values
+    .map((value, index) => {
+      const x = 5 + index * step;
+      const y = 34 - ((value - min) / span) * 28;
+      return `${index === 0 ? 'M' : 'L'}${x.toFixed(1)} ${y.toFixed(1)}`;
+    })
+    .join(' ');
+};
+
+const PLACEHOLDER_IMAGE =
+  'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=200&q=85';
+
+const PENDING_FALLBACK_STATUSES = ['pending', 'accepted', 'processing', 'scheduled', 'on hold'];
+
+const isDeliveredStatus = (status) => (status || '').toLowerCase() === 'delivered';
+const isActiveStatus = (status) =>
+  !['delivered', 'cancelled'].includes((status || '').toLowerCase());
+
+// Shared markup for the three KPI tiles.
+const StatCard = ({ icon, label, value, trend, sparkPath, sparkColor }) => (
+  <div className="shv-admin-stat-card">
+    <div className="shv-stat-card-header">
+      <div className="shv-stat-card-icon">{icon}</div>
+      <span>{label}</span>
+    </div>
+    <div className="shv-stat-card-body">
+      <div>
+        <div className="shv-stat-card-number">{value}</div>
+        <div className={`shv-stat-trend ${trend >= 0 ? 'positive' : 'negative'}`}>
+          <span>
+            {trend >= 0 ? '+' : ''}
+            {trend}%
+          </span>
+          <span>vs Last Month</span>
+        </div>
+      </div>
+      <svg className="shv-stat-sparkline" viewBox="0 0 100 40" fill="none">
+        <path d={sparkPath} stroke={sparkColor} strokeWidth="2.5" strokeLinecap="round" />
+      </svg>
+    </div>
+  </div>
+);
+
+const AdminDashboard = ({ orders = [], onSelectOrder }) => {
+  const [adminName] = useState(() => getAdminAuth()?.name || 'Admin');
+  const [timeRange, setTimeRange] = useState('8m');
+  const [dashboard, setDashboard] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState(null);
+  const [selectedMonth, setSelectedMonth] = useState('');
   const [tableFilter, setTableFilter] = useState('All');
-  const [selectedRowIds, setSelectedRowIds] = useState(['ORD-2341-0']);
+  const [selectedRowIds, setSelectedRowIds] = useState([]);
 
-  // Calculated metrics
-  const pendingOrders = orders.filter(
-    (o) => o.status === 'Scheduled' || o.status === 'On Hold' || o.status === 'Pending'
-  ).length;
+  // Loads the aggregated dashboard payload from the admin endpoint. Re-runs
+  // whenever the Overview range select changes (timeRange is a dependency).
+  const fetchDashboard = useCallback(async () => {
+    if (!getAdminAuth()) return;
+    setIsLoading(true);
+    try {
+      const res = await apiAdminGetDashboardStats(timeRange);
+      setDashboard(res.dashboard || null);
+      setLoadError(null);
+    } catch (err) {
+      console.error('Admin: Failed to fetch dashboard stats:', err);
+      setLoadError(err.message || 'Failed to load dashboard');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [timeRange]);
 
-  const deliveredOrders = orders.filter((o) => o.status === 'Delivered').length;
-  const totalOrdersCount = orders.length;
-
-  // Flattened items for Upcoming Deliveries table
-  const deliveryTableRows = [
-    {
-      id: 'ORD-2341-0',
-      orderCode: 'ORD-2341',
-      item: 'Concrete Blocks',
-      productName: 'Lumina 925 Solitaire Ring',
-      qty: '800 pcs',
-      date: 'Sep 29, 2025',
-      status: 'Scheduled',
-      statusType: 'scheduled',
-    },
-    {
-      id: 'ORD-2341-1',
-      orderCode: 'ORD-2341',
-      item: 'Wooden Planks',
-      productName: 'Celeste Diamond Pendant',
-      qty: '500 pcs',
-      date: 'Sep 22, 2025',
-      status: 'On The Way',
-      statusType: 'ontheway',
-    },
-    {
-      id: 'ORD-2341-2',
-      orderCode: 'ORD-2341',
-      item: 'Cement Bags',
-      productName: 'Aura Silver Bangle Cuff',
-      qty: '300 pcs',
-      date: 'Sep 23, 2025',
-      status: 'Scheduled',
-      statusType: 'scheduled',
-    },
-    {
-      id: 'ORD-2342-0',
-      orderCode: 'ORD-2342',
-      item: 'Silver Stacking Bands',
-      productName: 'Eternal Wave Silver Band',
-      qty: '120 pcs',
-      date: 'Oct 02, 2025',
-      status: 'On The Way',
-      statusType: 'ontheway',
-    },
-  ];
+  useEffect(() => {
+    fetchDashboard();
+  }, [fetchDashboard]);
 
   const handleToggleRow = (id) => {
-    if (selectedRowIds.includes(id)) {
-      setSelectedRowIds(selectedRowIds.filter((r) => r !== id));
-    } else {
-      setSelectedRowIds([...selectedRowIds, id]);
-    }
+    setSelectedRowIds((prev) =>
+      prev.includes(id) ? prev.filter((r) => r !== id) : [...prev, id]
+    );
   };
+
+  // Local fallbacks (used until the API responds or when it fails) keep the
+  // dashboard fully populated from the orders already loaded by AdminLayout.
+  const fallbackStats = useMemo(() => {
+    const pending = orders.filter((o) =>
+      PENDING_FALLBACK_STATUSES.includes((o.status || '').toLowerCase())
+    ).length;
+    const delivered = orders.filter((o) => isDeliveredStatus(o.status)).length;
+    return {
+      pending: { value: pending, trend: 0 },
+      delivered: { value: delivered, trend: 0 },
+      total: { value: orders.length, trend: 0 },
+    };
+  }, [orders]);
+
+  const fallbackMonths = useMemo(() => {
+    const now = new Date();
+    const buckets = [];
+    for (let offset = 7; offset >= 0; offset -= 1) {
+      const start = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+      const end = new Date(now.getFullYear(), now.getMonth() - offset + 1, 1);
+      const rows = orders.filter((o) => {
+        const createdAt = new Date(o.createdAt);
+        return !Number.isNaN(createdAt.getTime()) && createdAt >= start && createdAt < end;
+      });
+      buckets.push({
+        month: start.toLocaleString('en-US', { month: 'short' }),
+        fullLabel: start.toLocaleString('en-US', { month: 'short', year: 'numeric' }),
+        volume: rows.length,
+        revenue: rows.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0),
+      });
+    }
+    return buckets;
+  }, [orders]);
+
+  const fallbackUpcoming = useMemo(
+    () =>
+      orders
+        .filter((o) => isActiveStatus(o.status))
+        .slice(0, 8)
+        .map((o, index) => ({
+          id: o._id || o.orderId || `upcoming-${index}`,
+          orderCode: o.orderNumber || o.orderId || '—',
+          item: o.items?.[0]?.name || 'Order item',
+          qty: Number(o.items?.[0]?.quantity ?? o.items?.[0]?.qty) || 1,
+          date: formatDateValue(o.createdAt || o.date),
+          status: (o.status || 'pending').toLowerCase(),
+        })),
+    [orders]
+  );
+
+  const fallbackHistory = useMemo(
+    () =>
+      orders.slice(0, 4).map((o, index) => ({
+        id: o._id || o.orderId || `history-${index}`,
+        orderCode: o.orderNumber || o.orderId || '—',
+        name: o.items?.[0]?.name || 'Order item',
+        image: o.items?.[0]?.image || '',
+        qty: Number(o.items?.[0]?.quantity ?? o.items?.[0]?.qty) || 1,
+        status: (o.status || 'pending').toLowerCase(),
+        date: formatDateValue(o.createdAt || o.date),
+      })),
+    [orders]
+  );
+
+  const stats = dashboard?.stats || fallbackStats;
+  const overview = dashboard?.overview;
+  const chartMonths = overview?.months?.length ? overview.months : fallbackMonths;
+  const unit = overview?.unit || 'month';
+  const avgVolume =
+    overview?.avgVolume ??
+    Math.round(chartMonths.reduce((sum, b) => sum + b.volume, 0) / Math.max(chartMonths.length, 1));
+  const growthPct =
+    overview?.growthPct ??
+    (chartMonths.length > 1
+      ? trendPercent(chartMonths[chartMonths.length - 1].volume, chartMonths[chartMonths.length - 2].volume)
+      : 0);
+  const goalLabel = unit === 'day' ? '100' : '3K';
+
+  const upcomingRows = dashboard?.upcomingDeliveries?.length
+    ? dashboard.upcomingDeliveries
+    : fallbackUpcoming;
+  const historyItems = dashboard?.buyingHistory?.length ? dashboard.buyingHistory : fallbackHistory;
+
+  const visibleRows =
+    tableFilter === 'All'
+      ? upcomingRows
+      : upcomingRows.filter((r) => (r.status || '').toLowerCase() === 'pending');
+
+  const maxVolume = Math.max(...chartMonths.map((m) => m.volume), 1);
+  const sparkPending = useMemo(
+    () => buildSparkPath(chartMonths.map((m) => m.volume)),
+    [chartMonths]
+  );
+  const sparkDelivered = useMemo(
+    () => buildSparkPath(chartMonths.map((m) => m.revenue)),
+    [chartMonths]
+  );
+  const sparkTotal = useMemo(
+    () =>
+      buildSparkPath(
+        chartMonths.reduce((acc, m) => [...acc, (acc[acc.length - 1] || 0) + m.volume], [])
+      ),
+    [chartMonths]
+  );
+
+  // The highlighted chart column must always point at a bucket that exists –
+  // derived during render instead of via a setState effect.
+  const activeMonth = chartMonths.some((m) => m.month === selectedMonth)
+    ? selectedMonth
+    : chartMonths[chartMonths.length - 1]?.month || '';
+
+  const firstName = (adminName || 'Admin').split(' ')[0];
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
+
 
   return (
     <div className="shv-admin-dashboard-view">
       {/* 1. Welcome Greeting Banner */}
       <div className="shv-admin-welcome-banner">
-        <h1 className="shv-admin-welcome-title">Welcome, Danang Calvin 👋</h1>
+        <h1 className="shv-admin-welcome-title">
+          {greeting}, {firstName} 👋
+        </h1>
         <p className="shv-admin-welcome-sub">
           Manage orders, track shipments, and shop products — all in one place.
+          {isLoading ? ' Syncing…' : ''}
         </p>
       </div>
 
+      {/* Fallback notice – only shown when the dashboard endpoint is unreachable */}
+      {loadError && !dashboard && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            marginBottom: '1rem',
+            padding: '0.7rem 1rem',
+            borderRadius: '10px',
+            background: '#FEF2F2',
+            color: '#DC2626',
+            fontSize: '0.84rem',
+          }}
+        >
+          <AlertCircle size={15} />
+          <span>{loadError} — showing locally calculated data.</span>
+        </div>
+      )}
+
       {/* 2. Stat Cards Row (3 Cards matching Modulix image) */}
       <div className="shv-admin-stats-grid">
-        {/* Pending Orders Card */}
-        <div className="shv-admin-stat-card">
-          <div className="shv-stat-card-header">
-            <div className="shv-stat-card-icon">
-              <Clock size={18} />
-            </div>
-            <span>Pending Orders</span>
-          </div>
-          <div className="shv-stat-card-body">
-            <div>
-              <div className="shv-stat-card-number">219</div>
-              <div className="shv-stat-trend positive">
-                <span>+21%</span>
-                <span>vs Last Month</span>
-              </div>
-            </div>
-            {/* Sparkline Graphic (Green Line) */}
-            <svg className="shv-stat-sparkline" viewBox="0 0 100 40" fill="none">
-              <path
-                d="M5 32 Q 25 35, 45 28 T 85 10 T 95 14"
-                stroke="#10B981"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
-        </div>
-
-        {/* Recent Delivered Card */}
-        <div className="shv-admin-stat-card">
-          <div className="shv-stat-card-header">
-            <div className="shv-stat-card-icon">
-              <Truck size={18} />
-            </div>
-            <span>Recent Delivered</span>
-          </div>
-          <div className="shv-stat-card-body">
-            <div>
-              <div className="shv-stat-card-number">231</div>
-              <div className="shv-stat-trend positive">
-                <span>+11%</span>
-                <span>vs Last Month</span>
-              </div>
-            </div>
-            {/* Sparkline Graphic (Green Line) */}
-            <svg className="shv-stat-sparkline" viewBox="0 0 100 40" fill="none">
-              <path
-                d="M5 28 Q 30 30, 50 24 T 80 16 T 95 8"
-                stroke="#10B981"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
-        </div>
-
-        {/* Total Orders Card */}
-        <div className="shv-admin-stat-card">
-          <div className="shv-stat-card-header">
-            <div className="shv-stat-card-icon">
-              <Box size={18} />
-            </div>
-            <span>Total Orders</span>
-          </div>
-          <div className="shv-stat-card-body">
-            <div>
-              <div className="shv-stat-card-number">500</div>
-              <div className="shv-stat-trend negative">
-                <span>-125</span>
-                <span>vs Last Month</span>
-              </div>
-            </div>
-            {/* Sparkline Graphic (Muted Line) */}
-            <svg className="shv-stat-sparkline" viewBox="0 0 100 40" fill="none">
-              <path
-                d="M5 12 Q 30 18, 55 26 T 85 28 T 95 32"
-                stroke="#CBD5E1"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
-        </div>
+        <StatCard
+          icon={<Clock size={18} />}
+          label="Pending Orders"
+          value={stats.pending.value}
+          trend={stats.pending.trend}
+          sparkPath={sparkPending}
+          sparkColor="#10B981"
+        />
+        <StatCard
+          icon={<Truck size={18} />}
+          label="Recent Delivered"
+          value={stats.delivered.value}
+          trend={stats.delivered.trend}
+          sparkPath={sparkDelivered}
+          sparkColor="#10B981"
+        />
+        <StatCard
+          icon={<Box size={18} />}
+          label="Total Orders"
+          value={stats.total.value}
+          trend={stats.total.trend}
+          sparkPath={sparkTotal}
+          sparkColor="#CBD5E1"
+        />
       </div>
 
       {/* 3. Middle Section: Overview Chart (Left 65%) + Buying History (Right 35%) */}
@@ -188,27 +351,27 @@ const AdminDashboard = ({ orders, onSelectOrder }) => {
               onChange={(e) => setTimeRange(e.target.value)}
               className="shv-overview-select"
             >
-              <option value="Last Month">Last Month</option>
-              <option value="This Month">This Month</option>
-              <option value="Year 2026">Year 2026</option>
+              <option value="8m">Last 8 Months</option>
+              <option value="this-month">This Month</option>
+              <option value="year">{`Year ${new Date().getFullYear()}`}</option>
             </select>
           </div>
 
           <div className="shv-overview-avg-row">
-            <div className="shv-overview-avg-label">Avg Per month</div>
+            <div className="shv-overview-avg-label">{`Avg Per ${unit === 'day' ? 'day' : 'month'}`}</div>
             <div className="shv-overview-avg-val-group">
-              <span className="shv-overview-avg-number">1,860/3K</span>
+              <span className="shv-overview-avg-number">{`${avgVolume.toLocaleString('en-US')}/${goalLabel}`}</span>
               <span className="shv-overview-avg-badge">
-                <span>50,2%</span>
-                <span>▲</span>
+                <span>{`${Math.abs(growthPct)}%`}</span>
+                <span>{growthPct >= 0 ? '▲' : '▼'}</span>
               </span>
             </div>
           </div>
 
           {/* Bar Chart matching Modulix reference */}
           <div className="shv-chart-bars-wrap">
-            {MONTHLY_SALES_CHART.map((item) => {
-              const isSelected = selectedMonth === item.month;
+            {chartMonths.map((item) => {
+              const isSelected = activeMonth === item.month;
               return (
                 <div
                   key={item.month}
@@ -218,15 +381,17 @@ const AdminDashboard = ({ orders, onSelectOrder }) => {
                   {/* Active Tooltip matching exact screenshot */}
                   {isSelected && (
                     <div className="shv-chart-tooltip">
-                      <div>August 2025</div>
-                      <div>{item.volume} pcs</div>
+                      <div>{item.fullLabel || item.month}</div>
+                      <div>{`${item.volume} orders`}</div>
                     </div>
                   )}
 
                   <div className="shv-chart-bar-track">
                     <div
                       className="shv-chart-bar-fill"
-                      style={{ height: item.height }}
+                      style={{
+                        height: `${Math.max(8, Math.round((item.volume / maxVolume) * 100))}%`,
+                      }}
                     />
                     {isSelected && <div className="shv-chart-bar-dot" />}
                   </div>
@@ -243,101 +408,50 @@ const AdminDashboard = ({ orders, onSelectOrder }) => {
           <h2 className="shv-history-title">Buying History</h2>
 
           <div className="shv-history-list">
-            {/* Item 1 */}
-            <div className="shv-history-item">
-              <img
-                src="https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=200&q=85"
-                alt="Concrete Blocks"
-                className="shv-history-img"
-              />
-              <div className="shv-history-info">
-                <div className="shv-history-name">Concrete Blocks</div>
-                <div className="shv-history-meta-row">
-                  <span>Status :</span>
-                  <span className="shv-status-pill ontheway" style={{ padding: '0.1rem 0.4rem', fontSize: '0.7rem' }}>
-                    On Progress
-                  </span>
-                </div>
-                <div className="shv-history-meta-row" style={{ marginTop: '0.2rem' }}>
-                  <span>Order ID : #PV_243...</span>
-                </div>
-                <div className="shv-history-meta-row">
-                  <span>Delivery Date : Sep 29</span>
-                </div>
+            {historyItems.length === 0 && (
+              <div style={{ color: 'var(--admin-text-muted)', fontSize: '0.85rem' }}>
+                No orders yet — new orders will appear here.
               </div>
-            </div>
-
-            {/* Item 2 */}
-            <div className="shv-history-item">
-              <img
-                src="https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?auto=format&fit=crop&w=200&q=85"
-                alt="Cement Bags"
-                className="shv-history-img"
-              />
-              <div className="shv-history-info">
-                <div className="shv-history-name">Cement Bags — 3</div>
-                <div className="shv-history-meta-row">
-                  <span>Status :</span>
-                  <span className="shv-status-pill onhold" style={{ padding: '0.1rem 0.4rem', fontSize: '0.7rem' }}>
-                    On Hold
-                  </span>
+            )}
+            {historyItems.map((entry) => {
+              const badgeClass = getStatusBadgeClass(entry.status);
+              return (
+                <div
+                  key={entry.id}
+                  className="shv-history-item"
+                  onClick={() => onSelectOrder && onSelectOrder(entry)}
+                  style={{ cursor: onSelectOrder ? 'pointer' : 'default' }}
+                >
+                  <img
+                    src={getImageUrl(entry.image) || PLACEHOLDER_IMAGE}
+                    alt={entry.name}
+                    className="shv-history-img"
+                  />
+                  <div className="shv-history-info">
+                    <div className="shv-history-name">
+                      {entry.name}
+                      {entry.qty > 1 ? ` — ${entry.qty}` : ''}
+                    </div>
+                    <div className="shv-history-meta-row">
+                      <span>Status :</span>
+                      <span
+                        className={`shv-status-pill ${badgeClass}`}
+                        style={{ padding: '0.1rem 0.4rem', fontSize: '0.7rem' }}
+                      >
+                        {STATUS_ICONS[badgeClass]}
+                        <span>{statusLabel(entry.status)}</span>
+                      </span>
+                    </div>
+                    <div className="shv-history-meta-row" style={{ marginTop: '0.2rem' }}>
+                      <span>{`Order ID : #${entry.orderCode}`}</span>
+                    </div>
+                    <div className="shv-history-meta-row">
+                      <span>{`Order Date : ${entry.date}`}</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="shv-history-meta-row" style={{ marginTop: '0.2rem' }}>
-                  <span>Order ID : #PV_243...</span>
-                </div>
-                <div className="shv-history-meta-row">
-                  <span>Delivery Date : Sep 23</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Item 3 */}
-            <div className="shv-history-item">
-              <img
-                src="https://images.unsplash.com/photo-1611591475155-4286fa7c2e7f?auto=format&fit=crop&w=200&q=85"
-                alt="Concrete Blocks"
-                className="shv-history-img"
-              />
-              <div className="shv-history-info">
-                <div className="shv-history-name">Concrete Blocks</div>
-                <div className="shv-history-meta-row">
-                  <span>Status :</span>
-                  <span className="shv-status-pill cancelled" style={{ padding: '0.1rem 0.4rem', fontSize: '0.7rem' }}>
-                    Cancelled
-                  </span>
-                </div>
-                <div className="shv-history-meta-row" style={{ marginTop: '0.2rem' }}>
-                  <span>Order ID : #PV_243...</span>
-                </div>
-                <div className="shv-history-meta-row">
-                  <span>Delivery Date : Sep 18</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Item 4 */}
-            <div className="shv-history-item">
-              <img
-                src="https://images.unsplash.com/photo-1630019852942-f89202989a59?auto=format&fit=crop&w=200&q=85"
-                alt="Wooden Planks"
-                className="shv-history-img"
-              />
-              <div className="shv-history-info">
-                <div className="shv-history-name">Wooden Planks —</div>
-                <div className="shv-history-meta-row">
-                  <span>Status :</span>
-                  <span className="shv-status-pill ontheway" style={{ padding: '0.1rem 0.4rem', fontSize: '0.7rem' }}>
-                    On Progress
-                  </span>
-                </div>
-                <div className="shv-history-meta-row" style={{ marginTop: '0.2rem' }}>
-                  <span>Order ID : #PV_243...</span>
-                </div>
-                <div className="shv-history-meta-row">
-                  <span>Delivery Date : Sep 22</span>
-                </div>
-              </div>
-            </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -349,12 +463,10 @@ const AdminDashboard = ({ orders, onSelectOrder }) => {
           <button
             type="button"
             className="shv-table-filter-btn"
-            onClick={() =>
-              setTableFilter(tableFilter === 'All' ? 'Scheduled' : 'All')
-            }
+            onClick={() => setTableFilter(tableFilter === 'All' ? 'Pending' : 'All')}
           >
             <SlidersHorizontal size={14} />
-            <span>Filter</span>
+            <span>{tableFilter === 'All' ? 'Filter' : 'Pending Only'}</span>
           </button>
         </div>
 
@@ -365,10 +477,13 @@ const AdminDashboard = ({ orders, onSelectOrder }) => {
                 <th style={{ width: '40px' }}>
                   <input
                     type="checkbox"
-                    checked={selectedRowIds.length === deliveryTableRows.length}
+                    checked={
+                      visibleRows.length > 0 &&
+                      visibleRows.every((r) => selectedRowIds.includes(r.id))
+                    }
                     onChange={(e) => {
                       if (e.target.checked) {
-                        setSelectedRowIds(deliveryTableRows.map((r) => r.id));
+                        setSelectedRowIds(visibleRows.map((r) => r.id));
                       } else {
                         setSelectedRowIds([]);
                       }
@@ -383,8 +498,23 @@ const AdminDashboard = ({ orders, onSelectOrder }) => {
               </tr>
             </thead>
             <tbody>
-              {deliveryTableRows.map((row) => {
+              {visibleRows.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={6}
+                    style={{
+                      textAlign: 'center',
+                      color: 'var(--admin-text-muted)',
+                      padding: '1.5rem',
+                    }}
+                  >
+                    No upcoming deliveries right now.
+                  </td>
+                </tr>
+              )}
+              {visibleRows.map((row) => {
                 const isChecked = selectedRowIds.includes(row.id);
+                const badgeClass = getStatusBadgeClass(row.status);
                 return (
                   <tr key={row.id}>
                     <td>
@@ -403,16 +533,15 @@ const AdminDashboard = ({ orders, onSelectOrder }) => {
                       </div>
                     </td>
                     <td>
-                      <span>{row.qty}</span>
+                      <span>{`${row.qty} pcs`}</span>
                     </td>
                     <td>
                       <span>{row.date}</span>
                     </td>
                     <td>
-                      <span className={`shv-status-pill ${row.statusType}`}>
-                        {row.status === 'Scheduled' && <Box size={13} />}
-                        {row.status === 'On The Way' && <Truck size={13} />}
-                        <span>{row.status}</span>
+                      <span className={`shv-status-pill ${badgeClass}`}>
+                        {STATUS_ICONS[badgeClass]}
+                        <span>{statusLabel(row.status)}</span>
                       </span>
                     </td>
                   </tr>
@@ -424,6 +553,10 @@ const AdminDashboard = ({ orders, onSelectOrder }) => {
       </div>
     </div>
   );
+
+
+
+
 };
 
 export default AdminDashboard;

@@ -175,7 +175,6 @@ export const GetLabels = async (req, res, next) => {
 
 
     const result = await LabelGenerationService(waybills)
-
     const mergedPdf = await mergeLabelPDFs(result.packages)
 
     const generatedWaybills = result.packages.map(

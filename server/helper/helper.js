@@ -4,7 +4,7 @@ import bcrypt from 'bcrypt'
 import { getMessaging } from 'firebase-admin/messaging';
 import firebaseadmin from '../config/firebase.js';
 import userModel from '../models/user.model.js';
-import { PDFDocument } from "pdf-lib";
+
 
 
 export const hashUserPassword = (password) => {
@@ -113,6 +113,7 @@ export const SendWahtsappMessage = async (number, message) => {
 
 
 export const mergeLabelPDFs = async (packages = []) => {
+  const { PDFDocument } = await import("pdf-lib");
   const mergedPdf = await PDFDocument.create();
 
   for (const pkg of packages) {

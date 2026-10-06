@@ -30,6 +30,9 @@ cp "$TMP_DIR"/server/package.json "$TARGET_DIR"/
 
 rm -rf "$TMP_DIR"
 
+echo "📦 Checking and installing dependencies..."
+cd "$TARGET_DIR" && npm install --omit=dev
+
 echo "🔄 Restarting shveraa-api PM2 process..."
 pm2 restart shveraa-api
 

@@ -25,8 +25,8 @@ if ($Target -eq "server" -or $Target -eq "all") {
     Write-Host "[2/3] Uploading update_server.tar.gz to $ServerIP..." -ForegroundColor Yellow
     scp update_server.tar.gz "${ServerUser}@${ServerIP}:${RemoteServerDir}/"
 
-    Write-Host "[3/3] Extracting on server and restarting $Pm2App..." -ForegroundColor Yellow
-    ssh "${ServerUser}@${ServerIP}" "cd $RemoteServerDir && tar -xzf update_server.tar.gz && rm -f update_server.tar.gz && pm2 restart $Pm2App"
+    Write-Host "[3/3] Extracting on server, installing dependencies and restarting $Pm2App..." -ForegroundColor Yellow
+    ssh "${ServerUser}@${ServerIP}" "cd $RemoteServerDir && tar -xzf update_server.tar.gz && rm -f update_server.tar.gz && npm install --omit=dev && pm2 restart $Pm2App"
     
     Remove-Item -Path update_server.tar.gz -Force -ErrorAction SilentlyContinue
     Write-Host "Backend updated and PM2 restarted successfully!" -ForegroundColor Green

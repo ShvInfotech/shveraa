@@ -1,11 +1,24 @@
 const getBackendDomain = (req) => {
   const configuredDomain = process.env.BACKEND_DOMIN_URL || process.env.BACKEND_DOMAIN;
-  return (configuredDomain || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+  if (configuredDomain) return configuredDomain.replace(/\/$/, '');
+
+  if (!req) return '';
+  const proto = req.headers?.['x-forwarded-proto'] || (req.secure ? 'https' : req.protocol) || 'https';
+  const host = req.headers?.['x-forwarded-host'] || req.get?.('host') || '';
+
+  // If host is localhost/loopback behind a reverse proxy, return empty string so images use relative paths (/uploads/...)
+  if (host.includes('localhost') || host.includes('127.0.0.1')) {
+    return '';
+  }
+
+  return `${proto}://${host}`.replace(/\/$/, '');
 };
 
 const withImageUrl = (image, req) => {
   if (!image || /^https?:\/\//i.test(image) || image.startsWith('data:')) return image;
-  return `${getBackendDomain(req)}/${image.replace(/^\//, '')}`;
+  const domain = getBackendDomain(req);
+  const cleanPath = image.startsWith('/') ? image : `/${image}`;
+  return domain ? `${domain}${cleanPath}` : cleanPath;
 };
 
 // Product image paths stay relative in MongoDB.  Only API responses receive

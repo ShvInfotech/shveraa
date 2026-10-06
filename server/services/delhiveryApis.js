@@ -131,7 +131,7 @@ export const CreateShippingOrderService = async (shippingData) => {
 export const TrackShipmentService = async (waybill) => {
   try {
 
-    const response = await fetch(`${delhiveryURL}api/v1/packages/json/?waybill=${waybill}&ref_ids=`, {
+    const response = await fetch(`${getDelhiveryURL()}api/v1/packages/json/?waybill=${waybill}&ref_ids=`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -154,7 +154,7 @@ export const TrackShipmentService = async (waybill) => {
 export const CancelShipmentService = async (waybill) => {
   try {
 
-    const response = await fetch(`${delhiveryURL}api/p/edit`, {
+    const response = await fetch(`${getDelhiveryURL()}api/p/edit`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -182,7 +182,7 @@ export const LabelGenerationService = async (waybills) => {
   try {
     const wbns = waybills.join(",");
 
-    const response = await fetch(`${delhiveryURL}api/p/packing_slip?wbns=${wbns}&pdf=true&pdf_size=`, {
+    const response = await fetch(`${getDelhiveryURL()}api/p/packing_slip?wbns=${wbns}&pdf=true&pdf_size=`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -202,7 +202,7 @@ export const LabelGenerationService = async (waybills) => {
 
 export const PickupGenerationService = async (time,date,count) => {
   try {
-    const response = await fetch(`${delhiveryURL}fm/request/new/`, {
+    const response = await fetch(`${getDelhiveryURL()}fm/request/new/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

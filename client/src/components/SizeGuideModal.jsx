@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { X, Ruler, Award, Sparkles, MessageCircle, Info } from 'lucide-react';
 
 const RING_SIZES = [
-  { us: 'US 5', in: '10', dia: '15.7 mm', circ: '49.3 mm', fit: 'Dainty Pinky / Petite Ring Finger' },
-  { us: 'US 6', in: '12', dia: '16.5 mm', circ: '51.9 mm', fit: 'Standard Ring Finger' },
-  { us: 'US 7', in: '14', dia: '17.3 mm', circ: '54.4 mm', fit: 'Most Popular / Middle / Index', popular: true },
-  { us: 'US 8', in: '17', dia: '18.1 mm', circ: '57.0 mm', fit: 'Index / Thumb / Wide Bands' },
-  { us: 'US 9', in: '19', dia: '19.0 mm', circ: '59.5 mm', fit: 'Statement Thumb / Wide Sculpted Bands' },
+  { size: '5', in: '10', dia: '15.7 mm', circ: '49.3 mm', fit: 'Dainty Pinky / Petite Ring Finger' },
+  { size: '6', in: '12', dia: '16.5 mm', circ: '51.9 mm', fit: 'Standard Ring Finger' },
+  { size: '7', in: '14', dia: '17.3 mm', circ: '54.4 mm', fit: 'Most Popular / Middle / Index', popular: true },
+  { size: '8', in: '17', dia: '18.1 mm', circ: '57.0 mm', fit: 'Index / Thumb / Wide Bands' },
+  { size: '9', in: '19', dia: '19.0 mm', circ: '59.5 mm', fit: 'Statement Thumb / Wide Sculpted Bands' },
 ];
 
 const BRACELET_SIZES = [
@@ -139,13 +139,13 @@ const SizeGuideModal = ({ isOpen, onClose, defaultTab = 'rings', availableSizes 
               <div className="shv-modal-table-card">
                 <div className="shv-modal-table-header">
                   <h4>Ring Size Calibration Table</h4>
-                  <span className="shv-modal-table-tag">Indian BIS &amp; US Standards</span>
+                  <span className="shv-modal-table-tag">Standard Ring Sizes</span>
                 </div>
                 <div className="shv-modal-table-scroll">
                   <table className="shv-modal-table">
                     <thead>
                       <tr>
-                        <th>US Size</th>
+                        <th>Size</th>
                         <th>Indian (BIS)</th>
                         <th>Diameter</th>
                         <th>Circumference</th>
@@ -156,7 +156,7 @@ const SizeGuideModal = ({ isOpen, onClose, defaultTab = 'rings', availableSizes 
                       {RING_SIZES.map((sz, idx) => (
                         <tr key={idx} className={sz.popular ? 'row-popular' : ''}>
                           <td>
-                            <strong>{sz.us}</strong>
+                            <strong>{sz.size}</strong>
                             {sz.popular && <span className="pill-popular">Popular</span>}
                           </td>
                           <td><strong>{sz.in}</strong></td>

@@ -51,7 +51,7 @@ const FINISH_TYPES = [
   'Vintage Oxidized Patina',
 ];
 
-const PRESET_SIZES = ['US 5', 'US 6', 'US 7', 'US 8', 'US 9', 'US 10', 'Free Size'];
+const PRESET_SIZES = ['5', '6', '7', '8', '9', '10', '12', '14', '16', '18', 'Free Size'];
 
 const SAMPLE_JEWELRY_IMAGES = [
   'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=900&q=85',

@@ -15,11 +15,11 @@ import {
 } from 'lucide-react';
 
 const RING_SIZES = [
-  { us: 'US 5', in: '10', dia: '15.7 mm', circ: '49.3 mm', fit: 'Dainty Pinky / Petite Ring Finger' },
-  { us: 'US 6', in: '12', dia: '16.5 mm', circ: '51.9 mm', fit: 'Standard Ring Finger' },
-  { us: 'US 7', in: '14', dia: '17.3 mm', circ: '54.4 mm', fit: 'Most Popular / Middle / Index', popular: true },
-  { us: 'US 8', in: '17', dia: '18.1 mm', circ: '57.0 mm', fit: 'Index / Thumb / Wide Bands' },
-  { us: 'US 9', in: '19', dia: '19.0 mm', circ: '59.5 mm', fit: 'Statement Thumb / Wide Sculpted Bands' },
+  { size: '5', in: '10', dia: '15.7 mm', circ: '49.3 mm', fit: 'Dainty Pinky / Petite Ring Finger' },
+  { size: '6', in: '12', dia: '16.5 mm', circ: '51.9 mm', fit: 'Standard Ring Finger' },
+  { size: '7', in: '14', dia: '17.3 mm', circ: '54.4 mm', fit: 'Most Popular / Middle / Index', popular: true },
+  { size: '8', in: '17', dia: '18.1 mm', circ: '57.0 mm', fit: 'Index / Thumb / Wide Bands' },
+  { size: '9', in: '19', dia: '19.0 mm', circ: '59.5 mm', fit: 'Statement Thumb / Wide Sculpted Bands' },
 ];
 
 const BRACELET_SIZES = [
@@ -136,7 +136,7 @@ const SizeGuide = () => {
               <div className="shv-guide-table-wrap">
                 <div className="shv-guide-table-card-head">
                   <div>
-                    <h3 className="shv-table-title">Indian (BIS) &amp; US Ring Size Conversion Table</h3>
+                    <h3 className="shv-table-title">Indian (BIS) &amp; Standard Ring Size Conversion Table</h3>
                     <p className="shv-table-sub">Calibrated to standard ISO silversmith measurements</p>
                   </div>
                   <span className="shv-table-std-pill">Certified 925 Standards</span>
@@ -146,7 +146,7 @@ const SizeGuide = () => {
                   <table className="shv-guide-table">
                     <thead>
                       <tr>
-                        <th>US / International Size</th>
+                        <th>Size</th>
                         <th>Indian (BIS) Size</th>
                         <th>Inside Diameter (mm)</th>
                         <th>Inside Circumference (mm)</th>
@@ -157,7 +157,7 @@ const SizeGuide = () => {
                       {RING_SIZES.map((sz, idx) => (
                         <tr key={idx} className={sz.popular ? 'shv-row-highlight' : ''}>
                           <td>
-                            <strong>{sz.us}</strong>
+                            <strong>{sz.size}</strong>
                             {sz.popular && <span className="shv-popular-pill">Most Popular</span>}
                           </td>
                           <td><strong>{sz.in}</strong></td>

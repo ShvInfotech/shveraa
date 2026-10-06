@@ -31,7 +31,7 @@ const Footer = () => {
             <Truck size={22} className="footer-trust-icon" />
             <div>
               <div className="footer-trust-title">Free Insured Shipping</div>
-              <div className="footer-trust-sub">Complimentary delivery over ₹999</div>
+              <div className="footer-trust-sub">Complimentary delivery over ₹4999</div>
             </div>
           </div>
 

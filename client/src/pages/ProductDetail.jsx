@@ -25,6 +25,7 @@ import {
   Zap,
   Link2,
   MessageCircle,
+  Ruler,
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -32,6 +33,7 @@ import { fetchProductById, fetchProducts, apiCheckPincodeDetails } from '../serv
 import { getProductColors } from '../services/storeService';
 import ProductCard from '../components/ProductCard';
 import Loader from '../components/Loader';
+import SizeGuideModal from '../components/SizeGuideModal';
 import { trackPixelEvent } from '../utils/metaPixel';
 
 // "Free Size" is a placeholder used for one-size jewellery pieces. It is not a
@@ -163,6 +165,24 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const [customEngraving, setCustomEngraving] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
+  const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
+
+  const defaultGuideTab = React.useMemo(() => {
+    const cat = String(product?.category || '').toLowerCase();
+    const name = String(product?.name || '').toLowerCase();
+    if (
+      cat.includes('bracelet') ||
+      cat.includes('wrist') ||
+      cat.includes('bangle') ||
+      cat.includes('cuff') ||
+      name.includes('bracelet') ||
+      name.includes('bangle') ||
+      name.includes('cuff')
+    ) {
+      return 'bracelets';
+    }
+    return 'rings';
+  }, [product]);
   const [openAccordions, setOpenAccordions] = useState({
     description: false,
     details: false,
@@ -837,9 +857,27 @@ const ProductDetail = () => {
                   <label style={{ fontSize: '0.82rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                     Select Size / Length
                   </label>
-                  <Link to="/size-guide" style={{ fontSize: '0.78rem', color: '#A07E52', textDecoration: 'underline' }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsSizeGuideOpen(true)}
+                    className="shv-size-guide-trigger"
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      cursor: 'pointer',
+                      fontSize: '0.78rem',
+                      color: '#A07E52',
+                      textDecoration: 'underline',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontWeight: 600,
+                    }}
+                  >
+                    <Ruler size={13} />
                     Ring &amp; Wrist Size Guide
-                  </Link>
+                  </button>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'gap', gap: '8px' }}>
                   {visibleSizes.map((size) => (
@@ -1516,6 +1554,14 @@ const ProductDetail = () => {
           </div>
         </div>
       )}
+
+      {/* In-Page Ring & Wrist Size Guide Modal */}
+      <SizeGuideModal
+        isOpen={isSizeGuideOpen}
+        onClose={() => setIsSizeGuideOpen(false)}
+        defaultTab={defaultGuideTab}
+        availableSizes={visibleSizes}
+      />
     </div>
   );
 };

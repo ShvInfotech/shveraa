@@ -47,6 +47,7 @@ const ShippingCancellation = () => {
             </div>
             <h3>5–7 Day Delivery</h3>
             <p>Dispatched from our Surat atelier with live SMS &amp; WhatsApp tracking updates at every stage.</p>
+            <p style={{ color: "red" }}>* Public Holidays May Affect the Delivery Dates</p>
           </div>
 
           <div className="shv-process-step-card">
@@ -96,7 +97,7 @@ const ShippingCancellation = () => {
                   <CheckCircle2 size={16} color="#10B981" /> Complimentary Shipping (Orders &ge; ₹999)
                 </h4>
                 <ul>
-                  <li>Zero shipping fees for all prepaid orders above ₹999.</li>
+                  <li>Zero shipping fees for all prepaid orders above ₹4999.</li>
                   <li>Fully insured air transit with signature requirement at doorstep.</li>
                   <li>Applicable across 19,000+ Indian postal pincodes.</li>
                 </ul>
@@ -108,7 +109,7 @@ const ShippingCancellation = () => {
                 </h4>
                 <ul>
                   <li>Orders below ₹999 incur a nominal flat shipping fee of <strong>₹79</strong>.</li>
-                  <li>Cash on Delivery (COD) is available on orders up to ₹5,000 with a standard verification OTP.</li>
+                  <li>Cash on Delivery (COD) is available on orders up to <strong>₹5,000</strong> with a standard OTP verification.</li>
                   <li>A modest COD convenience charge of <strong>₹49</strong> is applied to cover courier cash-handling protocols.</li>
                 </ul>
               </div>

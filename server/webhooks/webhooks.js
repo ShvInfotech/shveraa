@@ -114,7 +114,7 @@ export const DelhiveryScanWebhook = async (req, res, next) => {
         }
 
         if (shipment.StatusType == "DL" && shipment.Status == "Delivered") {
-            const order = await orderModel.findOneAndUpdate({ waybill: shipment.AWB }, { $set: { status: "delivered" } }, { returnDocument: 'after' });
+            const order = await orderModel.findOneAndUpdate({ waybill: shipment.AWB }, { $set: { status: "delivered",completeAt:new Date() } }, { returnDocument: 'after' });
             if (order.payment.method == "cod") {
                 await orderModel.findByIdAndUpdate(order._id, { $set: { "payment.status": "paid" } }, { returnDocument: "after" });
             }

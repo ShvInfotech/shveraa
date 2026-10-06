@@ -8988,6 +8988,73 @@ h4 { font-size: 1.15rem; }
   color: #1F1B17;
 }
 
+/* Star Rating — right side of each product row (My Orders tab) */
+.shv-order-item-rating {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.shv-order-star-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.shv-order-star-btn {
+  background: none;
+  border: none;
+  padding: 3px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.shv-order-star-btn:hover:not(.disabled) {
+  transform: scale(1.18);
+  background: rgba(160, 126, 82, 0.1);
+}
+
+.shv-order-star-btn.disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.shv-order-star-btn.disabled:hover {
+  transform: none;
+  background: none;
+}
+
+.shv-order-rating-label {
+  font-size: 0.68rem;
+  color: #8A8076;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.shv-order-rating-label.reviewed {
+  color: #A07E52;
+  font-weight: 700;
+}
+
+@media (max-width: 560px) {
+  .shv-order-item-card {
+    flex-wrap: wrap;
+  }
+
+  .shv-order-item-rating {
+    align-items: flex-start;
+    width: 100%;
+    padding-left: calc(64px + 1rem);
+  }
+}
+
 /* Order Card Footer */
 .shv-order-footer {
   padding: 1.25rem 1.75rem;

@@ -29,7 +29,7 @@ import {
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { fetchProductById, fetchProducts, apiCheckPincodeDetails } from '../services/api';
+import { fetchProductById, fetchProducts, apiCheckPincodeDetails, apiGetProductReviews, apiSubmitReview } from '../services/api';
 import { getProductColors } from '../services/storeService';
 import ProductCard from '../components/ProductCard';
 import Loader from '../components/Loader';
@@ -228,6 +228,7 @@ const ProductDetail = () => {
   const [newReviewTitle, setNewReviewTitle] = useState('');
   const [newReviewComment, setNewReviewComment] = useState('');
   const [helpfulVotes, setHelpfulVotes] = useState({});
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   const thumbnailsRef = useRef(null);
   const touchStartX = useRef(0);
@@ -357,13 +358,13 @@ const ProductDetail = () => {
             setRelatedProducts(filteredRelated);
           }
 
-          // Load reviews from localStorage + seed
-          const storageKey = `shveraa_product_reviews_${data._id || data.slug}`;
-          const stored = localStorage.getItem(storageKey);
-          if (stored) {
+          // Load this product's reviews dynamically from the backend API
+          // (falls back to curated seed reviews when the product has none yet)
+          if (data._id) {
             try {
-              const parsed = JSON.parse(stored);
-              setReviews([...parsed, ...SEED_REVIEWS]);
+              const reviewsData = await apiGetProductReviews(data._id);
+              const apiReviews = reviewsData?.reviews || [];
+              setReviews(apiReviews.length > 0 ? apiReviews : SEED_REVIEWS);
             } catch {
               setReviews(SEED_REVIEWS);
             }
@@ -601,7 +602,7 @@ const ProductDetail = () => {
     }));
   };
 
-  const handleSubmitReview = (e) => {
+  const handleSubmitReview = async (e) => {
     e.preventDefault();
     if (!isAuthenticated || !hasPurchasedProduct) {
       alert('Only verified collectors who have purchased this piece can submit a review.');
@@ -611,34 +612,38 @@ const ProductDetail = () => {
       alert('Please fill in your name, review title, and detailed feedback.');
       return;
     }
+    if (!product?._id) return;
 
-    const createdReview = {
-      id: `user-rev-${Date.now()}`,
-      name: newReviewerName.trim() || user?.name || 'Verified Collector',
-      city: newReviewerCity.trim() || 'Verified Collector',
-      rating: newRating,
-      date: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
-      verified: true,
-      title: newReviewTitle.trim(),
-      comment: newReviewComment.trim(),
-      helpful: 1,
-    };
+    setSubmittingReview(true);
+    try {
+      // Persist to the backend — the API only accepts reviews from customers
+      // who have a DELIVERED order containing this product.
+      await apiSubmitReview({
+        productId: product._id,
+        rating: newRating,
+        title: newReviewTitle.trim(),
+        comment: newReviewComment.trim(),
+        name: newReviewerName.trim() || user?.name,
+        city: newReviewerCity.trim(),
+      });
 
-    const updated = [createdReview, ...reviews];
-    setReviews(updated);
+      // Reload reviews from the API so the hub shows the freshly saved review
+      const reviewsData = await apiGetProductReviews(product._id);
+      const apiReviews = reviewsData?.reviews || [];
+      setReviews(apiReviews.length > 0 ? apiReviews : SEED_REVIEWS);
 
-    // Persist to localStorage
-    const storageKey = `shveraa_product_reviews_${product._id || product.slug}`;
-    const userOnly = updated.filter((r) => r.id.startsWith('user-rev-'));
-    localStorage.setItem(storageKey, JSON.stringify(userOnly));
-
-    // Reset Form
-    setNewReviewerName('');
-    setNewReviewerCity('');
-    setNewReviewTitle('');
-    setNewReviewComment('');
-    setNewRating(5);
-    setIsReviewModalOpen(false);
+      // Reset Form
+      setNewReviewerName('');
+      setNewReviewerCity('');
+      setNewReviewTitle('');
+      setNewReviewComment('');
+      setNewRating(5);
+      setIsReviewModalOpen(false);
+    } catch (err) {
+      alert(err.message || 'Failed to submit review. Please try again.');
+    } finally {
+      setSubmittingReview(false);
+    }
   };
 
   return (
@@ -1547,8 +1552,9 @@ const ProductDetail = () => {
                 type="submit"
                 className="btn btn-primary"
                 style={{ width: '100%', marginTop: '8px', padding: '12px' }}
+                disabled={submittingReview}
               >
-                Submit Verified Review
+                {submittingReview ? 'Submitting...' : 'Submit Verified Review'}
               </button>
             </form>
           </div>

@@ -26,6 +26,8 @@ import {
   Trash,
   RotateCcw,
   AlertCircle,
+  Star,
+  X,
 } from 'lucide-react';
 
 import {
@@ -38,6 +40,7 @@ import {
   apiCancelOrder,
   getImageUrl,
   apiReturnOrderRequest,
+  apiSubmitReview,
 } from '../services/api';
 import OrderTrackingModal from '../components/OrderTrackingModal';
 
@@ -82,6 +85,66 @@ const Account = () => {
   });
   const [codBankErrors, setCodBankErrors] = useState({});
   const [submittingReturn, setSubmittingReturn] = useState(false);
+
+  // ---------- Product Review (star popup) state ----------
+  // Only DELIVERED orders can be reviewed. `reviewModal` holds the order/item
+  // being rated plus the in-progress rating/title/comment for the popup.
+  const [reviewModal, setReviewModal] = useState(null);
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewError, setReviewError] = useState('');
+
+  // Open the review popup — pre-fill when the customer already reviewed
+  // this product, otherwise pre-select the star they clicked.
+  const openReviewModal = (order, item, starValue) => {
+    const existing = item.review || null;
+    setReviewError('');
+    setReviewModal({
+      orderId: order._id,
+      item,
+      existing: !!existing,
+      rating: existing?.rating || starValue || 0,
+      title: existing?.title || '',
+      comment: existing?.comment || '',
+    });
+  };
+
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    if (!reviewModal) return;
+
+    if (!reviewModal.rating) {
+      setReviewError('Please select a star rating between 1 and 5.');
+      return;
+    }
+    if (!reviewModal.title.trim() || !reviewModal.comment.trim()) {
+      setReviewError('Please add a review headline and your feedback.');
+      return;
+    }
+
+    setSubmittingReview(true);
+    setReviewError('');
+    try {
+      await apiSubmitReview({
+        productId: reviewModal.item.productId,
+        orderId: reviewModal.orderId,
+        rating: reviewModal.rating,
+        title: reviewModal.title.trim(),
+        comment: reviewModal.comment.trim(),
+        name: user?.name,
+      });
+
+      setReviewModal(null);
+      showOrderMsg('Thank you! Your review has been submitted successfully.');
+
+      // Refresh orders so the freshly saved review shows next to the product.
+      const data = await apiGetMyOrders();
+      setOrders(data.orders || []);
+    } catch (err) {
+      setReviewError(err.message || 'Failed to submit review. Please try again.');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
   // Cancel order handler (allowed when status is pending or accepted)
   const handleCancelOrder = async (order) => {
@@ -851,6 +914,52 @@ const Account = () => {
                                 ₹{((item.price || 0) * (item.quantity || 1)).toLocaleString('en-IN')}
                               </div>
                             </div>
+
+                            {/* Star Rating — right side of the product row.
+                                Stars are clickable only for DELIVERED orders
+                                (or when a review already exists to edit). */}
+                            <div className="shv-order-item-rating">
+                              <div className="shv-order-star-row">
+                                {[1, 2, 3, 4, 5].map((star) => {
+                                  const existingRating = item.review?.rating || 0;
+                                  const canReview = (isDelivered && !isReturned) || existingRating > 0;
+                                  return (
+                                    <button
+                                      key={star}
+                                      type="button"
+                                      className={`shv-order-star-btn${canReview ? '' : ' disabled'}`}
+                                      disabled={!canReview}
+                                      onClick={() => canReview && openReviewModal(order, item, star)}
+                                      title={
+                                        !canReview
+                                          ? 'Review can be written only after delivery'
+                                          : existingRating > 0
+                                          ? 'Edit your review'
+                                          : `Rate ${star} star${star > 1 ? 's' : ''}`
+                                      }
+                                      aria-label={`Rate ${star} star${star > 1 ? 's' : ''}`}
+                                    >
+                                      <Star
+                                        size={17}
+                                        fill={star <= existingRating ? '#A07E52' : 'none'}
+                                        color={star <= existingRating ? '#A07E52' : '#C9BFB2'}
+                                      />
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                              <span
+                                className={`shv-order-rating-label${
+                                  item.review ? ' reviewed' : ''
+                                }`}
+                              >
+                                {item.review
+                                  ? `Your Review (${item.review.rating}★)`
+                                  : isDelivered && !isReturned
+                                  ? 'Rate this product'
+                                  : 'Review after delivery'}
+                              </span>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -1289,6 +1398,99 @@ const Account = () => {
             setTrackingOrder(null);
           }}
         />
+
+        {/* Product Review Popup — opens when a star is clicked on an order item */}
+        {reviewModal && (
+          <div className="shv-modal-backdrop" onClick={() => !submittingReview && setReviewModal(null)}>
+            <div className="shv-review-modal-card" onClick={(e) => e.stopPropagation()}>
+              <button
+                type="button"
+                onClick={() => setReviewModal(null)}
+                className="shv-modal-close-btn"
+                aria-label="Close review popup"
+                disabled={submittingReview}
+              >
+                <X size={18} />
+              </button>
+
+              <h3 style={{ fontSize: '1.3rem', fontWeight: 700, marginBottom: '4px', color: '#1A1612' }}>
+                {reviewModal.existing ? 'Edit Your Review' : 'Write a Review'}
+              </h3>
+              <p style={{ fontSize: '0.85rem', color: '#716960', marginBottom: '14px' }}>
+                {reviewModal.item?.name} — Order #{reviewModal.orderId?.slice(-6)}
+              </p>
+
+              <form onSubmit={handleSubmitReview}>
+                {/* Star Picker */}
+                <div>
+                  <span className="shv-form-label">Your Rating</span>
+                  <div className="shv-star-picker">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setReviewModal((prev) => ({ ...prev, rating: star }))}
+                        className="shv-star-pick-btn"
+                        aria-label={`Rate ${star} star${star > 1 ? 's' : ''}`}
+                      >
+                        <Star
+                          size={26}
+                          fill={star <= reviewModal.rating ? '#A07E52' : 'none'}
+                          color={star <= reviewModal.rating ? '#A07E52' : '#D1C7BA'}
+                        />
+                      </button>
+                    ))}
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600, marginLeft: '8px', alignSelf: 'center', color: '#A07E52' }}>
+                      {reviewModal.rating ? `${reviewModal.rating}.0 Stars` : 'Select rating'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="shv-form-group">
+                  <label className="shv-form-label">Review Headline</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Pure silver brilliance, incredible luster!"
+                    value={reviewModal.title}
+                    onChange={(e) => setReviewModal((prev) => ({ ...prev, title: e.target.value }))}
+                    className="shv-form-input"
+                  />
+                </div>
+
+                <div className="shv-form-group">
+                  <label className="shv-form-label">Detailed Review</label>
+                  <textarea
+                    required
+                    placeholder="Tell other collectors about the hand-feel, purity stamp, tarnish resistance, or unboxing..."
+                    value={reviewModal.comment}
+                    onChange={(e) => setReviewModal((prev) => ({ ...prev, comment: e.target.value }))}
+                    className="shv-form-textarea"
+                  />
+                </div>
+
+                {reviewError && (
+                  <p style={{ color: '#E11D48', fontSize: '0.82rem', marginBottom: '10px' }}>
+                    {reviewError}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ width: '100%', padding: '12px' }}
+                  disabled={submittingReview}
+                >
+                  {submittingReview
+                    ? 'Submitting...'
+                    : reviewModal.existing
+                    ? 'Update Review'
+                    : 'Submit Verified Review'}
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* Return & Bank Details Modal */}
         {showReturnModal && returnModalOrder && (() => {

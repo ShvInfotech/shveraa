@@ -1,11 +1,27 @@
 import React from 'react';
-import { DollarSign, ArrowUpRight, CreditCard, Smartphone, Building, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { DollarSign, ArrowUpRight, CreditCard, Smartphone, Building, RefreshCw, CheckCircle2, RotateCcw } from 'lucide-react';
 
 const AdminPayments = ({ orders }) => {
   const totalRevenue = orders.reduce((acc, o) => acc + (o.totalAmount || 0), 0);
-  const paidOrders = orders.filter((o) => o.payment.status === 'paid');
+  const paidOrders = orders.filter((o) => o.payment?.status === 'paid');
   const paidRevenue = paidOrders.reduce((acc, o) => acc + (o.totalAmount || 0), 0);
-  const pendingRevenue = totalRevenue - paidRevenue;
+
+  // Pending COD / Transit → ONLY orders whose payment status is "pending"
+  // AND whose payment method is COD. Nothing else is counted here.
+  const pendingCodOrders = orders.filter(
+    (o) => o.payment?.status === 'pending' && o.payment?.method === 'cod'
+  );
+  const pendingCodRevenue = pendingCodOrders.reduce(
+    (acc, o) => acc + (o.totalAmount || 0),
+    0
+  );
+
+  // Refunded / reversed amounts are shown in their own card beside it.
+  const refundedOrders = orders.filter((o) => o.payment?.status === 'refunded');
+  const refundedRevenue = refundedOrders.reduce(
+    (acc, o) => acc + (o.totalAmount || 0),
+    0
+  );
 
   return (
     <div className="shv-admin-payments-view">
@@ -21,8 +37,8 @@ const AdminPayments = ({ orders }) => {
         </div>
       </div>
 
-      {/* 3 Metric Cards */}
-      <div className="shv-admin-stats-grid" style={{ marginBottom: '2rem' }}>
+      {/* 4 Metric Cards */}
+      <div className="shv-admin-stats-grid grid-4" style={{ marginBottom: '2rem' }}>
         <div className="shv-admin-stat-card">
           <div className="shv-stat-card-header">
             <div className="shv-stat-card-icon">
@@ -67,9 +83,26 @@ const AdminPayments = ({ orders }) => {
           </div>
           <div className="shv-stat-card-body">
             <div>
-              <div className="shv-stat-card-number">₹{pendingRevenue.toLocaleString('en-IN')}</div>
+              <div className="shv-stat-card-number">₹{pendingCodRevenue.toLocaleString('en-IN')}</div>
               <div className="shv-stat-trend">
-                <span>On Air Express Delivery</span>
+                <span>{pendingCodOrders.length} Pending COD {pendingCodOrders.length === 1 ? 'Order' : 'Orders'} • On Air Express Delivery</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="shv-admin-stat-card">
+          <div className="shv-stat-card-header">
+            <div className="shv-stat-card-icon">
+              <RotateCcw size={18} />
+            </div>
+            <span>Refunded / Reversals</span>
+          </div>
+          <div className="shv-stat-card-body">
+            <div>
+              <div className="shv-stat-card-number">₹{refundedRevenue.toLocaleString('en-IN')}</div>
+              <div className="shv-stat-trend">
+                <span>{refundedOrders.length} Refunded {refundedOrders.length === 1 ? 'Order' : 'Orders'}</span>
               </div>
             </div>
           </div>

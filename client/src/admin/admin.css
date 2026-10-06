@@ -511,8 +511,17 @@
   margin-bottom: 2rem;
 }
 
+/* Payments page uses 4 metric cards in one row */
+.shv-admin-stats-grid.grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
 @media (max-width: 1024px) {
   .shv-admin-stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+
+  .shv-admin-stats-grid.grid-4 {
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   }
 }

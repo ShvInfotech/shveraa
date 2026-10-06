@@ -5,6 +5,7 @@ import productModel from "../../../models/product.model.js";
 import couponModel from "../../../models/coupon.model.js";
 import { razorpay, razorpaySignature, getRazorpayKeyId } from "../../../config/razorpay.config.js";
 import OrderModel from "../../../models/order.model.js";
+import ReviewModel from "../../../models/review.model.js";
 
 const generateOrderNumber = () =>
   "SHV_" + Math.floor(100000 + Math.random() * 900000) + Date.now().toString().slice(-6);
@@ -540,7 +541,24 @@ export const GetMyOrders = async (req, res, next) => {
   try {
     const userId = req.user._id;
     const orders = await OrderModel.find({ userId }).sort({ createdAt: -1 });
-    return res.status(200).json({ success: true, orders });
+
+    // Attach this customer's reviews so the Account → My Orders tab shows the
+    // existing star rating next to each product without an extra API call.
+    const reviews = await ReviewModel.find({ userId });
+    const reviewByProduct = new Map(
+      reviews.map((r) => [String(r.productId), r.toObject ? r.toObject() : r])
+    );
+
+    const ordersWithReviews = orders.map((order) => {
+      const plain = order.toObject ? order.toObject() : order;
+      plain.items = (plain.items || []).map((item) => ({
+        ...item,
+        review: reviewByProduct.get(String(item.productId)) || null,
+      }));
+      return plain;
+    });
+
+    return res.status(200).json({ success: true, orders: ordersWithReviews });
   } catch (error) {
     return next(error);
   }

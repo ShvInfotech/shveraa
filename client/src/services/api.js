@@ -954,7 +954,31 @@ export const apiGetMyOrders = async () => {
   const res = await apiFetch('/api/v1/user/order/my-orders');
   const data = await res.json();
   if (!res.ok) throw new Error(data.message || 'Failed to fetch your orders');
-  return data; // { success, orders }
+  return data; // { success, orders } — each order item also carries its `review`
+};
+
+/* ==========================================================================
+   PRODUCT REVIEW APIs
+   ========================================================================== */
+
+// Submit (or update) the logged-in customer's review for a product.
+// The backend only accepts reviews for DELIVERED orders.
+export const apiSubmitReview = async ({ productId, orderId, rating, title, comment, name, city }) => {
+  const res = await apiFetch('/api/v1/user/reviews', {
+    method: 'POST',
+    body: JSON.stringify({ productId, orderId, rating, title, comment, name, city }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to submit review');
+  return data; // { success, message, review }
+};
+
+// Fetch all reviews for a product (Product detail page → Customer Reviews hub)
+export const apiGetProductReviews = async (productId) => {
+  const res = await fetch(`/api/v1/user/reviews/product/${productId}`);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to fetch reviews');
+  return data; // { success, reviews, totalReviews, averageRating, distribution }
 };
 
 // Fetch ALL orders for admin panel

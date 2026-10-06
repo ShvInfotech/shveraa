@@ -67,57 +67,23 @@ export const RozerpayRefundWebhook = async (req, res, next) => {
 export const DelhiveryScanWebhook = async (req, res, next) => {
     try {
 
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader) {
+            return res.status(401).json({
+                success: false,
+                message: "Authorization header missing"
+            });
+        }
 
 
-        const statusMapping = {
-            "UD:Manifested": "pending",
-            "UD:Not Picked": "pending",
-            "UD:In Transit": "processing",
-            "UD:Pending": "shipped",
-            "UD:Dispatched": "out_for_delivery",
-            "DL:Delivered": "delivered",
+        if (authHeader !== process.env.DELHIVERY_WEBHOOK_SECRET) {
+            return res.status(401).json({
+                success: false,
+                message: "Unauthorized"
+            });
+        }
 
-
-            "RT:In Transit": "RTO_IN_TRANSIT",
-            "RT:Pending": "RTO_PENDING",
-            "RT:Dispatched": "RTO_DISPATCHED",
-            "DL:RTO": "RTO_DELIVERED",
-
-            "PP:Open": "RETURN_OPEN",
-            "PP:Scheduled": "RETURN_SCHEDULED",
-            "PP:Dispatched": "RETURN_PICKUP_DISPATCHED",
-
-            "PU:In Transit": "RETURN_IN_TRANSIT",
-            "PU:Pending": "RETURN_PENDING",
-            "PU:Dispatched": "RETURN_DISPATCHED",
-
-            "DL:DTO": "RETURN_DELIVERED",
-
-            "CN:Canceled": "RETURN_CANCELLED",
-            "CN:Closed": "RETURN_CLOSED"
-        };
-
-
-
-        // const statusKey = `${status.StatusType}:${status.Status}`;
-        // const newStatus = statusMapping[statusKey];
-        console.log("Delhivery webhook", req.body)
-        // {
-        //     "Shipment": {
-        //         "Status": {
-        //             "Status": "Manifested",
-        //             "StatusDateTime": "2019-01-09T17:10:42.767",
-        //             "StatusType": "UD",
-        //             "StatusLocation": "Chandigarh_Raiprkln_C (Chandigarh)",
-        //             "Instructions": "Manifest uploaded"
-        //         },
-        //         "PickUpDate": "2019-01-09 17:10:42.543",
-        //         "NSLCode": "X-UCI",
-        //         "Sortcode": "IXC/MDP",
-        //         "ReferenceNo": "28",
-        //         "AWB": "XXXXXXXXXXXX"
-        //     }
-        // }
 
         const { shipment } = req.body || {};
 
@@ -143,12 +109,15 @@ export const DelhiveryScanWebhook = async (req, res, next) => {
             await orderModel.findOneAndUpdate({ waybill: shipment.AWB }, { $set: { status: "shipped" } }, { returnDocument: 'after' });
         }
 
-        if (shipment.StatusType == "UD" && shipment.Status == "Pending") {
+        if (shipment.StatusType == "UD" && shipment.Status == "Dispatched") {
             await orderModel.findOneAndUpdate({ waybill: shipment.AWB }, { $set: { status: "out_for_delivery" } }, { returnDocument: 'after' });
         }
 
         if (shipment.StatusType == "DL" && shipment.Status == "Delivered") {
-            await orderModel.findOneAndUpdate({ waybill: shipment.AWB }, { $set: { status: "delivered" } }, { returnDocument: 'after' });
+            const order = await orderModel.findOneAndUpdate({ waybill: shipment.AWB }, { $set: { status: "delivered" } }, { returnDocument: 'after' });
+            if (order.payment.method == "cod") {
+                await orderModel.findByIdAndUpdate(order._id, { $set: { "payment.status": "paid" } }, { returnDocument: "after" });
+            }
         }
 
 
@@ -158,7 +127,7 @@ export const DelhiveryScanWebhook = async (req, res, next) => {
                 status: shipment.Status,
                 completeAt: null
             }
-            await orderModel.findOneAndUpdate({ waybill: shipment.AWB }, { $set: { status: "cancelled" }, type: "rto", rtoData }, { returnDocument: 'after' });
+            await orderModel.findOneAndUpdate({ waybill: shipment.AWB }, { $set: { status: "cancelled", type: "rto", rtoData } }, { returnDocument: 'after' });
         }
 
 
@@ -167,7 +136,7 @@ export const DelhiveryScanWebhook = async (req, res, next) => {
                 status: shipment.Status,
                 completeAt: null
             }
-            await orderModel.findOneAndUpdate({ waybill: shipment.AWB }, { rtoData }, { returnDocument: 'after' });
+            await orderModel.findOneAndUpdate({ waybill: shipment.AWB }, { $set: { rtoData } }, { returnDocument: 'after' });
         }
 
         if (shipment.StatusType == "RT" && shipment.Status == "Dispatched") {
@@ -175,7 +144,7 @@ export const DelhiveryScanWebhook = async (req, res, next) => {
                 status: shipment.Status,
                 completeAt: null
             }
-            await orderModel.findOneAndUpdate({ waybill: shipment.AWB }, { rtoData }, { returnDocument: 'after' });
+            await orderModel.findOneAndUpdate({ waybill: shipment.AWB }, { $set: { rtoData } }, { returnDocument: 'after' });
         }
 
 
@@ -184,7 +153,7 @@ export const DelhiveryScanWebhook = async (req, res, next) => {
                 status: shipment.Status,
                 completeAt: new Date()
             }
-            await orderModel.findOneAndUpdate({ waybill: shipment.AWB }, { rtoData }, { returnDocument: 'after' });
+            await orderModel.findOneAndUpdate({ waybill: shipment.AWB }, { $set: { rtoData } }, { returnDocument: 'after' });
         }
 
 
@@ -229,9 +198,7 @@ export const DelhiveryScanWebhook = async (req, res, next) => {
             await orderModel.findOneAndUpdate({ "returnData.waybill": shipment.AWB }, { $set: { "returnData.status": shipment.Status } }, { returnDocument: 'after' });
         }
 
-        if (shipment.StatusType == "DL" && shipment.Status == "DTO") {
-            await orderModel.findOneAndUpdate({ "returnData.waybill": shipment.AWB }, { $set: { "returnData.status": shipment.Status } }, { returnDocument: 'after' });
-        }
+
 
         if (shipment.StatusType == "DL" && shipment.Status == "DTO") {
             await orderModel.findOneAndUpdate({ "returnData.waybill": shipment.AWB }, { $set: { "returnData.status": shipment.Status, "returnData.completeAt": new Date() } }, { returnDocument: 'after' });

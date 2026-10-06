@@ -19,7 +19,9 @@ const SizeGuideModal = ({ isOpen, onClose, defaultTab = 'rings', availableSizes 
   const [activeTab, setActiveTab] = useState(defaultTab);
 
   useEffect(() => {
-    setActiveTab(defaultTab);
+    if (defaultTab) {
+      setActiveTab(defaultTab);
+    }
   }, [defaultTab, isOpen]);
 
   // Handle ESC key to close
@@ -32,23 +34,39 @@ const SizeGuideModal = ({ isOpen, onClose, defaultTab = 'rings', availableSizes 
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Prevent background body scroll when modal is open
+  // Prevent background body & html scroll completely when modal is open
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
+    if (!isOpen) return;
+
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+    const originalBodyTouch = document.body.style.touchAction;
+
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
     return () => {
-      document.body.style.overflow = '';
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+      document.body.style.touchAction = originalBodyTouch;
     };
   }, [isOpen]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="shv-size-modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
-      <div className="shv-size-modal-container" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="shv-size-modal-backdrop"
+      onClick={onClose}
+      onWheel={(e) => e.stopPropagation()}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        className="shv-size-modal-container"
+        onClick={(e) => e.stopPropagation()}
+        onWheel={(e) => e.stopPropagation()}
+      >
         {/* Modal Header */}
         <div className="shv-size-modal-header">
           <div className="shv-size-modal-title-group">
@@ -67,7 +85,7 @@ const SizeGuideModal = ({ isOpen, onClose, defaultTab = 'rings', availableSizes 
             className="shv-size-modal-close-btn"
             aria-label="Close size guide modal"
           >
-            <X size={20} />
+            <X size={19} />
           </button>
         </div>
 
@@ -78,7 +96,7 @@ const SizeGuideModal = ({ isOpen, onClose, defaultTab = 'rings', availableSizes 
             className={`shv-size-modal-tab-btn ${activeTab === 'rings' ? 'active' : ''}`}
             onClick={() => setActiveTab('rings')}
           >
-            <Ruler size={16} />
+            <Ruler size={15} />
             <span>Ring Sizing Chart</span>
           </button>
           <button
@@ -86,13 +104,13 @@ const SizeGuideModal = ({ isOpen, onClose, defaultTab = 'rings', availableSizes 
             className={`shv-size-modal-tab-btn ${activeTab === 'bracelets' ? 'active' : ''}`}
             onClick={() => setActiveTab('bracelets')}
           >
-            <Award size={16} />
+            <Award size={15} />
             <span>Wrist &amp; Bracelet Guide</span>
           </button>
         </div>
 
         {/* Modal Scrollable Body */}
-        <div className="shv-size-modal-body">
+        <div className="shv-size-modal-body" onWheel={(e) => e.stopPropagation()}>
           {activeTab === 'rings' ? (
             <div className="shv-size-modal-content">
               {/* 3 Simple Steps */}
@@ -117,7 +135,7 @@ const SizeGuideModal = ({ isOpen, onClose, defaultTab = 'rings', availableSizes 
                 </div>
               </div>
 
-              {/* Conversion Table */}
+              {/* Conversion Table Card */}
               <div className="shv-modal-table-card">
                 <div className="shv-modal-table-header">
                   <h4>Ring Size Calibration Table</h4>
@@ -154,9 +172,9 @@ const SizeGuideModal = ({ isOpen, onClose, defaultTab = 'rings', availableSizes 
 
               {/* Pro Tip */}
               <div className="shv-modal-tip-box">
-                <Info size={17} className="shv-modal-tip-icon" />
+                <Info size={18} className="shv-modal-tip-icon" />
                 <div>
-                  <strong>Silversmith Fit Tip:</strong> If you are between sizes or selecting a wide sculpted band (5mm+ width), select <strong>one size up</strong> for optimal all-day breathing room.
+                  <strong>Silversmith Fit Tip:</strong> If you are between sizes or selecting a wide sculpted band (5mm+ width), select <strong>one size up</strong> for optimal all-day breathing room. For slim solitaire bands, order your exact true size.
                 </div>
               </div>
             </div>
@@ -197,7 +215,7 @@ const SizeGuideModal = ({ isOpen, onClose, defaultTab = 'rings', availableSizes 
 
               {/* Cuff Adjustment Note */}
               <div className="shv-modal-tip-box">
-                <Sparkles size={17} className="shv-modal-tip-icon" />
+                <Sparkles size={18} className="shv-modal-tip-icon" />
                 <div>
                   <strong>Contourable Cuffs:</strong> Shveraa solid silver cuffs possess gentle ergonomic flexibility. Slide on from the narrowest side of the wrist, then gently squeeze inward across both sides for a tailored hug.
                 </div>

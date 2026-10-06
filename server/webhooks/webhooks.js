@@ -118,23 +118,25 @@ console.log("Delhivery webhook",req.body)
 //     }
 // }
 
-const { shipment } = req.body;
+const { shipment } = req.body || {};
+ if(!shipment || !shipment.Status) {
+    return res.status(400).json({ success: false, message: "Invalid webhook payload" });
+  }
 
-
-   if(shipment.status =="UD" && shipment.Status =="Manifested"){
+   if(shipment.StatusType =="UD" && shipment.Status =="Manifested"){
     await orderModel.findOneAndUpdate({ waybill: shipment.AWB }, { $set: { status: "pending" } }, { returnDocument: 'after' });
    }
 
-    if(shipment.status =="UD" && shipment.Status =="Not Picked"){
+    if(shipment.StatusType =="UD" && shipment.Status =="Not Picked"){
     await orderModel.findOneAndUpdate({ waybill: shipment.AWB }, { $set: { status: "pending" } }, { returnDocument: 'after' });
    }
 
-   if(shipment.status =="UD" && shipment.Status =="In Transit"){
+   if(shipment.StatusType =="UD" && shipment.Status =="In Transit"){
     await orderModel.findOneAndUpdate({ waybill: shipment.AWB }, { $set: { status: "shipped" } }, { returnDocument: 'after' });
    }
 
 
-    if(shipment.status =="UD" && shipment.Status =="Pending"){
+    if(shipment.StatusType =="UD" && shipment.Status =="Pending"){
     await orderModel.findOneAndUpdate({ waybill: shipment.AWB }, { $set: { status: "out_for_delivery" } }, { returnDocument: 'after' });
    }
 

@@ -7,10 +7,17 @@ const AdminPayments = ({ orders }) => {
   const paidRevenue = paidOrders.reduce((acc, o) => acc + (o.totalAmount || 0), 0);
 
   // Pending COD / Transit → ONLY orders whose payment status is "pending"
-  // AND whose payment method is COD. Nothing else is counted here.
-  const pendingCodOrders = orders.filter(
-    (o) => o.payment?.status === 'pending' && o.payment?.method === 'cod'
-  );
+  // AND whose payment method is COD. Delivered and cancelled orders are
+  // excluded — cash already collected / order no longer live in transit.
+  const pendingCodOrders = orders.filter((o) => {
+    const orderStatus = (o.status || '').toLowerCase();
+    return (
+      o.payment?.status === 'pending' &&
+      o.payment?.method === 'cod' &&
+      orderStatus !== 'delivered' &&
+      orderStatus !== 'cancelled'
+    );
+  });
   const pendingCodRevenue = pendingCodOrders.reduce(
     (acc, o) => acc + (o.totalAmount || 0),
     0

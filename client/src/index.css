@@ -2774,18 +2774,16 @@ h4 { font-size: 1.15rem; }
   overflow: hidden;
   border: none !important;
   box-shadow: none !important;
-  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s ease;
   display: flex;
   flex-direction: column;
   content-visibility: auto;
   contain-intrinsic-size: 280px 420px;
-  transform: translateZ(0);
 }
 
 .product-card:hover {
-  transform: translateY(-3px) translateZ(0);
+  transform: none !important;
   border: none !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05) !important;
+  box-shadow: none !important;
 }
 
 .product-card-link {
@@ -2814,7 +2812,7 @@ h4 { font-size: 1.15rem; }
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
+  transition: opacity 0.35s ease;
   transform: translateZ(0);
 }
 
@@ -2833,16 +2831,124 @@ h4 { font-size: 1.15rem; }
   object-fit: cover;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.4s ease, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.35s ease;
   transform: translateZ(0);
 }
 
 .product-card:hover .product-main-img {
-  transform: scale(1.05) translateZ(0);
+  transform: none !important;
 }
 
 .product-card:hover .product-img-secondary {
   opacity: 1 !important;
+}
+
+/* ==========================================================
+   BOUNDLESS GIFTS — SIGNATURE PACKAGING SHOWCASE
+   ========================================================== */
+.shv-boundless-gifts-section {
+  background-color: #FFFFFF;
+  padding: 4.5rem 0;
+}
+
+.shv-boundless-gifts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 56px;
+}
+
+.shv-boundless-gifts-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 1rem 0;
+}
+
+.shv-boundless-gifts-title {
+  font-size: clamp(2.2rem, 4vw, 3.2rem);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #111111;
+  line-height: 1.1;
+  margin-bottom: 1.25rem;
+  text-transform: uppercase;
+}
+
+.shv-boundless-gifts-desc {
+  font-size: clamp(0.95rem, 1.15vw, 1.05rem);
+  line-height: 1.75;
+  color: #555555;
+  margin-bottom: 2.25rem;
+  max-width: 480px;
+}
+
+.shv-boundless-gifts-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 32px;
+  background-color: transparent;
+  color: #111111;
+  border: 1.5px solid #111111;
+  border-radius: 2px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: none;
+}
+
+.shv-boundless-gifts-btn:hover {
+  background-color: #111111;
+  color: #FFFFFF;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+.shv-boundless-gifts-image-wrap {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: #0A0808;
+}
+
+.shv-boundless-gifts-img {
+  width: 100%;
+  height: auto;
+  max-height: 540px;
+  object-fit: cover;
+  display: block;
+  border-radius: 6px;
+}
+
+@media (max-width: 900px) {
+  .shv-boundless-gifts-section {
+    padding: 3.5rem 0;
+  }
+
+  .shv-boundless-gifts-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .shv-boundless-gifts-content {
+    align-items: flex-start;
+  }
+
+  .shv-boundless-gifts-desc {
+    max-width: 100%;
+    margin-bottom: 1.75rem;
+  }
+
+  .shv-boundless-gifts-img {
+    max-height: 420px;
+  }
 }
 
 /* Mobile Product Card Change Arrows & Dots */

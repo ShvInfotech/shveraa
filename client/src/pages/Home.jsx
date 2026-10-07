@@ -411,6 +411,31 @@ const Home = () => {
       {/* Brand Assurance Full-Screen Marquee Ticker Carousel */}
       <BrandTickerRibbon />
 
+      {/* Boundless Gifts — Signature Packaging Showcase */}
+      <section className="shv-boundless-gifts-section">
+        <div className="container">
+          <div className="shv-boundless-gifts-grid">
+            <div className="shv-boundless-gifts-content">
+              <h2 className="shv-boundless-gifts-title">BOUNDLESS GIFTS</h2>
+              <p className="shv-boundless-gifts-desc">
+                Every time you choose a gift from Shveraa, you are celebrating the trust and passion we have put into our creations. And with our signature packaging, the gift becomes extra special!
+              </p>
+              <Link to="/shop" className="shv-boundless-gifts-btn">
+                FIND THE PERFECT GIFT
+              </Link>
+            </div>
+            <div className="shv-boundless-gifts-image-wrap">
+              <img
+                src="/box_image.webp"
+                alt="Shveraa Signature Luxury Gift Packaging"
+                loading="lazy"
+                className="shv-boundless-gifts-img"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* 6. Customer Reviews — Loved by Modern Muses */}
       <section className="reviews-section shv-reviews-editorial">
         <div className="container">

@@ -237,6 +237,29 @@ export const UserUpdateProfile = async (req,res,next) =>{
             }
             profile = `/uploads/${req.file.fieldname}/${req.file.filename}`
         }
+
+
+        if(req.body?.name && req.body?.phone){
+
+           await UserModel.findByIdAndUpdate(user._id,{name:req.body.name.trim(),phone:req.body.phone.trim()})     
+           return res.status(200).json({success:true,message:"User Update Successfully"})
+        }
+
+        if(req.body?.currentPassword && req.body?.newPassword){
+           const matchPassword = await bcrypt.compare(req.body?.currentPassword, user.password)
+
+        if (!matchPassword) {
+            return next(CustomeError(403, " currentPassword Is Invalid"))
+        }
+
+
+        const hashPassword = await hashUserPassword(req.body?.newPassword)
+           await UserModel.findByIdAndUpdate(user._id,{password:hashPassword})     
+
+          return res.status(200).json({success:true,message:"Password Update Successfully"})
+        }
+
+
     } catch (error) {
         return next(error)
     }

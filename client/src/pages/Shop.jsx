@@ -19,7 +19,7 @@ import ProductCard from '../components/ProductCard';
 import Loader from '../components/Loader';
 import { fetchProducts, getImageUrl, apiGetShopBanners } from '../services/api';
 import { useCart } from '../context/CartContext';
-import { useDynamicStore, JEWELRY_COLORS } from '../services/storeService';
+import { useDynamicStore, JEWELRY_COLORS, getProductPrice, getProductPrices } from '../services/storeService';
 
 const CATEGORY_EDITORIAL = {
   all: {
@@ -90,6 +90,16 @@ const PRICE_FILTERS = [
   { id: '3000-5000', label: '₹3,000 – ₹5,000', min: 3000, max: 5000 },
   { id: 'above5000', label: 'Above ₹5,000', min: 5000 },
 ];
+
+// A product belongs in a price bucket when ANY of its prices (resolved from
+// the variant size entries) falls inside the bucket, so products priced
+// differently per size/colour show up in every range they actually sell in.
+const matchesPriceBucket = (product, bucket) =>
+  getProductPrices(product).some(
+    (price) =>
+      (bucket.min == null || price >= bucket.min) &&
+      (bucket.max == null || price <= bucket.max)
+  );
 
 const Shop = () => {
   const { categories } = useDynamicStore();
@@ -210,20 +220,15 @@ const Shop = () => {
         if (maxPriceParam) {
           const bucket = PRICE_FILTERS.find((pf) => pf.id === maxPriceParam);
           if (bucket) {
-            data = data.filter((p) => {
-              const price = Number(p.price) || 0;
-              if (bucket.min != null && price < bucket.min) return false;
-              if (bucket.max != null && price > bucket.max) return false;
-              return true;
-            });
+            data = data.filter((p) => matchesPriceBucket(p, bucket));
           }
         }
 
         // Apply Client-side Sorting
         if (selectedSort === 'price-asc') {
-          data.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
+          data.sort((a, b) => getProductPrice(a) - getProductPrice(b));
         } else if (selectedSort === 'price-desc') {
-          data.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
+          data.sort((a, b) => getProductPrice(b) - getProductPrice(a));
         } else if (selectedSort === 'rating') {
           data.sort((a, b) => (Number(b.rating) || 0) - (Number(a.rating) || 0));
         } else if (selectedSort === 'newest') {
@@ -335,12 +340,7 @@ const Shop = () => {
   };
 
   const getPriceCount = (pr) => {
-    return allProducts.filter((p) => {
-      const price = Number(p.price) || 0;
-      if (pr.min != null && price < pr.min) return false;
-      if (pr.max != null && price > pr.max) return false;
-      return true;
-    }).length;
+    return allProducts.filter((p) => matchesPriceBucket(p, pr)).length;
   };
 
   const renderFilterContent = () => (

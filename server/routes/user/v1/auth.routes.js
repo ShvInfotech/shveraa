@@ -11,7 +11,7 @@ const router = express.Router()
 router.post('/register', UserRegister)
 router.post('/login', UserLogin)
 
-router.patch('/update', verifyjwtAccessToken, UserUpdateProfile)
+router.put('/update', verifyjwtAccessToken, UserUpdateProfile)
 router.post('/device-token', verifyjwtAccessToken, UpdateDeviceToken)
 router.post('/logout', verifyjwtAccessToken, UserLogout)
 router.post('/forgot-password', UserForgotPassword)

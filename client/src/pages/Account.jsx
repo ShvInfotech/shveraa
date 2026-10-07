@@ -41,6 +41,7 @@ import {
   getImageUrl,
   apiReturnOrderRequest,
   apiSubmitReview,
+  apiUserChangePasswordandDetails,
 } from '../services/api';
 import OrderTrackingModal from '../components/OrderTrackingModal';
 
@@ -92,7 +93,7 @@ const Account = () => {
   const [reviewModal, setReviewModal] = useState(null);
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewError, setReviewError] = useState('');
-
+  const [Errormessage,setErrormessage] = useState('');
   // Open the review popup — pre-fill when the customer already reviewed
   // this product, otherwise pre-select the star they clicked.
   const openReviewModal = (order, item, starValue) => {
@@ -544,15 +545,63 @@ const Account = () => {
     }
   };
 
-  const handleAddressSubmit = (e) => {
+  const handleUpdateProfileSubmit = async(e) => {
     e.preventDefault();
-    setAddressSavedNotice(true);
-    setTimeout(() => setAddressSavedNotice(false), 3000);
+    // Print the Profile form's entered values only on submit.
+    const formData = Object.fromEntries(new FormData(e.target))
+    const result = await apiUserChangePasswordandDetails(formData)
+    setErrormessage(result.message)
+    if(result.success){
+      const userData = JSON.parse(localStorage.getItem("shveraa_user"))
+      userData.name = formData.name
+      userData.phone = formData.phone
+      localStorage.setItem("shveraa_user",JSON.stringify(userData))
+       form.name.value = formData.name;
+        form.phone.value = formData.phone;
+    }
+    setPasswordSavedNotice(true);
+       e.target.reset();
+    setTimeout(() => setPasswordSavedNotice(false), 3000);
   };
 
-  const handlePasswordSubmit = (e) => {
+  const handlePasswordSubmit = async(e) => {
     e.preventDefault();
+    const formData = Object.fromEntries(new FormData(e.target));
+    if(formData.newPassword !== formData.confirmPassword){
+        setErrormessage("NewPassword And ConfirmPassword Not Match ")
+        return
+    }
     setPasswordSavedNotice(true);
+
+    if (formData.newPassword.length < 8) {
+    setErrormessage("Password must be at least 8 characters");
+    return;
+}
+
+if (!/[A-Z]/.test(formData.newPassword)) {
+    setErrormessage("Password must contain at least one uppercase letter");
+    return;
+}
+
+if (!/[a-z]/.test(formData.newPassword)) {
+    setErrormessage("Password must contain at least one lowercase letter");
+    return;
+}
+
+if (!/[0-9]/.test(formData.newPassword)) {
+    setErrormessage("Password must contain at least one number");
+    return;
+}
+
+if (!/[!@#$%^&*]/.test(formData.newPassword)) {
+    setErrormessage("Password must contain at least one special character");
+    return;
+}
+   const result = await apiUserChangePasswordandDetails(formData)
+    
+    setErrormessage(result.message)
+    setPasswordSavedNotice(true);
+       e.target.reset();
     setTimeout(() => setPasswordSavedNotice(false), 3000);
   };
 
@@ -1693,7 +1742,7 @@ const Account = () => {
             {passwordSavedNotice && (
               <div className="shv-alert-notice">
                 <CheckCircle2 size={16} />
-                <span>Security preferences updated securely!</span>
+                <span>{Errormessage ||"Security preferences updated securely!"}</span>
               </div>
             )}
 
@@ -1701,11 +1750,12 @@ const Account = () => {
               {/* Profile Details */}
               <div className="shv-sec-card">
                 <h3 className="shv-sec-title">Personal Particulars</h3>
-                <form onSubmit={handleAddressSubmit} className="shv-sec-form">
+                <form onSubmit={handleUpdateProfileSubmit} className="shv-sec-form">
                   <div className="form-group">
                     <label>Full Patron Name</label>
                     <input
                       type="text"
+                      name="name"
                       defaultValue={user?.name || 'Aarav Mehta'}
                       required
                     />
@@ -1714,6 +1764,8 @@ const Account = () => {
                     <label>Email Address</label>
                     <input
                       type="email"
+                      name="email"
+                      disabled
                       defaultValue={user?.email || 'aarav@shveraa.luxury'}
                       required
                     />
@@ -1722,6 +1774,7 @@ const Account = () => {
                     <label>Mobile Number (For WhatsApp Consignment Tracking)</label>
                     <input
                       type="tel"
+                      name="phone"
                       defaultValue={user?.phone || '+91 99980 46559'}
                       required
                     />
@@ -1738,12 +1791,13 @@ const Account = () => {
                 <form onSubmit={handlePasswordSubmit} className="shv-sec-form">
                   <div className="form-group">
                     <label>Current Password</label>
-                    <input type="password" placeholder="••••••••" required />
+                    <input type="password" name="currentPassword" placeholder="••••••••" required />
                   </div>
                   <div className="form-group">
                     <label>New Secret Password</label>
                     <input
                       type="password"
+                      name="newPassword"
                       placeholder="Minimum 8 characters"
                       required
                     />
@@ -1752,6 +1806,7 @@ const Account = () => {
                     <label>Confirm Secret Password</label>
                     <input
                       type="password"
+                      name="confirmPassword"
                       placeholder="Confirm new password"
                       required
                     />

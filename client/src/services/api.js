@@ -380,6 +380,17 @@ export const apiUserLogout = async () => {
   }
 };
 
+
+export const apiUserChangePasswordandDetails = async({currentPassword,newPassword,name,phone})=>{
+   const res = await apiFetch('/api/v1/user/auth/update', {
+    method: 'PUT',
+    body: JSON.stringify({ currentPassword,newPassword,name,phone}),
+  });
+  const data = await res.json();
+  
+  return data;
+}
+
 export const apiUserForgotPassword = async (email) => {
   const res = await apiFetch('/api/v1/user/auth/forgot-password', {
     method: 'POST',

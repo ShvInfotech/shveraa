@@ -89,27 +89,37 @@ export const JEWELRY_COLORS = [
   },
 ];
 
-// Resolve the price actually shown to a customer.
-// Prices live on the size entries inside a colour variant (the admin editor
-// writes them there), so the top-level `price` field is only a last resort.
-export const getProductPrice = (product) => {
-  if (!product) return 0;
+// Every purchasable price resolved for a product.
+// Prices live on the size entries inside colour variants (that is where the
+// admin editor writes them), so the top-level `salePrice`/`price` fields are
+// only a last resort. Legacy size entries can be plain strings (ring size
+// labels), never prices, so only object entries with a numeric `price` count.
+export const getProductPrices = (product) => {
+  if (!product) return [];
+
+  const pricesFromSizes = (sizes) =>
+    (Array.isArray(sizes) ? sizes : [])
+      .map((size) => Number(typeof size === 'object' && size !== null ? size.price : NaN))
+      .filter((value) => Number.isFinite(value) && value > 0);
 
   const variantPrices = (Array.isArray(product.variants) ? product.variants : [])
-    .flatMap((variant) => (Array.isArray(variant?.sizes) ? variant.sizes : []))
-    .map((size) => Number(typeof size === 'object' && size !== null ? size.price : size))
+    .flatMap((variant) => pricesFromSizes(variant?.sizes));
+
+  if (variantPrices.length > 0) return variantPrices;
+
+  const sizePrices = pricesFromSizes(product.sizes);
+  if (sizePrices.length > 0) return sizePrices;
+
+  return [product.salePrice, product.price]
+    .map((value) => Number(value))
     .filter((value) => Number.isFinite(value) && value > 0);
+};
 
-  if (variantPrices.length > 0) return Math.min(...variantPrices);
-
-  const sizePrices = (Array.isArray(product.sizes) ? product.sizes : [])
-    .map((size) => Number(typeof size === 'object' && size !== null ? size.price : size))
-    .filter((value) => Number.isFinite(value) && value > 0);
-
-  if (sizePrices.length > 0) return Math.min(...sizePrices);
-
-  const topLevel = Number(product.price);
-  return Number.isFinite(topLevel) && topLevel > 0 ? topLevel : 0;
+// Lowest price a customer can pay for the product (used when no specific
+// variant/size is selected, e.g. price sorting and "starting at" display).
+export const getProductPrice = (product) => {
+  const prices = getProductPrices(product);
+  return prices.length > 0 ? Math.min(...prices) : 0;
 };
 
 export const getProductColors = (product) => {

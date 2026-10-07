@@ -61,7 +61,6 @@ const Footer = () => {
             <div className="footer-contact-info-block" style={{ fontSize: '0.82rem', color: '#B3AAA0', marginTop: '14px', lineHeight: '1.65' }}>
               <div><strong>Helpline &amp; WhatsApp:</strong> <a href="https://wa.me/919998046559" target="_blank" rel="noopener noreferrer" style={{ color: '#E8A598', textDecoration: 'none', marginLeft: '4px' }}>+91 99980 46559</a></div>
               <div><strong>Email:</strong> <a href="mailto:shvera925@gmail.com" style={{ color: '#E8A598', textDecoration: 'none', marginLeft: '4px' }}>shvera925@gmail.com</a></div>
-              <div style={{ marginTop: '2px' }}><strong>Address:</strong> A/9, Maruti Nandan Society, Opp. Prime Arcade, Anand Mahal Road, Surat</div>
             </div>
             <div className="footer-atelier-note" style={{ marginTop: '12px' }}>
               <Sparkles size={15} />
@@ -94,22 +93,10 @@ const Footer = () => {
                 <Link to="/contact" className="footer-link">Contact Us &amp; WhatsApp</Link>
               </li>
               <li>
-                <Link to="/track-order" className="footer-link">Track Air Express Order</Link>
-              </li>
-              <li>
                 <Link to="/size-guide" className="footer-link">Ring Size &amp; Silver Care Guide</Link>
               </li>
               <li>
-                <Link to="/wishlist" className="footer-link">Curated Wishlist</Link>
-              </li>
-              <li>
                 <Link to="/return-policy" className="footer-link">2-3 Days Returns &amp; Exchanges</Link>
-              </li>
-              <li>
-                <Link to="/account" className="footer-link">My Atelier Account &amp; Orders</Link>
-              </li>
-              <li>
-                <Link to="/cart" className="footer-link">View Shopping Bag</Link>
               </li>
               <li>
                 <Link to="/shipping" className="footer-link">Shipping &amp; Cancellation</Link>

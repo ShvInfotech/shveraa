@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, ShoppingBag, Star } from 'lucide-react';
+import { Heart, ShoppingBag, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { getProductColors } from '../services/storeService';
 import { getImageUrl } from '../services/api';
@@ -95,12 +95,39 @@ const ProductCard = ({ product }) => {
     ? product.variants.find((v) => v.color?.toLowerCase() === selectedColor?.toLowerCase()) || product.variants[0]
     : null;
 
-  const rawPrimaryImage = (activeVariant?.images || product.images || []).filter(Boolean)[0] || product.image || '';
-  const primaryImage = getImageUrl(rawPrimaryImage);
-  const rawSecondaryImage = hasVariants
-    ? (activeVariant?.images || []).filter(Boolean)[1] || ''
-    : (product.images || []).filter(Boolean)[1] || product.secondaryImage || '';
-  const secondaryImage = getImageUrl(rawSecondaryImage);
+  const allImages = useMemo(() => {
+    const list = hasVariants
+      ? (activeVariant?.images || []).filter(Boolean)
+      : (product.images || []).filter(Boolean);
+    if (list.length > 0) return list.map(getImageUrl);
+    const fallbacks = [product.image, product.secondaryImage].filter(Boolean);
+    return fallbacks.length > 0 ? fallbacks.map(getImageUrl) : [];
+  }, [hasVariants, activeVariant, product]);
+
+  const [activeImageIdx, setActiveImageIdx] = useState(0);
+
+  useEffect(() => {
+    setActiveImageIdx(0);
+  }, [selectedColor]);
+
+  const currentImage = allImages[activeImageIdx] || allImages[0] || '';
+  const secondaryImage = allImages.length > 1
+    ? allImages[(activeImageIdx + 1) % allImages.length]
+    : getImageUrl(product.secondaryImage) || '';
+
+  const handleCardPrevImg = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (allImages.length <= 1) return;
+    setActiveImageIdx((prev) => (prev - 1 + allImages.length) % allImages.length);
+  };
+
+  const handleCardNextImg = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (allImages.length <= 1) return;
+    setActiveImageIdx((prev) => (prev + 1) % allImages.length);
+  };
 
   // Compute price if variant size has dynamic price
   const displayPrice = activeVariant?.sizes?.[0]?.price || product.price;
@@ -152,9 +179,9 @@ const ProductCard = ({ product }) => {
         {/* Image Container with Second Image Hover Crossfade */}
         <div className={`product-image-container ${imgLoaded ? 'loaded' : ''}`}>
           <div className="product-image-stack">
-            {primaryImage ? (
+            {currentImage ? (
               <img
-                src={primaryImage}
+                src={currentImage}
                 alt={product.name}
                 loading="lazy"
                 decoding="async"
@@ -164,7 +191,7 @@ const ProductCard = ({ product }) => {
             ) : (
               <div className="product-image-empty" aria-label="Product image unavailable" />
             )}
-            {isHovered && secondaryImage && secondaryImage !== primaryImage && !isSwatchHovering && (
+            {secondaryImage && secondaryImage !== currentImage && !isSwatchHovering && (
               <img
                 src={secondaryImage}
                 alt={`${product.name} Alternate View`}
@@ -174,6 +201,36 @@ const ProductCard = ({ product }) => {
               />
             )}
           </div>
+
+          {/* Mobile Product Card Change Arrows */}
+          {allImages.length > 1 && (
+            <div className="product-card-mobile-arrows">
+              <button
+                type="button"
+                className="product-card-nav-arrow product-card-nav-prev"
+                onClick={handleCardPrevImg}
+                aria-label="Previous image"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <button
+                type="button"
+                className="product-card-nav-arrow product-card-nav-next"
+                onClick={handleCardNextImg}
+                aria-label="Next image"
+              >
+                <ChevronRight size={16} />
+              </button>
+              <div className="product-card-mobile-indicator">
+                {allImages.map((_, i) => (
+                  <span
+                    key={i}
+                    className={`product-card-dot ${i === activeImageIdx ? 'active' : ''}`}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
 
           

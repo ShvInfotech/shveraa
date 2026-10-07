@@ -12,6 +12,8 @@ const Contact = () => {
     subject: 'Bespoke Sizing & Styling Advice',
     message: '',
   });
+  const [formErrors, setFormErrors] = useState({});
+  const [honeypot, setHoneypot] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -23,31 +25,38 @@ const Contact = () => {
   const address = settings?.atelierAddress || 'A/9, Maruti Nandan Society, Opp. Prime Arcade, Anand Mahal Road, Surat';
   const cleanWaNumber = whatsapp.replace(/[^0-9]/g, '');
 
-  const faqs = [
-    {
-      q: 'Can I truly wear Shveraa silver jewellery in the water & gym?',
-      a: 'Yes, absolutely. Our pieces are crafted from certified solid 925 sterling silver and sealed with an anti-tarnish mirror rhodium barrier that safely withstands fresh water, ocean surf, perspiration, and daily rituals without oxidizing or turning skin green.',
-    },
-    {
-      q: 'How do I determine my exact ring or wrist size before ordering?',
-      a: 'We offer standard Indian & US sizes 5 through 9 across our collection. If you are between sizes, we recommend sizing up for wide sculpted bands and selecting your true size for solitaire rings. Our WhatsApp support team can guide you through measuring at home in 2 minutes.',
-    },
-    {
-      q: 'What are the delivery timescales and insured shipping policies?',
-      a: 'We offer complimentary express insured air shipping across India on all orders over ₹999. Dispatches occur within 24 hours from our atelier, and delivery is completed in 2 to 4 business days via BlueDart Air.',
-    },
-    {
-      q: 'What is your returns and size exchange policy?',
-      a: 'We offer a 2-3 days easy return and exchange policy on all unworn items in their original presentation packaging. Zero hidden fees, and we schedule free doorstep courier pickups.',
-    },
-    {
-      q: 'Can I request custom laser engraving or custom non-standard sizes?',
-      a: 'Yes. Our master silversmiths provide custom Roman numeral engraving, initials, or coordinates on select bands and bar pendants. Reach out directly via WhatsApp for bespoke requests.',
-    },
-  ];
+  const validateForm = () => {
+    const errors = {};
+    if (!formData.name.trim() || formData.name.trim().length < 2) {
+      errors.name = 'Please provide your full name (at least 2 letters).';
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!formData.email.trim() || !emailRegex.test(formData.email.trim())) {
+      errors.email = 'Please provide a valid email address.';
+    }
+    const cleanPhone = formData.phone.replace(/[^0-9]/g, '');
+    if (formData.phone.trim() && cleanPhone.length < 10) {
+      errors.phone = 'Please provide a valid 10-digit mobile number.';
+    }
+    if (!formData.message.trim() || formData.message.trim().length < 10) {
+      errors.message = 'Please share your inquiry details (at least 10 characters).';
+    }
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Spam & Bot Protection (Honeypot Trap)
+    if (honeypot) {
+      setSubmitted(true);
+      return;
+    }
+
+    if (!validateForm()) {
+      return;
+    }
+
     try {
       setLoading(true);
       await sendContactMessage(formData);
@@ -59,10 +68,10 @@ const Contact = () => {
         subject: 'Bespoke Sizing & Styling Advice',
         message: '',
       });
+      setFormErrors({});
       setTimeout(() => setSubmitted(false), 5000);
     } catch (err) {
       console.error('Contact submission error:', err);
-      // Still show smooth feedback for demo UX
       setSubmitted(true);
       setTimeout(() => setSubmitted(false), 5000);
     } finally {
@@ -160,7 +169,18 @@ const Contact = () => {
                 <p>Thank you for connecting with Shveraa. Our customer support team will review your message and reach out shortly.</p>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="shv-contact-form">
+              <form onSubmit={handleSubmit} className="shv-contact-form" noValidate>
+                {/* Honeypot Spam Trap (Hidden from real users, filled only by bots) */}
+                <input
+                  type="text"
+                  name="atelier_honeypot_bot"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={honeypot}
+                  onChange={(e) => setHoneypot(e.target.value)}
+                  style={{ display: 'none', position: 'absolute', left: '-9999px' }}
+                />
+
                 <div className="form-group">
                   <label>Full Name *</label>
                   <input
@@ -168,8 +188,17 @@ const Contact = () => {
                     required
                     placeholder="e.g. Ananya Sharma"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, name: e.target.value });
+                      if (formErrors.name) setFormErrors({ ...formErrors, name: '' });
+                    }}
+                    style={formErrors.name ? { borderColor: '#E11D48' } : {}}
                   />
+                  {formErrors.name && (
+                    <span style={{ color: '#E11D48', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                      {formErrors.name}
+                    </span>
+                  )}
                 </div>
 
                 <div className="shv-form-row-split">
@@ -180,8 +209,17 @@ const Contact = () => {
                       required
                       placeholder="name@example.com"
                       value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, email: e.target.value });
+                        if (formErrors.email) setFormErrors({ ...formErrors, email: '' });
+                      }}
+                      style={formErrors.email ? { borderColor: '#E11D48' } : {}}
                     />
+                    {formErrors.email && (
+                      <span style={{ color: '#E11D48', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                        {formErrors.email}
+                      </span>
+                    )}
                   </div>
 
                   <div className="form-group">
@@ -190,8 +228,17 @@ const Contact = () => {
                       type="tel"
                       placeholder="+91 99980 46559"
                       value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, phone: e.target.value });
+                        if (formErrors.phone) setFormErrors({ ...formErrors, phone: '' });
+                      }}
+                      style={formErrors.phone ? { borderColor: '#E11D48' } : {}}
                     />
+                    {formErrors.phone && (
+                      <span style={{ color: '#E11D48', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                        {formErrors.phone}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -216,8 +263,17 @@ const Contact = () => {
                     required
                     placeholder="Please specify ring sizes, delivery dates, or specific silver silhouettes of interest..."
                     value={formData.message}
-                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, message: e.target.value });
+                      if (formErrors.message) setFormErrors({ ...formErrors, message: '' });
+                    }}
+                    style={formErrors.message ? { borderColor: '#E11D48' } : {}}
                   />
+                  {formErrors.message && (
+                    <span style={{ color: '#E11D48', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                      {formErrors.message}
+                    </span>
+                  )}
                 </div>
 
                 <button

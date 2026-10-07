@@ -1,0 +1,11 @@
+# Shveraa 925 Sterling Silver Atelier — Robots.txt
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /checkout
+Disallow: /order-success
+Disallow: /account
+
+# Sitemap Reference
+Sitemap: https://shveraa.com/sitemap.xml

@@ -17030,3 +17030,198 @@ html, body {
   from { opacity: 0; transform: translateY(18px) scale(0.97); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+/* ==========================================================
+   COOKIE CONSENT BANNER & ERROR BOUNDARY STYLES
+   ========================================================== */
+.shv-cookie-consent-bar {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  max-width: 680px;
+  margin: 0 auto;
+  z-index: 99999;
+  background: rgba(24, 21, 18, 0.96);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(160, 126, 82, 0.28);
+  border-radius: 12px;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.32);
+  padding: 16px 20px;
+  animation: shvCookieSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes shvCookieSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.shv-cookie-consent-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.shv-cookie-icon-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #FAF8F5;
+  font-size: 0.88rem;
+  margin-bottom: 4px;
+}
+
+.shv-cookie-shield-icon {
+  color: #D4AF37;
+  flex-shrink: 0;
+}
+
+.shv-cookie-consent-text p {
+  color: #C5BCB2;
+  font-size: 0.78rem;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.shv-cookie-policy-link {
+  color: #E8A598;
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.shv-cookie-consent-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.shv-cookie-btn {
+  padding: 7px 16px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+  border: none;
+}
+
+.shv-cookie-btn-decline {
+  background: transparent;
+  color: #FAF8F5;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.shv-cookie-btn-decline:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.shv-cookie-btn-accept {
+  background: #FFFFFF;
+  color: #1A1612;
+}
+
+.shv-cookie-btn-accept:hover {
+  background: #F4EBE1;
+  transform: translateY(-1px);
+}
+
+.shv-cookie-close-btn {
+  background: transparent;
+  border: none;
+  color: #A0988E;
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+  transition: color 0.15s ease;
+}
+
+.shv-cookie-close-btn:hover {
+  color: #FFFFFF;
+}
+
+@media (min-width: 640px) {
+  .shv-cookie-consent-inner {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+  }
+
+  .shv-cookie-consent-text {
+    flex: 1;
+  }
+
+  .shv-cookie-consent-actions {
+    margin-top: 0;
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 639px) {
+  .shv-cookie-consent-bar {
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    padding: 14px 16px;
+  }
+  .shv-cookie-btn {
+    flex: 1;
+    text-align: center;
+  }
+}
+
+/* Error Boundary Fallback Screen */
+.shv-error-boundary-wrap {
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 1.5rem;
+  background: #FFFFFF;
+}
+
+.shv-error-boundary-card {
+  max-width: 520px;
+  width: 100%;
+  text-align: center;
+  padding: 3rem 2rem;
+  background: #FAF8F5;
+  border: 1px solid rgba(160, 126, 82, 0.22);
+  border-radius: 12px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.04);
+}
+
+.shv-error-boundary-card h2 {
+  font-size: 1.5rem;
+  color: #1F1B17;
+  margin: 1rem 0 0.5rem;
+}
+
+.shv-error-boundary-card p {
+  color: #6C6257;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+}
+
+.shv-error-boundary-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+

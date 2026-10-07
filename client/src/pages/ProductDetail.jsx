@@ -383,6 +383,22 @@ const ProductDetail = () => {
     window.scrollTo(0, 0);
   }, [id]);
 
+  // Dynamic SEO Page Title and Description for Product Detail
+  useEffect(() => {
+    if (product?.name) {
+      document.title = `${product.name} — Solid 925 Sterling Silver | Shveraa Jewels`;
+      const metaDesc = document.querySelector('meta[name="description"]');
+      if (metaDesc) {
+        metaDesc.setAttribute(
+          'content',
+          product.description
+            ? `${product.description.slice(0, 150)}... Certified 925 Sterling Silver.`
+            : `Shop ${product.name} in solid 925 sterling silver with signature luxury presentation packaging at Shveraa Jewels.`
+        );
+      }
+    }
+  }, [product]);
+
   if (loading) {
     return (
       <div className="section" style={{ minHeight: '65vh' }}>

@@ -57,7 +57,7 @@ const NotFound = () => {
           <div className="shv-404-suggestions">
             <h3 className="shv-404-suggestions-title">Perhaps You Were Seeking</h3>
             <div className="shv-404-links-grid">
-              <Link to="/shop?category=Rings" className="shv-404-nav-card">
+              <Link to="/shop?category=rings" className="shv-404-nav-card">
                 <div className="shv-404-nav-icon"><Sparkles size={18} /></div>
                 <div>
                   <h4>Fine 925 Rings</h4>

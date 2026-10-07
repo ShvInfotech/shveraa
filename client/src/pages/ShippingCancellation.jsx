@@ -75,7 +75,7 @@ const ShippingCancellation = () => {
           <section className="shv-legal-section">
             <h2>Domestic Shipping Timelines &amp; Dispatch</h2>
             <p>
-              We partner with premier express courier networks—including <strong>BlueDart, Delhivery, and DTDC Air</strong>—to ensure your silver jewelry arrives swiftly and securely:
+              We partner with premier express courier networks to ensure your silver jewelry arrives swiftly and securely:
             </p>
             <ul>
               <li><strong>Order Processing:</strong> Standard catalog pieces are inspected, ultrasonically cleaned, and dispatched within <strong>24 to 48 hours</strong> of payment confirmation.</li>
@@ -116,21 +116,7 @@ const ShippingCancellation = () => {
             </div>
           </section>
 
-          {/* Section 3: Luxury Presentation */}
-          <section className="shv-legal-section">
-            <h2>Signature Presentation Packaging</h2>
-            <p>
-              Every Shveraa acquisition arrives gift-ready inside our signature luxury unboxing suite:
-            </p>
-            <ul>
-              <li><strong>Midnight Charcoal Presentation Box:</strong> Rigid protective keepsake box with warm satin velvet interior.</li>
-              <li><strong>Micro-Suede Travel Pouch:</strong> Protects your silver against moisture and atmospheric tarnishing when traveling.</li>
-              <li><strong>Certified BIS 925 Hallmark Guarantee Card:</strong> Authenticity card certifying 92.5% pure silver and triple rhodium finish.</li>
-              <li><strong>Microfiber Polish Cloth:</strong> Specially treated lint-free cloth to restore platinum radiance in seconds.</li>
-            </ul>
-          </section>
-
-          {/* Section 4: Cancellation Policy */}
+          {/* Section 3: Cancellation Policy */}
           <section className="shv-legal-section">
             <h2>Order Cancellation Guidelines</h2>
             <p>

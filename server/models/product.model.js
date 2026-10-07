@@ -15,10 +15,10 @@ const variantSchema = new mongoose.Schema({
 
 const packingSchema = new mongoose.Schema(
   {
-    length: { type: Number, min: 0, default: 0 },
-    height: { type: Number, min: 0, default: 0 },
-    width: { type: Number, min: 0, default: 0 },
-    weight: { type: Number, min: 0, default: 0 },
+    length: { type: Number, min: 0, default: 23 },
+    height: { type: Number, min: 0, default: 23 },
+    width: { type: Number, min: 0, default: 23 },
+    weight: { type: Number, min: 0, default: 0.2 },
   },
   { _id: false }
 );

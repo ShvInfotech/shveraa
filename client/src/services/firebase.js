@@ -5,12 +5,12 @@ import { getMessaging, getToken, onMessage, isSupported } from 'firebase/messagi
 
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDeH8SssDLeu5Ggbj8toClBq2zGE-6Ku-c",
-  authDomain: "nehdo-23bd4.firebaseapp.com",
-  projectId: "nehdo-23bd4",
-  storageBucket: "nehdo-23bd4.firebasestorage.app",
-  messagingSenderId: "784435496062",
-  appId: "1:784435496062:web:c50536275ff566ea93442f",
+  apiKey: "AIzaSyDZpKOTmJpyQaWaweXcbZ4ZoL_1CN89Xzc",
+  authDomain: "shveraa-fb90d.firebaseapp.com",
+  projectId: "shveraa-fb90d",
+  storageBucket: "shveraa-fb90d.firebasestorage.app",
+  messagingSenderId: "1067787582584",
+  appId: "1:1067787582584:web:38f9c9bc724a23caa5c18d",
 };
 
 

@@ -132,12 +132,16 @@ const ScrollToTop = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
 
-    // Force HTTPS upgrade on production domains
+    // Force HTTPS upgrade ONLY on actual production domain
+    const isProductionDomain =
+      typeof window !== 'undefined' &&
+      (window.location.hostname === 'shveraa.com' ||
+        window.location.hostname.endsWith('.shveraa.com'));
+
     if (
       typeof window !== 'undefined' &&
       window.location.protocol === 'http:' &&
-      !window.location.hostname.includes('localhost') &&
-      !window.location.hostname.includes('127.0.0.1')
+      isProductionDomain
     ) {
       window.location.href = window.location.href.replace('http:', 'https:');
       return;

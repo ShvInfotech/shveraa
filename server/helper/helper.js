@@ -39,6 +39,11 @@ export const sendNotification = async (deviceTokens, title, body) => {
             return;
         }
 
+        if (!firebaseadmin) {
+            console.warn("[Firebase] Warning: Admin SDK is not initialized, skipping notification.");
+            return;
+        }
+
         const messaging = getMessaging(firebaseadmin);
 
         const res = await messaging.sendEachForMulticast({

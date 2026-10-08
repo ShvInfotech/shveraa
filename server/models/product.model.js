@@ -63,7 +63,7 @@ const productSchema = new mongoose.Schema(
     variants: [variantSchema],
     packing: { type: packingSchema, default: () => ({}) },
   },
-  { versionKey: false, timestamps: true, strict: false }
+  { versionKey: false, timestamps: true, strict: false, suppressReservedKeysWarning: true }
 );
 
 export default mongoose.model('Products', productSchema);

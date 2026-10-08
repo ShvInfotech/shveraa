@@ -2,6 +2,8 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage, isSupported } from 'firebase/messaging';
 
 // Firebase client credentials from Vite environment variables with project fallback defaults
+
+
 const firebaseConfig = {
   apiKey: "AIzaSyDeH8SssDLeu5Ggbj8toClBq2zGE-6Ku-c",
   authDomain: "nehdo-23bd4.firebaseapp.com",

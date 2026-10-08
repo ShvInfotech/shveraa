@@ -35,6 +35,7 @@ export const DeleteImage = (filepath) => {
 
 export const sendNotification = async (deviceTokens, title, body) => {
     try {
+
         if (!Array.isArray(deviceTokens) || deviceTokens.length === 0) {
             return;
         }
@@ -59,8 +60,10 @@ export const sendNotification = async (deviceTokens, title, body) => {
 
         // Invalid / expired tokens
         const invalidTokens = [];
-
+       
         res.responses.forEach((response, index) => {
+        
+
             if (!response.success) {
                 const errorCode = response.error?.code;
                 if (errorCode === "messaging/registration-token-not-registered" || errorCode === "messaging/invalid-registration-token") {
@@ -113,24 +116,24 @@ export const SendWahtsappMessage = async (number, message) => {
 
 
 export const mergeLabelPDFs = async (packages = []) => {
-  const { PDFDocument } = await import("pdf-lib");
-  const mergedPdf = await PDFDocument.create();
+    const { PDFDocument } = await import("pdf-lib");
+    const mergedPdf = await PDFDocument.create();
 
-  for (const pkg of packages) {
-    if (!pkg.pdf_encoding) continue;
+    for (const pkg of packages) {
+        if (!pkg.pdf_encoding) continue;
 
-    const pdfBytes = Buffer.from(pkg.pdf_encoding, "base64");
-    const pdf = await PDFDocument.load(pdfBytes);
+        const pdfBytes = Buffer.from(pkg.pdf_encoding, "base64");
+        const pdf = await PDFDocument.load(pdfBytes);
 
-    const pages = await mergedPdf.copyPages(
-      pdf,
-      pdf.getPageIndices()
-    );
+        const pages = await mergedPdf.copyPages(
+            pdf,
+            pdf.getPageIndices()
+        );
 
-    pages.forEach((page) => mergedPdf.addPage(page));
-  }
+        pages.forEach((page) => mergedPdf.addPage(page));
+    }
 
-  return Buffer.from(await mergedPdf.save());
+    return Buffer.from(await mergedPdf.save());
 };
 
 

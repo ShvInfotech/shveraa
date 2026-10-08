@@ -2606,3 +2606,728 @@
   }
 }
 
+/* ==========================================================================
+   SHOPIFY-GRADE MOBILE & TABLET RESPONSIVE SYSTEM
+   ========================================================================== */
+
+/* Utility Visibility Helpers */
+.mobile-only-btn,
+.mobile-only-flex {
+  display: none !important;
+}
+
+.desktop-only-btn {
+  display: flex !important;
+}
+
+.desktop-orders-table,
+.desktop-products-table {
+  display: block;
+}
+
+.mobile-orders-cards,
+.mobile-products-cards {
+  display: none;
+}
+
+/* Mobile Drawer Backdrop */
+.shv-admin-mobile-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  z-index: 998;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.shv-admin-mobile-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* --------------------------------------------------------------------------
+   A. TABLET & MOBILE BREAKPOINT (< 1024px)
+   -------------------------------------------------------------------------- */
+@media (max-width: 1024px) {
+  .mobile-only-btn {
+    display: flex !important;
+  }
+
+  .desktop-only-btn {
+    display: none !important;
+  }
+
+  /* 1. Main Workspace occupies 100% width, no fixed sidebar offset */
+  .shv-admin-main,
+  .shv-admin-main.sidebar-collapsed {
+    margin-left: 0 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* 2. Slide-Over Off-Canvas Navigation Drawer (Shopify Style) */
+  .shv-admin-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    width: 290px !important;
+    max-width: 82vw !important;
+    height: 100vh !important;
+    z-index: 999 !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25) !important;
+    transform: translateX(-100%);
+    transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    visibility: hidden;
+  }
+
+  .shv-admin-sidebar.mobile-open {
+    transform: translateX(0) !important;
+    visibility: visible !important;
+  }
+
+  .shv-sidebar-mobile-close-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #F8FAFC;
+    border: 1px solid var(--admin-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--admin-text-main);
+    cursor: pointer;
+  }
+
+  /* 3. Responsive Header */
+  .shv-admin-header {
+    height: 60px !important;
+    padding: 0 1.25rem !important;
+    gap: 0.75rem;
+  }
+
+  .shv-admin-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+  }
+
+  .shv-mobile-menu-toggle {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: #F8FAFC;
+    border: 1px solid var(--admin-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--admin-text-main);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+  }
+
+  .shv-mobile-menu-toggle:active {
+    background: #E2E8F0;
+  }
+
+  .shv-admin-breadcrumb {
+    font-size: 0.84rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .shv-breadcrumb-prefix,
+  .shv-breadcrumb-sep {
+    display: none !important;
+  }
+
+  .shv-admin-search-wrap {
+    width: 170px !important;
+  }
+
+  .shv-admin-content-body {
+    padding: 1.25rem !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   B. SMARTPHONE BREAKPOINT (< 768px) - COMPLETE SHOPIFY APP FEEL
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .mobile-only-flex {
+    display: flex !important;
+  }
+
+  /* 1. Page Content Body has bottom clearance for bottom nav bar */
+  .shv-admin-content-body {
+    padding: 1rem 0.85rem 5.5rem 0.85rem !important;
+  }
+
+  /* 2. Top Header on Mobile */
+  .shv-admin-header {
+    height: 56px !important;
+    padding: 0 0.85rem !important;
+  }
+
+  .shv-admin-header-actions {
+    gap: 0.5rem !important;
+  }
+
+  .shv-admin-search-wrap {
+    width: 120px !important;
+  }
+
+  .shv-admin-search-input {
+    padding: 0.45rem 0.65rem 0.45rem 2rem !important;
+    font-size: 0.76rem !important;
+  }
+
+  .shv-admin-search-icon {
+    left: 0.65rem !important;
+    width: 13px !important;
+    height: 13px !important;
+  }
+
+  .shv-admin-live-store-btn span,
+  .shv-admin-badge-pill span {
+    display: none !important;
+  }
+
+  .shv-admin-live-store-btn,
+  .shv-admin-badge-pill {
+    padding: 0.45rem !important;
+    min-width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+
+  .shv-admin-calendar-btn {
+    width: 34px !important;
+    height: 34px !important;
+  }
+
+  /* 3. SHOPIFY BOTTOM NAVIGATION BAR */
+  .shv-admin-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: #FFFFFF;
+    border-top: 1px solid var(--admin-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    z-index: 950;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.05);
+  }
+
+  .shv-bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    background: transparent;
+    border: none;
+    color: var(--admin-text-muted);
+    font-size: 0.7rem;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 6px 12px;
+    min-width: 64px;
+    transition: color 0.15s ease, transform 0.1s ease;
+  }
+
+  .shv-bottom-nav-item.active {
+    color: var(--admin-primary);
+    font-weight: 700;
+  }
+
+  .shv-bottom-nav-item:active {
+    transform: scale(0.92);
+  }
+
+  .shv-bottom-nav-icon-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .shv-bottom-badge {
+    position: absolute;
+    top: -5px;
+    right: -10px;
+    background: var(--admin-blue);
+    color: #FFFFFF;
+    font-size: 0.64rem;
+    font-weight: 700;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    border: 2px solid #FFFFFF;
+  }
+
+  /* 4. DASHBOARD - METRICS & CHARTS */
+  .shv-admin-stats-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.85rem !important;
+    margin-bottom: 1.25rem !important;
+  }
+
+  .shv-admin-stat-card {
+    padding: 1.1rem 1.15rem !important;
+    border-radius: 14px !important;
+  }
+
+  .shv-stat-card-number {
+    font-size: 1.75rem !important;
+  }
+
+  .shv-admin-middle-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.25rem !important;
+  }
+
+  .shv-chart-bars-wrap {
+    overflow-x: auto !important;
+    padding-bottom: 0.5rem;
+    -webkit-overflow-scrolling: touch;
+    min-width: 100%;
+  }
+
+  .shv-overview-card-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  /* 5. TABLE / CARD HEADERS & STATUS PILLS */
+  .shv-table-card-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 1rem !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .shv-table-card-header > div:first-child {
+    width: 100%;
+  }
+
+  .shv-status-tabs-scroll {
+    display: flex !important;
+    overflow-x: auto !important;
+    gap: 0.45rem !important;
+    padding-bottom: 0.4rem !important;
+    width: 100% !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .shv-status-tabs-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .shv-admin-table-card {
+    padding: 1rem 0.85rem !important;
+    border-radius: 14px !important;
+  }
+
+  /* Hide raw tables on phone, show Shopify Cards instead */
+  .desktop-orders-table,
+  .desktop-products-table {
+    display: none !important;
+  }
+
+  .mobile-orders-cards,
+  .mobile-products-cards {
+    display: flex !important;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
+  /* 6. SHOPIFY-STYLE MOBILE ORDER CARDS */
+  .shv-mobile-order-card {
+    background: #FFFFFF;
+    border: 1px solid var(--admin-border);
+    border-radius: 14px;
+    padding: 1rem;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+  }
+
+  .shv-mobile-order-card.selected {
+    background: #F8FAFC;
+    border-color: #1E2229;
+  }
+
+  .shv-moc-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .shv-moc-id-group {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+  }
+
+  .shv-moc-checkbox {
+    width: 18px;
+    height: 18px;
+    accent-color: #1E2229;
+    cursor: pointer;
+  }
+
+  .shv-moc-order-id {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--admin-text-main);
+  }
+
+  .shv-moc-order-date {
+    font-size: 0.72rem;
+    color: var(--admin-text-muted);
+  }
+
+  .shv-moc-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem;
+    background: #F8FAFC;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+
+  .shv-moc-thumb {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: #F1F5F9;
+    border: 1px solid var(--admin-border);
+    flex-shrink: 0;
+  }
+
+  .shv-moc-item-details {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .shv-moc-item-title {
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: var(--admin-text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .shv-moc-item-sub {
+    font-size: 0.72rem;
+    color: var(--admin-text-muted);
+  }
+
+  .shv-moc-customer-dest {
+    font-size: 0.7rem;
+    color: var(--admin-text-light);
+    margin-top: 2px;
+  }
+
+  .shv-moc-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 0.4rem;
+    border-top: 1px solid var(--admin-border-subtle);
+  }
+
+  .shv-moc-pricing {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .shv-moc-amount {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--admin-text-main);
+  }
+
+  .shv-moc-payment-badge {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+
+  .shv-moc-payment-badge.paid {
+    color: var(--admin-green);
+  }
+
+  .shv-moc-payment-badge.pending {
+    color: var(--admin-amber);
+  }
+
+  .shv-moc-view-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.85rem;
+    background: #1E2229;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* 7. SHOPIFY-STYLE MOBILE PRODUCT CARDS */
+  .shv-mobile-product-card {
+    background: #FFFFFF;
+    border: 1px solid var(--admin-border);
+    border-radius: 14px;
+    padding: 1rem;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
+  .shv-mpc-top {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .shv-mpc-thumb {
+    width: 52px;
+    height: 52px;
+    border-radius: 10px;
+    object-fit: cover;
+    background: #F1F5F9;
+    border: 1px solid var(--admin-border);
+    flex-shrink: 0;
+  }
+
+  .shv-mpc-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .shv-mpc-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--admin-text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .shv-mpc-sub {
+    font-size: 0.72rem;
+    color: var(--admin-text-muted);
+    text-transform: capitalize;
+    margin: 2px 0;
+  }
+
+  .shv-mpc-pricing {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+  }
+
+  .shv-mpc-price {
+    font-size: 0.94rem;
+    font-weight: 700;
+    color: var(--admin-text-main);
+  }
+
+  .shv-mpc-orig-price {
+    font-size: 0.74rem;
+    color: var(--admin-text-muted);
+    text-decoration: line-through;
+  }
+
+  .shv-mpc-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--admin-border-subtle);
+  }
+
+  .shv-mpc-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.65rem;
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    background: #FFFFFF;
+    color: var(--admin-text-main);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    min-height: 34px;
+    box-sizing: border-box;
+  }
+
+  .shv-mpc-action-btn.edit {
+    flex: 1;
+    background: #1E2229;
+    color: #FFFFFF;
+    border-color: #1E2229;
+  }
+
+  .shv-mpc-action-btn.delete {
+    color: var(--admin-red);
+    border-color: rgba(239, 68, 68, 0.2);
+  }
+
+  /* 8. SHOPIFY BOTTOM-SHEET MODALS */
+  .shv-modal-overlay {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+
+  .shv-modal-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 20px 20px 0 0 !important;
+    max-height: 90vh !important;
+    padding: 1.25rem 1rem !important;
+    margin: 0 !important;
+  }
+
+  .shv-modal-header {
+    margin-bottom: 1rem !important;
+    padding-bottom: 0.75rem !important;
+  }
+
+  .shv-modal-title {
+    font-size: 1.1rem !important;
+  }
+
+  .shv-form-actions {
+    flex-direction: column-reverse;
+    gap: 0.5rem;
+  }
+
+  .shv-form-actions button {
+    width: 100%;
+  }
+
+  /* Form touch sizes */
+  .shv-form-input,
+  .shv-form-select,
+  .shv-form-textarea {
+    font-size: 16px !important; /* Prevents auto-zoom on iOS */
+    padding: 0.75rem 0.85rem !important;
+    min-height: 44px;
+  }
+
+  /* 9. PRODUCT STUDIO EDITOR ON MOBILE */
+  .shv-editor-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 1rem !important;
+    padding: 1rem !important;
+  }
+
+  .shv-editor-header-left {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.5rem !important;
+  }
+
+  .shv-editor-main-title {
+    font-size: 1.25rem !important;
+  }
+
+  .shv-editor-header-actions {
+    display: flex;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .shv-editor-header-actions button {
+    flex: 1;
+    min-height: 42px;
+  }
+
+  /* 10. CMS TABS & CONTENT ON MOBILE */
+  .shv-cms-nav-tabs {
+    overflow-x: auto !important;
+    flex-wrap: nowrap !important;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.35rem !important;
+    width: 100% !important;
+  }
+
+  .shv-cms-nav-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .shv-cms-tab-btn {
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
+  .shv-cms-content-card {
+    padding: 1rem !important;
+  }
+
+  .shv-cms-add-form {
+    flex-direction: column !important;
+  }
+
+  .shv-cms-announcement-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.65rem !important;
+  }
+
+  /* 11. GENERAL ADMIN TABLES MIN-WIDTH FOR SMOOTH HORIZONTAL SCROLL */
+  .shv-admin-table {
+    min-width: 580px;
+  }
+
+  .shv-admin-table-wrap {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    width: 100% !important;
+  }
+
+  /* 12. LOGIN SCREEN ON MOBILE */
+  .shv-login-card {
+    padding: 2rem 1.25rem !important;
+    margin: 1rem !important;
+  }
+}
+
+
+

@@ -152,7 +152,7 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery, isLoading = false })
         </div>
 
         {/* Status Tab Pills */}
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+        <div className="shv-status-tabs-scroll">
           {STATUS_TABS.map((tab) => (
             <button
               key={tab}
@@ -164,6 +164,8 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery, isLoading = false })
                 color: selectedStatusTab === tab ? '#FFFFFF' : 'var(--admin-text-main)',
                 borderColor: selectedStatusTab === tab ? '#1E2229' : 'var(--admin-border)',
                 textTransform: 'capitalize',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
               }}
             >
               {tab === 'out_for_delivery' ? 'Out for Delivery' : tab}
@@ -288,7 +290,7 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery, isLoading = false })
           </div>
         )}
 
-        <div className="shv-admin-table-wrap">
+        <div className="shv-admin-table-wrap desktop-orders-table">
           <table className="shv-admin-table">
             <thead>
               <tr>
@@ -441,6 +443,104 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery, isLoading = false })
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Shopify-style Mobile Order Cards */}
+        <div className="shv-mobile-orders-list mobile-orders-cards">
+          {isLoading ? (
+            <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--admin-text-muted)' }}>
+              Loading orders…
+            </div>
+          ) : filteredOrders.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--admin-text-muted)' }}>
+              No orders found matching your active filter.
+            </div>
+          ) : (
+            filteredOrders.map((ord) => {
+              const orderRef = ord.orderNumber || ord._id;
+              const orderKey = ord._id || ord.orderNumber;
+              const isChecked = selectedOrderIds.includes(orderKey);
+              const itemCount = (ord.items || []).reduce((acc, i) => acc + (i.quantity || i.qty || 1), 0);
+              const firstItem = (ord.items || [])[0];
+              const placedDate = ord.createdAt
+                ? new Date(ord.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+                : '—';
+              const addrCity = ord.address?.city || '';
+              const addrPhone = ord.address?.phone || '';
+
+              return (
+                <div
+                  key={ord._id || orderRef}
+                  className={`shv-mobile-order-card ${isChecked ? 'selected' : ''}`}
+                >
+                  <div className="shv-moc-header">
+                    <div className="shv-moc-id-group">
+                      {selectedStatusTab !== 'All' && (
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => handleToggleSelect(orderKey)}
+                          className="shv-moc-checkbox"
+                          aria-label={`Select order ${orderRef}`}
+                        />
+                      )}
+                      <div>
+                        <div className="shv-moc-order-id">{orderRef}</div>
+                        <div className="shv-moc-order-date">{placedDate}</div>
+                      </div>
+                    </div>
+
+                    <span className={`shv-status-pill ${getStatusBadgeClass(ord.status)}`}>
+                      {ord.status || 'pending'}
+                    </span>
+                  </div>
+
+                  <div className="shv-moc-item" onClick={() => setSelectedOrder(ord)}>
+                    {firstItem?.image && (
+                      <img
+                        src={getImageUrl(firstItem.image)}
+                        alt={firstItem.name}
+                        className="shv-moc-thumb"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    )}
+                    <div className="shv-moc-item-details">
+                      <div className="shv-moc-item-title">{firstItem?.name || 'Sterling Silver Silhouette'}</div>
+                      <div className="shv-moc-item-sub">
+                        {itemCount} {itemCount === 1 ? 'Piece' : 'Pieces'}
+                        {ord.items?.length > 1 ? ` • +${ord.items.length - 1} more` : ` • ${firstItem?.size || '925 Silver'}`}
+                      </div>
+                      {addrCity && (
+                        <div className="shv-moc-customer-dest">
+                          📍 {addrCity} {addrPhone ? `(${addrPhone})` : ''}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="shv-moc-footer">
+                    <div className="shv-moc-pricing">
+                      <div className="shv-moc-amount">
+                        ₹{Number(ord.totalAmount || 0).toLocaleString('en-IN')}
+                      </div>
+                      <div className={`shv-moc-payment-badge ${ord.payment?.status === 'paid' ? 'paid' : 'pending'}`}>
+                        ● {ord.payment?.method || 'razorpay'} ({ord.payment?.status || 'pending'})
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedOrder(ord)}
+                      className="shv-moc-view-btn"
+                    >
+                      <Eye size={14} />
+                      <span>View</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
 

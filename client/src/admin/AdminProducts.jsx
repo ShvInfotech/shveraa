@@ -116,7 +116,7 @@ const AdminProducts = ({ products, categories, searchQuery, onRefresh, onOpenEdi
 
       {/* Products Table Card */}
       <div className="shv-admin-table-card">
-        <div className="shv-admin-table-wrap">
+        <div className="shv-admin-table-wrap desktop-products-table">
           <table className="shv-admin-table">
             <thead>
               <tr>
@@ -349,6 +349,107 @@ const AdminProducts = ({ products, categories, searchQuery, onRefresh, onOpenEdi
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Shopify-style Mobile Product Cards */}
+        <div className="shv-mobile-products-list mobile-products-cards">
+          {filteredProducts.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '3.5rem 1rem', color: 'var(--admin-text-muted)' }}>
+              <Package size={36} style={{ opacity: 0.3, margin: '0 auto 0.75rem auto' }} />
+              <div>No jewellery pieces found matching your filter.</div>
+              <button
+                type="button"
+                onClick={() => onOpenEditor && onOpenEditor(null)}
+                className="shv-btn-primary"
+                style={{ marginTop: '0.75rem' }}
+              >
+                <Plus size={14} /> Sculpt First Piece
+              </button>
+            </div>
+          ) : (
+            filteredProducts.map((prod) => {
+              const primaryImg = (prod.images && prod.images[0]) || '/hero-ring-banner.jpg';
+              const inStock = prod.inStock !== false;
+
+              return (
+                <div key={prod._id || prod.slug} className="shv-mobile-product-card">
+                  <div className="shv-mpc-top">
+                    <img
+                      src={getImageUrl(primaryImg)}
+                      alt={prod.name}
+                      className="shv-mpc-thumb"
+                      onError={(e) => {
+                        e.currentTarget.src =
+                          'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=120&q=80';
+                      }}
+                    />
+                    <div className="shv-mpc-info">
+                      <div className="shv-mpc-title">{prod.name}</div>
+                      <div className="shv-mpc-sub">
+                        {prod.category} • {prod.metalPurity || '925 Silver'}
+                      </div>
+                      <div className="shv-mpc-pricing">
+                        <strong className="shv-mpc-price">
+                          ₹{Number(prod.price || 0).toLocaleString('en-IN')}
+                        </strong>
+                        {prod.originalPrice > prod.price && (
+                          <span className="shv-mpc-orig-price">
+                            ₹{Number(prod.originalPrice).toLocaleString('en-IN')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleStock(prod)}
+                      className={`shv-status-pill ${inStock ? 'delivered' : 'cancelled'}`}
+                      style={{ cursor: 'pointer', border: 'none', alignSelf: 'flex-start' }}
+                      title="Click to toggle stock state"
+                    >
+                      {inStock ? <Check size={12} /> : <X size={12} />}
+                      <span>{inStock ? 'In Stock' : 'Sold Out'}</span>
+                    </button>
+                  </div>
+
+                  <div className="shv-mpc-actions">
+                    <button
+                      type="button"
+                      onClick={() => onOpenEditor && onOpenEditor(prod)}
+                      className="shv-mpc-action-btn edit"
+                    >
+                      <Edit2 size={14} />
+                      <span>Edit Piece</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDuplicate(prod)}
+                      className="shv-mpc-action-btn"
+                      title="Duplicate"
+                    >
+                      <Copy size={14} />
+                    </button>
+                    <a
+                      href={`/product/${prod.slug || prod._id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shv-mpc-action-btn"
+                      title="View Public Store"
+                    >
+                      <ExternalLink size={14} />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(prod)}
+                      className="shv-mpc-action-btn delete"
+                      title="Delete"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
     </div>

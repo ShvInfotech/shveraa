@@ -15,7 +15,16 @@ import AdminPayments from './AdminPayments';
 import AdminSettings from './AdminSettings';
 import { useDynamicStore, getAdminAuth, logoutAdmin } from '../services/storeService';
 import { apiAdminGetAllOrders } from '../services/api';
-import { HelpCircle, Mail, Phone, MessageSquare } from 'lucide-react';
+import {
+  HelpCircle,
+  Mail,
+  Phone,
+  MessageSquare,
+  LayoutDashboard,
+  ShoppingBag,
+  Package,
+  Menu,
+} from 'lucide-react';
 
 const AdminLayout = () => {
   const [adminUser, setAdminUser] = useState(() => getAdminAuth());
@@ -23,6 +32,7 @@ const AdminLayout = () => {
   const [editingProduct, setEditingProduct] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Dynamic store hooks for real-time reactivity
   const { categories, products, coupons, settings, refreshStore } = useDynamicStore();
@@ -89,7 +99,14 @@ const AdminLayout = () => {
 
   return (
     <div className="shv-admin-wrapper">
-      {/* 1. Modulix Sidebar */}
+      {/* Mobile Drawer Backdrop */}
+      <div
+        className={`shv-admin-mobile-backdrop ${isMobileMenuOpen ? 'open' : ''}`}
+        onClick={() => setIsMobileMenuOpen(false)}
+        aria-hidden="true"
+      />
+
+      {/* 1. Modulix Sidebar (Desktop pinned / Mobile slide-over) */}
       <AdminSidebar
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}
@@ -97,6 +114,8 @@ const AdminLayout = () => {
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
         onSignOut={handleSignOut}
+        isMobileOpen={isMobileMenuOpen}
+        onCloseMobile={() => setIsMobileMenuOpen(false)}
       />
 
       {/* 2. Main Work Area */}
@@ -107,6 +126,7 @@ const AdminLayout = () => {
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           onSignOut={handleSignOut}
+          onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
         />
 
         {/* Content Body */}
@@ -243,6 +263,60 @@ const AdminLayout = () => {
           )}
         </main>
       </div>
+
+      {/* 3. Shopify-style Mobile Bottom Navigation Bar */}
+      <nav className="shv-admin-bottom-nav mobile-only-flex" aria-label="Mobile Bottom Navigation">
+        <button
+          type="button"
+          onClick={() => {
+            setCurrentTab('dashboard');
+            setIsMobileMenuOpen(false);
+          }}
+          className={`shv-bottom-nav-item ${currentTab === 'dashboard' ? 'active' : ''}`}
+        >
+          <LayoutDashboard size={20} />
+          <span>Home</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setCurrentTab('orders');
+            setIsMobileMenuOpen(false);
+          }}
+          className={`shv-bottom-nav-item ${currentTab === 'orders' ? 'active' : ''}`}
+        >
+          <div className="shv-bottom-nav-icon-wrap">
+            <ShoppingBag size={20} />
+            {orders.length > 0 && (
+              <span className="shv-bottom-badge">{orders.length}</span>
+            )}
+          </div>
+          <span>Orders</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setCurrentTab('products');
+            setIsMobileMenuOpen(false);
+          }}
+          className={`shv-bottom-nav-item ${currentTab === 'products' || currentTab === 'product-editor' ? 'active' : ''}`}
+        >
+          <Package size={20} />
+          <span>Products</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+          className={`shv-bottom-nav-item ${isMobileMenuOpen ? 'active' : ''}`}
+          aria-label="Open More Menu"
+        >
+          <Menu size={20} />
+          <span>Menu</span>
+        </button>
+      </nav>
     </div>
   );
 };

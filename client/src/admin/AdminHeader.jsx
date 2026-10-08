@@ -15,6 +15,7 @@ import {
   ExternalLink,
   LogOut,
   Shield,
+  Menu,
 } from 'lucide-react';
 import { logoutAdmin } from '../services/storeService';
 
@@ -46,7 +47,7 @@ const TAB_NAMES = {
   support: 'Support & Help',
 };
 
-const AdminHeader = ({ currentTab, searchQuery, setSearchQuery, onSignOut }) => {
+const AdminHeader = ({ currentTab, searchQuery, setSearchQuery, onSignOut, onOpenMobileMenu }) => {
   const handleLogout = () => {
     logoutAdmin();
     if (onSignOut) onSignOut();
@@ -55,13 +56,26 @@ const AdminHeader = ({ currentTab, searchQuery, setSearchQuery, onSignOut }) => 
 
   return (
     <header className="shv-admin-header">
-      {/* Breadcrumbs matching image: "Main Menu / ⊞ Dashboard" */}
-      <div className="shv-admin-breadcrumb">
-        <span>Main Menu</span>
-        <span>/</span>
-        <div className="shv-admin-breadcrumb-active">
-          {TAB_ICONS[currentTab] || <LayoutDashboard size={16} />}
-          <span>{TAB_NAMES[currentTab] || 'Dashboard'}</span>
+      <div className="shv-admin-header-left">
+        {/* Mobile Hamburger Drawer Button */}
+        <button
+          type="button"
+          onClick={onOpenMobileMenu}
+          className="shv-mobile-menu-toggle mobile-only-btn"
+          title="Open Navigation Menu"
+          aria-label="Open Navigation Menu"
+        >
+          <Menu size={20} />
+        </button>
+
+        {/* Breadcrumbs matching image: "Main Menu / ⊞ Dashboard" */}
+        <div className="shv-admin-breadcrumb">
+          <span className="shv-breadcrumb-prefix">Main Menu</span>
+          <span className="shv-breadcrumb-sep">/</span>
+          <div className="shv-admin-breadcrumb-active">
+            {TAB_ICONS[currentTab] || <LayoutDashboard size={16} />}
+            <span>{TAB_NAMES[currentTab] || 'Dashboard'}</span>
+          </div>
         </div>
       </div>
 

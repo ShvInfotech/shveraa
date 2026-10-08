@@ -16,6 +16,7 @@ import {
   Sparkles,
   PanelLeftClose,
   PanelLeftOpen,
+  X,
 } from 'lucide-react';
 
 const AdminSidebar = ({
@@ -24,12 +25,25 @@ const AdminSidebar = ({
   orderCount,
   isCollapsed,
   setIsCollapsed,
+  onSignOut,
+  isMobileOpen = false,
+  onCloseMobile,
 }) => {
+  const handleNav = (tab) => {
+    setCurrentTab(tab);
+    if (onCloseMobile) onCloseMobile();
+  };
+
   return (
-    <aside className={`shv-admin-sidebar ${isCollapsed ? 'collapsed' : ''}`}>
+    <aside className={`shv-admin-sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobileOpen ? 'mobile-open' : ''}`}>
       {/* Brand Header */}
       <div className="shv-sidebar-brand">
-        <Link to="/admin" className="shv-sidebar-logo-group" aria-label="Shveraa Admin">
+        <Link
+          to="/admin"
+          className="shv-sidebar-logo-group"
+          aria-label="Shveraa Admin"
+          onClick={() => onCloseMobile && onCloseMobile()}
+        >
           {isCollapsed ? (
             <div className="shv-sidebar-logo-badge" title="Shveraa Atelier">S</div>
           ) : (
@@ -39,11 +53,20 @@ const AdminSidebar = ({
         <button
           type="button"
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="shv-sidebar-collapse-btn"
+          className="shv-sidebar-collapse-btn desktop-only-btn"
           title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
           aria-label="Toggle Sidebar"
         >
           {isCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+        </button>
+        <button
+          type="button"
+          onClick={() => onCloseMobile && onCloseMobile()}
+          className="shv-sidebar-mobile-close-btn mobile-only-btn"
+          title="Close Navigation"
+          aria-label="Close Navigation"
+        >
+          <X size={18} />
         </button>
       </div>
 
@@ -56,7 +79,7 @@ const AdminSidebar = ({
             <li>
               <button
                 type="button"
-                onClick={() => setCurrentTab('dashboard')}
+                onClick={() => handleNav('dashboard')}
                 className={`shv-sidebar-link ${currentTab === 'dashboard' ? 'active' : ''}`}
                 title="Dashboard"
               >
@@ -70,7 +93,7 @@ const AdminSidebar = ({
             <li>
               <button
                 type="button"
-                onClick={() => setCurrentTab('orders')}
+                onClick={() => handleNav('orders')}
                 className={`shv-sidebar-link ${currentTab === 'orders' ? 'active' : ''}`}
                 title="Orders"
               >
@@ -88,7 +111,7 @@ const AdminSidebar = ({
             <li>
               <button
                 type="button"
-                onClick={() => setCurrentTab('returns')}
+                onClick={() => handleNav('returns')}
                 className={`shv-sidebar-link ${currentTab === 'returns' ? 'active' : ''}`}
                 title="Return Management"
               >
@@ -103,7 +126,7 @@ const AdminSidebar = ({
             <li>
               <button
                 type="button"
-                onClick={() => setCurrentTab('categories')}
+                onClick={() => handleNav('categories')}
                 className={`shv-sidebar-link ${currentTab === 'categories' ? 'active' : ''}`}
                 title="Category Taxonomy"
               >
@@ -118,7 +141,7 @@ const AdminSidebar = ({
             <li>
               <button
                 type="button"
-                onClick={() => setCurrentTab('products')}
+                onClick={() => handleNav('products')}
                 className={`shv-sidebar-link ${currentTab === 'products' || currentTab === 'product-editor' ? 'active' : ''}`}
                 title="925 Silver Inventory"
               >
@@ -133,7 +156,7 @@ const AdminSidebar = ({
             <li>
               <button
                 type="button"
-                onClick={() => setCurrentTab('cms')}
+                onClick={() => handleNav('cms')}
                 className={`shv-sidebar-link ${currentTab === 'cms' ? 'active' : ''}`}
                 title="Website CMS & Announcements"
               >
@@ -148,7 +171,7 @@ const AdminSidebar = ({
             <li>
               <button
                 type="button"
-                onClick={() => setCurrentTab('coupons')}
+                onClick={() => handleNav('coupons')}
                 className={`shv-sidebar-link ${currentTab === 'coupons' ? 'active' : ''}`}
                 title="Coupons & Discounts"
               >
@@ -163,7 +186,7 @@ const AdminSidebar = ({
             <li>
               <button
                 type="button"
-                onClick={() => setCurrentTab('payments')}
+                onClick={() => handleNav('payments')}
                 className={`shv-sidebar-link ${currentTab === 'payments' ? 'active' : ''}`}
                 title="Payments & Revenue"
               >
@@ -183,7 +206,7 @@ const AdminSidebar = ({
             <li>
               <button
                 type="button"
-                onClick={() => setCurrentTab('settings')}
+                onClick={() => handleNav('settings')}
                 className={`shv-sidebar-link ${currentTab === 'settings' ? 'active' : ''}`}
                 title="Settings"
               >
@@ -197,7 +220,7 @@ const AdminSidebar = ({
             <li>
               <button
                 type="button"
-                onClick={() => setCurrentTab('support')}
+                onClick={() => handleNav('support')}
                 className={`shv-sidebar-link ${currentTab === 'support' ? 'active' : ''}`}
                 title="Support & Help"
               >
@@ -209,7 +232,13 @@ const AdminSidebar = ({
             </li>
 
             <li>
-              <Link to="/" className="shv-sidebar-link" title="Visit Live Storefront" target="_blank">
+              <Link
+                to="/"
+                className="shv-sidebar-link"
+                title="Visit Live Storefront"
+                target="_blank"
+                onClick={() => onCloseMobile && onCloseMobile()}
+              >
                 <div className="shv-sidebar-link-left">
                   <Store size={18} />
                   {!isCollapsed && <span>Live Storefront</span>}

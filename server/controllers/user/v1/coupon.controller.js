@@ -1,8 +1,9 @@
 import Coupon from '../../../models/coupon.model.js';
 import CartModel from '../../../models/cart.model.js';
+import OrderModel from '../../../models/order.model.js';
 import { CustomeError } from '../../../middleware/globelError.js';
 
-export const  VerifyCoupon = async (req, res, next) => {
+export const VerifyCoupon = async (req, res, next) => {
   try {
     const { code } = req.body || {};
 
@@ -21,6 +22,28 @@ export const  VerifyCoupon = async (req, res, next) => {
 
     if (coupon.usedCount >= coupon.usageLimit) {
       return next(CustomeError(400, 'Coupon usage limit reached'));
+    }
+
+    // Check if user has already used this coupon on an active order
+    if (req.user?._id) {
+      const alreadyInUsedBy = Array.isArray(coupon.usedBy) && coupon.usedBy.some(
+        (userId) => String(userId) === String(req.user._id)
+      );
+
+      const existingOrder = await OrderModel.findOne({
+        userId: req.user._id,
+        couponId: coupon._id,
+        status: { $ne: 'cancelled' },
+      });
+
+      if (alreadyInUsedBy || existingOrder) {
+        return next(
+          CustomeError(
+            400,
+            `You have already used coupon code '${coupon.code}'. This coupon can only be used once per account.`
+          )
+        );
+      }
     }
 
     // Calculate the amount from the user's database cart, never from a value

@@ -116,24 +116,7 @@ const CartDrawer = () => {
     }
   };
 
-  const handleQuickAddCloth = () => {
-    addToCart(
-      {
-        _id: 'prod_silver_care_cloth',
-        name: 'Ultra-Soft Silver Polishing Cloth',
-        slug: 'ultra-soft-silver-polishing-cloth',
-        price: 149,
-        category: 'care',
-        material: 'Microfiber & Silver Cleanser Infusion',
-        images: [
-          'https://images.unsplash.com/photo-1611591475870-7b561c28c688?auto=format&fit=crop&w=400&q=80',
-        ],
-      },
-      'One Size',
-      1,
-      { silent: true }
-    );
-  };
+
 
 
 
@@ -299,23 +282,6 @@ const CartDrawer = () => {
                 </div>
               ))}
 
-              {/* Quick Upsell Card */}
-              <div className="cart-drawer-upsell">
-                <div className="cart-upsell-content">
-                  <div className="cart-upsell-badge">
-                    <Sparkles size={12} /> Recommended Care
-                  </div>
-                  <div className="cart-upsell-title">Silver Polishing Cloth</div>
-                  <div className="cart-upsell-price">Only ₹149 • Restores Mirror Shine</div>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleQuickAddCloth}
-                  className="cart-upsell-add-btn"
-                >
-                  + Add
-                </button>
-              </div>
             </div>
           )}
         </div>

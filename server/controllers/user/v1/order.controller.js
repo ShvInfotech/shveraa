@@ -81,6 +81,15 @@ export const RozerpayPaymentOrder = async (req, res, next) => {
       const coupon = await couponModel.findById(effectiveCouponId);
 
       if (coupon) {
+        const existingOrder = await OrderModel.findOne({
+          userId: req.user._id,
+          couponId: effectiveCouponId,
+          status: { $ne: "cancelled" },
+        });
+        if (existingOrder || (Array.isArray(coupon.usedBy) && coupon.usedBy.some(id => String(id) === String(req.user._id)))) {
+          return next(CustomeError(400, `You have already used coupon code '${coupon.code}'. This coupon can only be used once per account.`));
+        }
+
         if (coupon.minOrderAmount && price < coupon.minOrderAmount) {
           return next(CustomeError(400, `Minimum order amount of ₹${coupon.minOrderAmount} required for this coupon`),
           );
@@ -205,6 +214,15 @@ export const RozerpayPaymentVerifyPlaceOrder = async (req, res, next) => {
     if (effectiveCouponId) {
       const coupon = await couponModel.findById(effectiveCouponId);
       if (coupon) {
+        const existingOrder = await OrderModel.findOne({
+          userId: req.user._id,
+          couponId: effectiveCouponId,
+          status: { $ne: "cancelled" },
+        });
+        if (existingOrder || (Array.isArray(coupon.usedBy) && coupon.usedBy.some(id => String(id) === String(req.user._id)))) {
+          return next(CustomeError(400, `You have already used coupon code '${coupon.code}'. This coupon can only be used once per account.`));
+        }
+
         if (coupon.discountType === "percentage") {
           discount = Math.round((price * coupon.discountValue) / 100);
           if (coupon.maxDiscount > 0 && discount > coupon.maxDiscount) {
@@ -315,6 +333,13 @@ export const RozerpayPaymentVerifyPlaceOrder = async (req, res, next) => {
 
     const newOrder = await OrderModel.create(orderData);
 
+    if (effectiveCouponId) {
+      await couponModel.findByIdAndUpdate(effectiveCouponId, {
+        $inc: { usedCount: 1 },
+        $addToSet: { usedBy: req.user._id },
+      });
+    }
+
     // Clear cart items for this order
     try {
       await cartModel.deleteMany({ _id: { $in: cartIds } });
@@ -421,6 +446,15 @@ export const PlaceCodeOrder = async (req, res, next) => {
     if (effectiveCouponId) {
       const coupon = await couponModel.findById(effectiveCouponId);
       if (coupon) {
+        const existingOrder = await OrderModel.findOne({
+          userId: req.user._id,
+          couponId: effectiveCouponId,
+          status: { $ne: "cancelled" },
+        });
+        if (existingOrder || (Array.isArray(coupon.usedBy) && coupon.usedBy.some(id => String(id) === String(req.user._id)))) {
+          return next(CustomeError(400, `You have already used coupon code '${coupon.code}'. This coupon can only be used once per account.`));
+        }
+
         if (coupon.discountType === "percentage") {
           discount = Math.round((price * coupon.discountValue) / 100);
           if (coupon.maxDiscount > 0 && discount > coupon.maxDiscount) {
@@ -521,6 +555,13 @@ export const PlaceCodeOrder = async (req, res, next) => {
     };
 
     const newOrder = await OrderModel.create(orderData);
+
+    if (effectiveCouponId) {
+      await couponModel.findByIdAndUpdate(effectiveCouponId, {
+        $inc: { usedCount: 1 },
+        $addToSet: { usedBy: req.user._id },
+      });
+    }
 
     // Clear cart items for this order
     try {
@@ -643,6 +684,17 @@ export const CancelShipment = async (req, res, next) => {
       }
     } else {
       updatedOrder = await OrderModel.findByIdAndUpdate(order._id, { status: "cancelled" }, { returnDocument: 'after' });
+    }
+
+    if (order.couponId) {
+      try {
+        await couponModel.findByIdAndUpdate(order.couponId, {
+          $inc: { usedCount: -1 },
+          $pull: { usedBy: order.userId },
+        });
+      } catch (cpErr) {
+        console.warn("Coupon rollback error on cancellation:", cpErr.message);
+      }
     }
 
     return res.status(200).json({

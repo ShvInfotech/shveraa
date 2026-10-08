@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, Lock, Mail, Eye, EyeOff, Sparkles, ArrowRight, ArrowLeft, KeyRound } from 'lucide-react';
+import { Shield, Lock, Mail, Eye, EyeOff, Sparkles, ArrowRight, ArrowLeft } from 'lucide-react';
 import { loginAdmin } from '../services/storeService';
 
 const AdminLogin = ({ onLoginSuccess }) => {
-  const [email, setEmail] = useState('admin@shveraa.luxury');
-  const [password, setPassword] = useState('shveraa2026');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState(() => {
@@ -48,12 +48,6 @@ const AdminLogin = ({ onLoginSuccess }) => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleDemoFill = () => {
-    setEmail('admin@shveraa.luxury');
-    setPassword('shveraa2026');
-    setError('');
   };
 
   return (
@@ -135,16 +129,6 @@ const AdminLogin = ({ onLoginSuccess }) => {
               />
               <span>Remember atelier session</span>
             </label>
-
-            <button
-              type="button"
-              onClick={handleDemoFill}
-              className="shv-login-demofill-btn"
-              title="Autofill master admin credentials for testing"
-            >
-              <KeyRound size={13} />
-              <span>Autofill Demo</span>
-            </button>
           </div>
 
           <button

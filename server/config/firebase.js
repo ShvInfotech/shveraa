@@ -37,13 +37,19 @@ function parseServiceAccount(raw) {
     }
   }
 
+  // 3.5 Fix accidental URL-encoded quotes (%22) in JSON string
+  if (str.includes('%22')) {
+    str = str.replace(/%22/g, '"');
+  }
+
   // 4. Try direct JSON parse
   try {
     return JSON.parse(str);
   } catch (err1) {
-    // 5. Try auto-repairing missing commas between JSON properties
+    // 5. Try auto-repairing %22 quotes and missing commas between JSON properties
     try {
-      let repaired = str.replace(/(["\d]|true|false|null|\]|\})\s*\n?\s*(?="[a-zA-Z0-9_]+"\s*:)/g, '$1, ');
+      let repaired = str.replace(/%22/g, '"');
+      repaired = repaired.replace(/(["\d]|true|false|null|\]|\})\s*\n?\s*(?="[a-zA-Z0-9_]+"\s*:)/g, '$1, ');
       repaired = repaired.replace(/,\s*([\}\]])/g, '$1');
       return JSON.parse(repaired);
     } catch (_) {

@@ -643,7 +643,7 @@ const Checkout = () => {
               </div>
 
               {/* Step 3: Courier Delivery Method */}
-              <div className="shv-checkout-step-card">
+              {/* <div className="shv-checkout-step-card">
                 <div className="shv-step-header">
                   <div className="shv-step-num">3</div>
                   <h3>Shipping &amp; Packaging Options</h3>
@@ -696,7 +696,7 @@ const Checkout = () => {
                     </label>
                   </div>
                 </div>
-              </div>
+              </div> */}
 
               {/* Step 3: Payment Rail Selection */}
               <div className="shv-checkout-step-card">

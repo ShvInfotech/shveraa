@@ -9784,8 +9784,7 @@ h4 { font-size: 1.15rem; }
   margin-bottom: 1.5rem;
 }
 
-.shv-orders-empty-state,
-.shv-auth-gate-card {
+.shv-orders-empty-state {
   background: #FFFFFF;
   border-radius: var(--radius-lg);
   border: 1px solid rgba(160, 126, 82, 0.22);
@@ -9795,15 +9794,517 @@ h4 { font-size: 1.15rem; }
   margin: 0 auto;
 }
 
-.shv-gate-eyebrow {
-  font-family: var(--font-sans);
-  font-size: 0.82rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+/* ==========================================================================
+   ATELIER VAULT - AUTH GATE & PRIVILEGE PORTAL
+   ========================================================================== */
+.shv-account-auth-gate {
+  min-height: 85vh;
+  padding: 2.5rem 0 5.5rem;
+  background: radial-gradient(circle at 50% 12%, rgba(246, 240, 230, 0.75) 0%, rgba(255, 255, 255, 0.95) 60%), #FFFFFF;
+}
+
+.shv-auth-gate-wrapper {
+  max-width: 860px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.shv-auth-gate-card {
+  background: #FFFFFF;
+  border-radius: var(--radius-xl, 20px);
+  border: 1px solid rgba(160, 126, 82, 0.28);
+  box-shadow: 0 16px 45px rgba(60, 48, 36, 0.06), 0 2px 8px rgba(60, 48, 36, 0.02);
+  padding: 3.5rem 2.5rem 3rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.shv-auth-gate-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #D4AF37, #A07E52, #E8D7B5, #A07E52, #D4AF37);
+}
+
+.shv-gate-emblem-wrap {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shv-gate-emblem-glow {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(160, 126, 82, 0.22) 0%, transparent 70%);
+  animation: shvPulseGlow 3s ease-in-out infinite alternate;
+}
+
+.shv-gate-emblem {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #1A1A1A;
+  color: #E8D7B5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(212, 175, 55, 0.35);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+}
+
+.shv-gate-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: rgba(160, 126, 82, 0.08);
+  border: 1px solid rgba(160, 126, 82, 0.22);
   color: #8C6A3E;
-  display: block;
-  margin-bottom: 6px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 1.25rem;
+}
+
+.shv-gate-title {
+  font-family: var(--font-serif, "Playfair Display", Georgia, serif);
+  font-size: 2.1rem;
+  font-weight: 600;
+  color: #1A1A1A;
+  margin: 0 0 1rem;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.shv-gate-desc {
+  font-size: 0.96rem;
+  line-height: 1.7;
+  color: #635A52;
+  max-width: 620px;
+  margin: 0 auto 2.25rem;
+}
+
+.shv-gate-cta-group {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 1.75rem;
+}
+
+.shv-gate-btn-primary {
+  background: #1A1A1A;
+  color: #FFFFFF;
+  border: 1px solid #1A1A1A;
+  padding: 0.9rem 2rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border-radius: var(--radius-sm, 6px);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+.shv-gate-btn-primary:hover {
+  background: #000000;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.22);
+  color: #FFFFFF;
+}
+
+.shv-gate-btn-secondary {
+  background: #FFFFFF;
+  color: #1A1A1A;
+  border: 1px solid rgba(26, 26, 26, 0.3);
+  padding: 0.9rem 2rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border-radius: var(--radius-sm, 6px);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  transition: all 0.25s ease;
+}
+
+.shv-gate-btn-secondary:hover {
+  border-color: #1A1A1A;
+  background: rgba(26, 26, 26, 0.03);
+  transform: translateY(-2px);
+  color: #1A1A1A;
+}
+
+.shv-gate-browse-link {
+  font-size: 0.88rem;
+  color: #72685E;
+}
+
+.shv-gate-browse-link a {
+  color: #8C6A3E;
+  font-weight: 600;
+  text-decoration: none;
+  margin-left: 4px;
+  transition: color 0.2s ease;
+}
+
+.shv-gate-browse-link a:hover {
+  color: #1A1A1A;
+  text-decoration: underline;
+}
+
+/* Privileges 4-Grid */
+.shv-gate-privileges-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+}
+
+@media (max-width: 680px) {
+  .shv-gate-privileges-grid {
+    grid-template-columns: 1fr;
+  }
+  .shv-auth-gate-card {
+    padding: 2.5rem 1.5rem 2rem;
+  }
+  .shv-gate-title {
+    font-size: 1.65rem;
+  }
+}
+
+.shv-gate-privilege-card {
+  background: #FFFFFF;
+  border: 1px solid rgba(160, 126, 82, 0.18);
+  border-radius: var(--radius-md, 12px);
+  padding: 1.4rem 1.3rem;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  transition: all 0.25s ease;
+}
+
+.shv-gate-privilege-card:hover {
+  border-color: rgba(160, 126, 82, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(60, 48, 36, 0.05);
+}
+
+.shv-privilege-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: rgba(160, 126, 82, 0.08);
+  color: #8C6A3E;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid rgba(160, 126, 82, 0.16);
+}
+
+.shv-privilege-content h4 {
+  font-family: var(--font-serif, "Playfair Display", Georgia, serif);
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1A1A1A;
+  margin: 0 0 4px;
+}
+
+.shv-privilege-content p {
+  font-size: 0.84rem;
+  line-height: 1.55;
+  color: #635A52;
+  margin: 0;
+}
+
+/* Trust Bar */
+.shv-gate-trust-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 1.25rem 2rem;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 999px;
+  border: 1px solid rgba(160, 126, 82, 0.16);
+}
+
+.shv-gate-trust-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #635A52;
+}
+
+.shv-gate-trust-item svg {
+  color: #8C6A3E;
+}
+
+.shv-trust-dot {
+  color: rgba(160, 126, 82, 0.4);
+  font-size: 0.8rem;
+}
+
+/* Pending Cart Item Alert in Auth.jsx */
+.shv-auth-pending-alert {
+  background: #FAF6EF;
+  border: 1px solid #D4B688;
+  border-radius: 8px;
+  padding: 0.85rem 1.15rem;
+  margin: 1.25rem 0 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #6B4E1B;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  text-align: left;
+}
+
+.shv-auth-pending-alert svg {
+  color: #B5842B;
+  flex-shrink: 0;
+}
+
+.shv-auth-pending-alert strong {
+  color: #3A290B;
+}
+
+/* Fullscreen Order Processing & Payment Verifying Overlay */
+.shv-verifying-fullscreen-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 999999;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  animation: shvFadeIn 0.3s ease;
+}
+
+.shv-verifying-modal {
+  background: #FFFFFF;
+  border: 1px solid rgba(160, 126, 82, 0.28);
+  border-radius: var(--radius-xl, 20px);
+  box-shadow: 0 25px 60px rgba(40, 30, 20, 0.12), 0 4px 16px rgba(0, 0, 0, 0.04);
+  padding: 3.5rem 2.5rem 2.5rem;
+  max-width: 520px;
+  width: 100%;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.shv-verifying-modal::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #D4AF37, #A07E52, #E8D7B5, #A07E52, #D4AF37);
+  background-size: 200% 100%;
+  animation: shvGradientSlide 2.5s linear infinite;
+}
+
+.shv-verifying-icon-wrap {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  margin: 0 auto 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shv-verifying-ripple {
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 2px solid rgba(160, 126, 82, 0.25);
+  animation: shvRipple 2.2s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+}
+
+.shv-verifying-ripple.ripple-2 {
+  animation-delay: 1.1s;
+}
+
+.shv-verifying-icon-core {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #1A1A1A;
+  color: #E8D7B5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(212, 175, 55, 0.4);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  position: relative;
+}
+
+.shv-verifying-sparkle {
+  animation: shvSpinSparkle 4s linear infinite;
+}
+
+.shv-verifying-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(160, 126, 82, 0.08);
+  border: 1px solid rgba(160, 126, 82, 0.2);
+  color: #8C6A3E;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+
+.shv-verifying-headline {
+  font-family: var(--font-serif, "Playfair Display", Georgia, serif);
+  font-size: 1.85rem;
+  font-weight: 600;
+  color: #1A1A1A;
+  margin: 0 0 0.75rem;
+  line-height: 1.25;
+}
+
+.shv-verifying-subtext {
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: #635A52;
+  margin: 0 0 2rem;
+}
+
+.shv-verifying-progress-box {
+  background: #FAF8F5;
+  border: 1px solid rgba(160, 126, 82, 0.18);
+  border-radius: 12px;
+  padding: 1.25rem 1.25rem;
+  margin-bottom: 1.75rem;
+}
+
+.shv-verifying-spinner-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(160, 126, 82, 0.15);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.shv-verifying-spinner-fill {
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(90deg, #A07E52, #D4AF37);
+  border-radius: 4px;
+  animation: shvBarSlide 1.6s ease-in-out infinite;
+}
+
+.shv-verifying-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+}
+
+.shv-verifying-step-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.shv-verifying-step-item.done {
+  color: #1B5E20;
+}
+
+.shv-verifying-step-item.pending {
+  color: #8C6A3E;
+}
+
+.shv-verifying-spinner-dot {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(160, 126, 82, 0.25);
+  border-top-color: #8C6A3E;
+  border-radius: 50%;
+  animation: shvSpinDot 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+.shv-verifying-warning {
+  font-size: 0.78rem;
+  color: #948679;
+  margin: 0;
+  line-height: 1.5;
+}
+
+@keyframes shvPulseGlow {
+  0% { transform: scale(0.95); opacity: 0.5; }
+  100% { transform: scale(1.15); opacity: 1; }
+}
+
+@keyframes shvRipple {
+  0% { transform: scale(0.85); opacity: 1; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+@keyframes shvSpinSparkle {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes shvSpinDot {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes shvGradientSlide {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+@keyframes shvBarSlide {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(120%); }
+  100% { transform: translateX(250%); }
+}
+
+@keyframes shvFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* ==========================================================================

@@ -502,9 +502,9 @@ const ProductDetail = () => {
     );
   };
 
-  const handleBuyNow = () => {
+  const handleBuyNow = async () => {
     const selectedImg = images[selectedImageIndex] || activeVariant?.image || activeVariant?.images?.[0] || product.image || (product.images && product.images[0]) || '';
-    addToCart(
+    const added = await addToCart(
       {
         ...product,
         price: displayPrice,
@@ -519,7 +519,9 @@ const ProductDetail = () => {
         customText: customEngraving.trim() || undefined,
       }
     );
-    navigate('/checkout');
+    if (added) {
+      navigate('/checkout');
+    }
   };
 
 

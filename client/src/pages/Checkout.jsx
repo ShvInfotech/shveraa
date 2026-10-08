@@ -167,6 +167,7 @@ const Checkout = () => {
   const [selectedBank, setSelectedBank] = useState('HDFC Bank');
 
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [isPaymentVerifying, setIsPaymentVerifying] = useState(false);
   const [formError, setFormError] = useState('');
   const shippingRequestId = useRef(0);
 
@@ -259,6 +260,7 @@ const Checkout = () => {
 
   const handleCodOrder = async () => {
     setIsPlacingOrder(true);
+    setIsPaymentVerifying(true);
     setFormError('');
     try {
       const cartIds = cart.map((item) => item._id || item.id).filter(Boolean);
@@ -278,6 +280,7 @@ const Checkout = () => {
       console.error('Payment verification failed:', error);
       setFormError(error.message || 'Please try again or contact support.');
       setIsPlacingOrder(false);
+      setIsPaymentVerifying(false);
     }
   };
 
@@ -326,6 +329,7 @@ const Checkout = () => {
         handler: async function (response) {
           try {
             setIsPlacingOrder(true);
+            setIsPaymentVerifying(true);
             const currentAddrId = addressId || (selectedAddrId && selectedAddrId !== '__new__' ? selectedAddrId : '');
 
             const verifyRes = await apiVerifyPaymentPlaceOrder({
@@ -363,6 +367,7 @@ const Checkout = () => {
             console.error('Payment verification failed:', verifyErr);
             setFormError(verifyErr.message || 'Payment verification failed. Please try again or contact support.');
             setIsPlacingOrder(false);
+            setIsPaymentVerifying(false);
           }
         },
         prefill: {
@@ -376,6 +381,7 @@ const Checkout = () => {
         modal: {
           ondismiss: function () {
             setIsPlacingOrder(false);
+            setIsPaymentVerifying(false);
           },
         },
       };
@@ -385,6 +391,7 @@ const Checkout = () => {
         console.error('Razorpay payment failed:', resp.error);
         setFormError(resp.error?.description || 'Payment failed or cancelled.');
         setIsPlacingOrder(false);
+        setIsPaymentVerifying(false);
       });
       rzp.open();
     } catch (err) {
@@ -438,6 +445,55 @@ const Checkout = () => {
 
   return (
     <div className="shv-checkout-page">
+      {/* Fullscreen Verifying Overlay */}
+      {isPaymentVerifying && (
+        <div className="shv-verifying-fullscreen-overlay">
+          <div className="shv-verifying-modal">
+            <div className="shv-verifying-icon-wrap">
+              <div className="shv-verifying-ripple ripple-1" />
+              <div className="shv-verifying-ripple ripple-2" />
+              <div className="shv-verifying-icon-core">
+                <Sparkles size={28} className="shv-verifying-sparkle" />
+              </div>
+            </div>
+
+            <div className="shv-verifying-badge">
+              <Lock size={12} />
+              <span>Atelier Security Protocol</span>
+            </div>
+
+            <h2 className="shv-verifying-headline">
+              {paymentMethod === 'cod' ? 'Confirming Your Curation' : 'Payment Received'}
+            </h2>
+            <p className="shv-verifying-subtext">
+              {paymentMethod === 'cod'
+                ? 'Generating your Delhivery air express waybill and BIS 925 Hallmark certificate...'
+                : 'Verifying payment with gateway and generating your insured Delhivery dispatch waybill...'}
+            </p>
+
+            <div className="shv-verifying-progress-box">
+              <div className="shv-verifying-spinner-bar">
+                <div className="shv-verifying-spinner-fill" />
+              </div>
+              <div className="shv-verifying-steps-list">
+                <div className="shv-verifying-step-item done">
+                  <CheckCircle2 size={15} />
+                  <span>{paymentMethod === 'cod' ? 'Order Authorized' : 'Payment Captured'}</span>
+                </div>
+                <div className="shv-verifying-step-item pending">
+                  <div className="shv-verifying-spinner-dot" />
+                  <span>Assigning Insured Delhivery Waybill</span>
+                </div>
+              </div>
+            </div>
+
+            <p className="shv-verifying-warning">
+              ✦ Please do not refresh or close this window. You will be redirected momentarily.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Checkout Dedicated Header */}
       <header className="shv-checkout-top-header">
         <div className="container shv-checkout-header-inner">

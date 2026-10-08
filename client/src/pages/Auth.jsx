@@ -36,6 +36,21 @@ const Auth = () => {
   const [joinVault, setJoinVault] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [hasPendingItem, setHasPendingItem] = useState(false);
+  const [pendingItemName, setPendingItemName] = useState('');
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('shveraa_pending_cart_item');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.product?.name) {
+          setHasPendingItem(true);
+          setPendingItemName(parsed.product.name);
+        }
+      }
+    } catch {}
+  }, []);
 
   // Sync mode with route change
   useEffect(() => {
@@ -120,6 +135,16 @@ const Auth = () => {
                   ? 'Create an account to access private silver vault drops and insured order tracking.'
                   : 'Sign in to access your curated silver wishlist and seamless checkout.'}
               </p>
+
+              {/* Notice for pending cart item */}
+              {hasPendingItem && (
+                <div className="shv-auth-pending-alert">
+                  <Sparkles size={16} />
+                  <span>
+                    Sign in or create an account to automatically add <strong>{pendingItemName || 'your selected piece'}</strong> to your shopping bag.
+                  </span>
+                </div>
+              )}
 
               {/* Mode Switch Tabs */}
               <div className="shv-auth-tabs">

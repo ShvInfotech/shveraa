@@ -60,56 +60,6 @@ export const CartProvider = ({ children }) => {
     try { localStorage.setItem('shveraa_wishlist', JSON.stringify(wishlist)); } catch {}
   }, [wishlist]);
 
-  // ─── On mount / login: load cart & wishlist from DB ──────────────────────
-  useEffect(() => {
-    const loadFromDB = async () => {
-      if (!isLoggedIn() || dbLoadedRef.current) return;
-      dbLoadedRef.current = true;
-      try {
-        // Fetch DB cart
-        const cartRes = await apiGetCart();
-        const dbCart = cartRes?.cart || [];
-
-        // Fetch DB wishlist (array of productIds)
-        const wlRes = await apiGetWishlist();
-        const dbWishlist = wlRes?.wishlist || [];
-
-        // Merge: local items not yet in DB → push to DB
-        setCart(Array.isArray(dbCart) ? dbCart : []);
-
-        // Map DB wishlist IDs to full product objects
-        if (Array.isArray(dbWishlist) && dbWishlist.length > 0) {
-          const allProducts = await fetchProducts();
-          const fullWishlist = dbWishlist.map(item => {
-            if (typeof item === 'object' && item !== null) return item;
-            const found = allProducts.find(p => String(p._id) === String(item) || String(p.slug) === String(item));
-            return found || { _id: item, name: '925 Silver Piece', price: 0, image: '' };
-          });
-          setWishlist(fullWishlist);
-        }
-      } catch {
-        setCart([]);
-      }
-    };
-
-    loadFromDB();
-
-    // Re-run on login event
-    const handleLogin = () => { dbLoadedRef.current = false; loadFromDB(); };
-    const handleLogout = () => {
-      dbLoadedRef.current = false;
-      setCart([]);
-    };
-    window.addEventListener('shveraa_user_logged_in', handleLogin);
-    window.addEventListener('shveraa_user_logged_out', handleLogout);
-    window.addEventListener('shveraa_user_unauthorized', handleLogout);
-    return () => {
-      window.removeEventListener('shveraa_user_logged_in', handleLogin);
-      window.removeEventListener('shveraa_user_logged_out', handleLogout);
-      window.removeEventListener('shveraa_user_unauthorized', handleLogout);
-    };
-  }, []);
-
   // ─── Cart Drawer ──────────────────────────────────────────────────────────
   const [isCartOpen, setIsCartOpen] = useState(false);
   const openCart = () => setIsCartOpen(true);
@@ -130,7 +80,21 @@ export const CartProvider = ({ children }) => {
   // ─── ADD TO CART ──────────────────────────────────────────────────────────
   const addToCart = async (product, selectedSize = null, quantity = 1, options = {}) => {
     if (!isLoggedIn()) {
-      showToast('Please sign in to add items to your bag');
+      try {
+        localStorage.setItem(
+          'shveraa_pending_cart_item',
+          JSON.stringify({
+            product,
+            selectedSize,
+            quantity,
+            options,
+          })
+        );
+      } catch (err) {
+        console.warn('Could not store pending cart item:', err);
+      }
+      const currentPath = window.location.pathname + window.location.search;
+      window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
       return false;
     }
 
@@ -190,6 +154,86 @@ export const CartProvider = ({ children }) => {
       return false;
     }
   };
+
+  // Helper to process queued pending cart item after authentication
+  const processPendingCartItem = async () => {
+    if (!isLoggedIn()) return;
+    const pendingRaw = localStorage.getItem('shveraa_pending_cart_item');
+    if (!pendingRaw) return;
+
+    try {
+      localStorage.removeItem('shveraa_pending_cart_item');
+      const pending = JSON.parse(pendingRaw);
+      if (pending && pending.product) {
+        await addToCart(
+          pending.product,
+          pending.selectedSize,
+          pending.quantity || 1,
+          pending.options || {}
+        );
+        setIsCartOpen(true);
+      }
+    } catch (err) {
+      console.warn('Failed to process pending cart item:', err);
+    }
+  };
+
+  // ─── On mount / login: load cart & wishlist from DB ──────────────────────
+  useEffect(() => {
+    const loadFromDB = async () => {
+      if (!isLoggedIn() || dbLoadedRef.current) return;
+      dbLoadedRef.current = true;
+      try {
+        // Fetch DB cart
+        const cartRes = await apiGetCart();
+        const dbCart = cartRes?.cart || [];
+
+        // Fetch DB wishlist (array of productIds)
+        const wlRes = await apiGetWishlist();
+        const dbWishlist = wlRes?.wishlist || [];
+
+        // Merge: local items not yet in DB → push to DB
+        setCart(Array.isArray(dbCart) ? dbCart : []);
+
+        // Map DB wishlist IDs to full product objects
+        if (Array.isArray(dbWishlist) && dbWishlist.length > 0) {
+          const allProducts = await fetchProducts();
+          const fullWishlist = dbWishlist.map(item => {
+            if (typeof item === 'object' && item !== null) return item;
+            const found = allProducts.find(p => String(p._id) === String(item) || String(p.slug) === String(item));
+            return found || { _id: item, name: '925 Silver Piece', price: 0, image: '' };
+          });
+          setWishlist(fullWishlist);
+        }
+
+        // Process any queued pending cart item
+        await processPendingCartItem();
+      } catch {
+        setCart([]);
+      }
+    };
+
+    loadFromDB();
+
+    // Re-run on login event
+    const handleLogin = async () => {
+      dbLoadedRef.current = false;
+      await loadFromDB();
+      await processPendingCartItem();
+    };
+    const handleLogout = () => {
+      dbLoadedRef.current = false;
+      setCart([]);
+    };
+    window.addEventListener('shveraa_user_logged_in', handleLogin);
+    window.addEventListener('shveraa_user_logged_out', handleLogout);
+    window.addEventListener('shveraa_user_unauthorized', handleLogout);
+    return () => {
+      window.removeEventListener('shveraa_user_logged_in', handleLogin);
+      window.removeEventListener('shveraa_user_logged_out', handleLogout);
+      window.removeEventListener('shveraa_user_unauthorized', handleLogout);
+    };
+  }, []);
 
   // ─── UPDATE QUANTITY ──────────────────────────────────────────────────────
   const updateQuantity = async (cartId, quantity) => {

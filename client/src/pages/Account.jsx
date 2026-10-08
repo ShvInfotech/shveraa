@@ -609,20 +609,106 @@ if (!/[!@#$%^&*]/.test(formData.newPassword)) {
     return (
       <div className="shv-account-auth-gate">
         <div className="container">
-          <div className="shv-auth-gate-card">
-            <Sparkles size={40} className="shv-gate-icon" />
-            <span className="shv-gate-eyebrow">The Atelier Vault</span>
-            <h2>Sign In to Access Your Curation</h2>
-            <p>
-              Please sign in to view your orders, tracked BlueDart consignments, saved delivery addresses, and private silver privileges.
-            </p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Link to="/login" className="btn btn-primary btn-lg">
-                Sign In to Atelier <ArrowRight size={16} />
-              </Link>
-              <Link to="/shop" className="btn btn-outline btn-lg">
-                Explore 925 Silver
-              </Link>
+          {/* Breadcrumb */}
+          <div className="shv-account-breadcrumb">
+            <Link to="/">Home</Link>
+            <span>/</span>
+            <span>Atelier Vault</span>
+          </div>
+
+          <div className="shv-auth-gate-wrapper">
+            {/* Main Luxury Auth Gate Card */}
+            <div className="shv-auth-gate-card">
+              <div className="shv-gate-emblem-wrap">
+                <div className="shv-gate-emblem-glow" />
+                <div className="shv-gate-emblem">
+                  <Sparkles size={28} />
+                </div>
+              </div>
+
+              <div className="shv-gate-pill">
+                <span>✦ Private Atelier Access • BIS 925 Hallmark</span>
+              </div>
+
+              <h1 className="shv-gate-title">Sign In to Your Private Curation</h1>
+              <p className="shv-gate-desc">
+                Welcome to your Shveraa Atelier sanctuary. Access real-time Delhivery express tracking, BIS 925 hallmarked authenticity records, saved delivery addresses, and private silver member privileges.
+              </p>
+
+              <div className="shv-gate-cta-group">
+                <Link to="/login?redirect=/account" className="btn btn-primary btn-lg shv-gate-btn-primary">
+                  Sign In to Atelier <ArrowRight size={16} />
+                </Link>
+                <Link to="/register?redirect=/account" className="btn btn-outline btn-lg shv-gate-btn-secondary">
+                  Create an Account
+                </Link>
+              </div>
+
+              <div className="shv-gate-browse-link">
+                <span>Looking to explore first?</span>{' '}
+                <Link to="/shop">Browse 925 Silver Collections &rarr;</Link>
+              </div>
+            </div>
+
+            {/* Privilege Highlights Grid */}
+            <div className="shv-gate-privileges-grid">
+              <div className="shv-gate-privilege-card">
+                <div className="shv-privilege-icon">
+                  <Truck size={20} />
+                </div>
+                <div className="shv-privilege-content">
+                  <h4>Insured Delhivery Express</h4>
+                  <p>Live GPS telemetry, OTP verification, and insured tamper-proof courier transit across India.</p>
+                </div>
+              </div>
+
+              <div className="shv-gate-privilege-card">
+                <div className="shv-privilege-icon">
+                  <ShieldCheck size={20} />
+                </div>
+                <div className="shv-privilege-content">
+                  <h4>BIS 925 Hallmark Guarantee</h4>
+                  <p>Authenticity records and purity documentation preserved for all your heirloom acquisitions.</p>
+                </div>
+              </div>
+
+              <div className="shv-gate-privilege-card">
+                <div className="shv-privilege-icon">
+                  <RotateCcw size={20} />
+                </div>
+                <div className="shv-privilege-content">
+                  <h4>2–3 Day Doorstep Returns</h4>
+                  <p>Hassle-free reverse pickups, quick size swaps, and transparent status tracking with zero friction.</p>
+                </div>
+              </div>
+
+              <div className="shv-gate-privilege-card">
+                <div className="shv-privilege-icon">
+                  <Heart size={20} />
+                </div>
+                <div className="shv-privilege-content">
+                  <h4>Curated Silver Wishlist</h4>
+                  <p>Save your favorite rings, necklaces, and bespoke pieces across devices with instantaneous sync.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Security / Trust Footer */}
+            <div className="shv-gate-trust-bar">
+              <div className="shv-gate-trust-item">
+                <Lock size={14} />
+                <span>256-Bit Encrypted Patron Vault</span>
+              </div>
+              <span className="shv-trust-dot">•</span>
+              <div className="shv-gate-trust-item">
+                <Sparkles size={14} />
+                <span>100% Solid 925 Sterling Silver</span>
+              </div>
+              <span className="shv-trust-dot">•</span>
+              <div className="shv-gate-trust-item">
+                <Phone size={14} />
+                <span>Concierge: +91 99980 46559</span>
+              </div>
             </div>
           </div>
         </div>

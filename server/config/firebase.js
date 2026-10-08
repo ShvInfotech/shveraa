@@ -75,8 +75,14 @@ try {
   const rawCreds = process.env.FIERBASESDK || process.env.FIREBASE_SERVICE_ACCOUNT || process.env.GOOGLE_APPLICATION_CREDENTIALS;
 
   if (rawCreds) {
-    serviceAccount = parseServiceAccount(rawCreds);
-  } else {
+    try {
+      serviceAccount = parseServiceAccount(rawCreds);
+    } catch (err) {
+      console.warn('[Firebase] Warning: Failed to parse credentials from env:', err.message);
+    }
+  }
+
+  if (!serviceAccount) {
     // Check common service account JSON file locations
     const candidateFiles = [
       path.resolve(process.cwd(), 'firebase-service-account.json'),

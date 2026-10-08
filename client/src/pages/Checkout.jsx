@@ -174,7 +174,7 @@ const Checkout = () => {
   // NOTE: Cash on Delivery is a complimentary payment option — no COD surcharge
   // is added to the payable total.
   const deliverySurcharge = deliveryOption === 'whiteglove' ? 249 : 0;
-  const finalPayable = cartTotal + deliverySurcharge;
+  const finalPayable = Math.max(0, Math.round(cartTotal + deliverySurcharge));
 
   useEffect(() => {
     if (!cart.length || !/^\d{6}$/.test(pincode)) return;
@@ -187,7 +187,7 @@ const Checkout = () => {
     apiCheckShippingDetails(cartIds, pincode, isCod ? 'COD' : 'Pre-paid', isCod ? Math.max(0, cartSubtotal - discountAmount) : 0,)
       .then((data) => {
         if (requestId === shippingRequestId.current && data?.shippingCharges !== undefined) {
-          setShippingCost(Number(data.shippingCharges) || 0);
+          setShippingCost(Math.round(Number(data.shippingCharges) || 0));
         }
       })
       .catch((error) => {
@@ -268,7 +268,7 @@ const Checkout = () => {
       const verifyRes = await apiCODPlaceOrder({
         cartIds,
         couponId,
-        shippingCost: shippingCost,
+        shippingCost: Math.round(Number(shippingCost) || 0),
         addressId,
       });
 
@@ -304,7 +304,7 @@ const Checkout = () => {
       const data = await apiCreatePaymentOrder({
         cartIds,
         couponId,
-        shippingCost: shippingCost,
+        shippingCost: Math.round(Number(shippingCost) || 0),
         addressId,
       });
 
@@ -334,7 +334,7 @@ const Checkout = () => {
               razorpay_signature: response.razorpay_signature,
               cartIds,
               couponId,
-              shippingCost: shippingCost,
+              shippingCost: Math.round(Number(shippingCost) || 0),
               addressId: currentAddrId,
             });
 
@@ -867,8 +867,8 @@ const Checkout = () => {
                     {isPlacingOrder
                       ? 'Processing Order...'
                       : paymentMethod === 'cod'
-                        ? `Place COD Order • ₹${finalPayable}`
-                        : `Pay with Razorpay • ₹${finalPayable}`}
+                        ? `Place COD Order • ₹${Math.round(finalPayable).toLocaleString('en-IN')}`
+                        : `Pay with Razorpay • ₹${Math.round(finalPayable).toLocaleString('en-IN')}`}
                   </span>
                   <ArrowRight size={16} />
                 </button>
@@ -919,19 +919,19 @@ const Checkout = () => {
               <div className="shv-summary-pricing-rows">
                 <div className="shv-pricing-row">
                   <span>Items Subtotal</span>
-                  <span>₹{cartSubtotal}</span>
+                  <span>₹{Math.round(cartSubtotal).toLocaleString('en-IN')}</span>
                 </div>
 
                 {appliedCoupon && (
                   <div className="shv-pricing-row shv-discount-row">
                     <span>Discount ({appliedCoupon.code})</span>
-                    <span>-₹{discountAmount}</span>
+                    <span>-₹{Math.round(discountAmount).toLocaleString('en-IN')}</span>
                   </div>
                 )}
 
                 <div className="shv-pricing-row">
                   <span>Insured Express Shipping</span>
-                  <span>{shippingCost === 0 ? 'FREE' : `₹${shippingCost}`}</span>
+                  <span>{shippingCost === 0 ? 'FREE' : `₹${Math.round(shippingCost).toLocaleString('en-IN')}`}</span>
                 </div>
 
                 {deliveryOption === 'whiteglove' && (
@@ -945,7 +945,7 @@ const Checkout = () => {
 
                 <div className="shv-pricing-row shv-total-row">
                   <span>Total Amount</span>
-                  <span>₹{finalPayable}</span>
+                  <span>₹{Math.round(finalPayable).toLocaleString('en-IN')}</span>
                 </div>
               </div>
 

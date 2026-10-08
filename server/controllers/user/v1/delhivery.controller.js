@@ -81,7 +81,8 @@ export const CheckShippingCharges = async (req, res, next) => {
             return next(CustomeError(404, "Shipping charges not available for the given pincode and weight"))
         }
 
-        return res.status(200).json({ success: true, message: "Shipping charges fetched successfully", shippingCharges: data[0].total_amount })
+        const charges = Math.round(Number(data[0].total_amount) || 0);
+        return res.status(200).json({ success: true, message: "Shipping charges fetched successfully", shippingCharges: charges });
     } catch (error) {
         return next(error)
     }

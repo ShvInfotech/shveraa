@@ -97,7 +97,8 @@ export const RozerpayPaymentOrder = async (req, res, next) => {
       }
     }
 
-    const totalAmount = price + Number(shippingCost) - discountAmount;
+    const cleanShippingCost = Math.round(Number(shippingCost) || 0);
+    const totalAmount = Math.max(0, Math.round(price + cleanShippingCost - discountAmount));
 
     const options = {
       amount: Math.round(totalAmount * 100),
@@ -226,7 +227,8 @@ export const RozerpayPaymentVerifyPlaceOrder = async (req, res, next) => {
       return next(CustomeError(400, "Delivery address not found"));
     }
     const orderNumber = generateOrderNumber();
-    const totalAmount = price - discount + Number(shippingCost);
+    const cleanShippingCost = Math.round(Number(shippingCost) || 0);
+    const totalAmount = Math.max(0, Math.round(price - discount + cleanShippingCost));
 
     const delhiveryPayload = {
       "shipments": [
@@ -298,8 +300,8 @@ export const RozerpayPaymentVerifyPlaceOrder = async (req, res, next) => {
       items: items,
       couponId: effectiveCouponId,
       discount: discount,
-      shippingcharges: shippingCost,
-      amount: price,
+      shippingcharges: cleanShippingCost,
+      amount: Math.round(price),
       totalAmount: totalAmount,
       status: "pending",
       picuprequestId: "",
@@ -433,7 +435,8 @@ export const PlaceCodeOrder = async (req, res, next) => {
 
 
     const orderNumber = generateOrderNumber();
-    const totalAmount = price - discount + Number(shippingCost);
+    const cleanShippingCost = Math.round(Number(shippingCost) || 0);
+    const totalAmount = Math.max(0, Math.round(price - discount + cleanShippingCost));
 
     const delhiveryPayload = {
       "shipments": [
@@ -504,8 +507,8 @@ export const PlaceCodeOrder = async (req, res, next) => {
       items: items,
       couponId: effectiveCouponId,
       discount: discount,
-      shippingcharges: shippingCost,
-      amount: price,
+      shippingcharges: cleanShippingCost,
+      amount: Math.round(price),
       totalAmount: totalAmount,
       status: "pending",
       picuprequestId: "",

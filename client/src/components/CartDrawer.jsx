@@ -369,16 +369,16 @@ const CartDrawer = () => {
               {appliedCoupon && (
                 <div className="cart-summary-row cart-discount-row">
                   <span>Discount ({appliedCoupon.code})</span>
-                  <span>-₹{discountAmount}</span>
+                  <span>-₹{Math.round(discountAmount).toLocaleString('en-IN')}</span>
                 </div>
               )}
               <div className="cart-summary-row">
                 <span>Insured Shipping</span>
-                <span>{shippingCost === 0 ? 'FREE' : `₹${shippingCost}`}</span>
+                <span>{shippingCost === 0 ? 'FREE' : `₹${Math.round(shippingCost).toLocaleString('en-IN')}`}</span>
               </div>
               <div className="cart-summary-row cart-total-row">
                 <span>Total</span>
-                <span>₹{cartTotal}</span>
+                <span>₹{Math.round(cartTotal).toLocaleString('en-IN')}</span>
               </div>
             </div>
 
@@ -390,7 +390,7 @@ const CartDrawer = () => {
                 className="btn btn-primary cart-checkout-btn"
               >
                 <span>Checkout Now</span>
-                <span>₹{cartTotal}</span>
+                <span>₹{Math.round(cartTotal).toLocaleString('en-IN')}</span>
               </button>
 
               <button

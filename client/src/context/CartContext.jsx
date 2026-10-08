@@ -298,14 +298,15 @@ export const CartProvider = ({ children }) => {
   const cartCount = cart.reduce((sum, i) => sum + i.quantity, 0);
   const cartItemCount = cart.length;
 
-  const discountAmount = appliedCoupon?.discountAmount || 0;
+  const discountAmount = Math.round(appliedCoupon?.discountAmount || 0);
 
   const freeShippingReached = cartSubtotal >= FREE_SHIPPING_THRESHOLD;
   const freeShippingProgress = Math.min(100, Math.round((cartSubtotal / FREE_SHIPPING_THRESHOLD) * 100));
   const amountNeededForFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - cartSubtotal);
   // const shippingCost = cartCount === 0 || freeShippingReached ? 0 : 99;
-const [shippingCost, setShippingCost] = useState(0);
-  const cartTotal = Math.max(0, cartSubtotal - discountAmount + shippingCost);
+  const [shippingCost, setShippingCost] = useState(0);
+  const cleanShippingCost = Math.round(Number(shippingCost) || 0);
+  const cartTotal = Math.max(0, Math.round(cartSubtotal - discountAmount + cleanShippingCost));
 
   return (
     <CartContext.Provider

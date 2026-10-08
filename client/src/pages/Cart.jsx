@@ -178,16 +178,16 @@ console.log(shippingCost)
                   {appliedCoupon && (
                     <div className="cart-summary-row cart-discount-row">
                       <span>Discount ({appliedCoupon.code})</span>
-                      <span>-₹{discountAmount}</span>
+                      <span>-₹{Math.round(discountAmount).toLocaleString('en-IN')}</span>
                     </div>
                   )}
                   <div className="cart-summary-row">
                     <span>Insured Express Shipping</span>
-                    <span>{shippingCost === 0 ? 'FREE' : `₹${shippingCost}`}</span>
+                    <span>{shippingCost === 0 ? 'FREE' : `₹${Math.round(shippingCost).toLocaleString('en-IN')}`}</span>
                   </div>
                   <div className="cart-summary-row cart-total-row">
                     <span>Estimated Total</span>
-                    <span>₹{cartTotal}</span>
+                    <span>₹{Math.round(cartTotal).toLocaleString('en-IN')}</span>
                   </div>
                 </div>
 
@@ -206,7 +206,7 @@ console.log(shippingCost)
                   }}
                 >
                   <Lock size={16} />
-                  <span>Proceed to Checkout • ₹{cartTotal}</span>
+                  <span>Proceed to Checkout • ₹{Math.round(cartTotal).toLocaleString('en-IN')}</span>
                   <ArrowRight size={16} />
                 </Link>
 

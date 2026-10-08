@@ -296,7 +296,7 @@ const CartDrawer = () => {
                   <div className="cart-coupon-info">
                     <Check size={15} color="#10B981" />
                     <span>
-                      Code <strong>{appliedCoupon.code}</strong> applied (-20%)
+                      Code <strong>{appliedCoupon.code}</strong> applied ({appliedCoupon.discountType === 'percentage' ? `-${appliedCoupon.discountValue}%` : `-₹${appliedCoupon.discountValue}`})
                     </span>
                   </div>
                   <button

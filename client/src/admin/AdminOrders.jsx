@@ -2,24 +2,23 @@ import React, { useState } from 'react';
 import { Eye, Printer, CheckSquare, Download, LoaderCircle, CircleAlert, CircleCheck } from 'lucide-react';
 import { getImageUrl, apiAdminDownloadLabels, downloadBlobFile } from '../services/api';
 
-const STATUS_TABS = ['All', 'pending', 'accepted', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'cancelled'];
+const STATUS_TABS = ['pending', 'accepted', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'cancelled'];
 
 // Today in YYYY-MM-DD, used as the default Delhivery pickup date.
 const todayISODate = () => new Date().toISOString().slice(0, 10);
 
 const AdminOrders = ({ orders, onUpdateStatus, searchQuery, isLoading = false }) => {
-  const [selectedStatusTab, setSelectedStatusTab] = useState('All');
+  const [selectedStatusTab, setSelectedStatusTab] = useState('pending');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [selectedOrderIds, setSelectedOrderIds] = useState([]);
   const [isDownloadingLabels, setIsDownloadingLabels] = useState(false);
   const [labelNotice, setLabelNotice] = useState(null);
-  const [pickupDate, setPickupDate] = useState(todayISODate);
-  const [pickupTime, setPickupTime] = useState('10:00');
+  const [pickupDate, setPickupDate] = useState('');
+  const [pickupTime, setPickupTime] = useState('');
 
   // Filter orders – uses real DB fields
   const filteredOrders = orders.filter((ord) => {
     const matchesTab =
-      selectedStatusTab === 'All' ||
       (ord.status || '').toLowerCase() === selectedStatusTab.toLowerCase();
 
     const q = (searchQuery || '').toLowerCase();
@@ -71,7 +70,8 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery, isLoading = false })
     const isPending = selectedStatusTab === 'pending';
 
     if (isPending && (!pickupDate || !pickupTime)) {
-      setLabelNotice({ tone: 'error', text: 'Select a pickup date and time before generating labels.' });
+      setLabelNotice({ tone: 'error', text: 'Please select pickup date and time before downloading labels.' });
+      alert('Please select pickup date and time before downloading labels / તમે pickup date અને time select નથી કરી.');
       return;
     }
 
@@ -176,9 +176,8 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery, isLoading = false })
 
       {/* Orders Table Card */}
       <div className="shv-admin-table-card">
-        {/* Bulk Action & Select All Bar - Hidden in 'All' tab */}
-        {selectedStatusTab !== 'All' && (
-          <div
+        {/* Bulk Action & Select All Bar */}
+        <div
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -231,18 +230,35 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery, isLoading = false })
                     <input
                       type="date"
                       value={pickupDate}
-                      onChange={(e) => setPickupDate(e.target.value)}
+                      min={todayISODate()}
+                      onChange={(e) => {
+                        setPickupDate(e.target.value);
+                        setLabelNotice(null);
+                      }}
                       className="shv-overview-select"
                       aria-label="Pickup date"
-                      style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem' }}
+                      title="Select Delhivery Pickup Date"
+                      style={{
+                        padding: '0.35rem 0.6rem',
+                        fontSize: '0.8rem',
+                        borderColor: labelNotice?.tone === 'error' && !pickupDate ? '#EF4444' : undefined,
+                      }}
                     />
                     <input
                       type="time"
                       value={pickupTime}
-                      onChange={(e) => setPickupTime(e.target.value)}
+                      onChange={(e) => {
+                        setPickupTime(e.target.value);
+                        setLabelNotice(null);
+                      }}
                       className="shv-overview-select"
                       aria-label="Pickup time"
-                      style={{ padding: '0.35rem 0.6rem', fontSize: '0.8rem' }}
+                      title="Select Delhivery Pickup Time"
+                      style={{
+                        padding: '0.35rem 0.6rem',
+                        fontSize: '0.8rem',
+                        borderColor: labelNotice?.tone === 'error' && !pickupTime ? '#EF4444' : undefined,
+                      }}
                     />
                   </>
                 )}
@@ -288,29 +304,26 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery, isLoading = false })
               </div>
             )}
           </div>
-        )}
 
         <div className="shv-admin-table-wrap desktop-orders-table">
           <table className="shv-admin-table">
             <thead>
               <tr>
-                {/* Select column - Hidden in 'All' tab */}
-                {selectedStatusTab !== 'All' && (
-                  <th style={{ width: '44px', textAlign: 'center' }}>
-                    <input
-                      type="checkbox"
-                      checked={isAllSelected}
-                      onChange={handleToggleSelectAll}
-                      style={{
-                        cursor: 'pointer',
-                        width: '16px',
-                        height: '16px',
-                        accentColor: '#1E2229',
-                      }}
-                      title={isAllSelected ? 'Deselect all orders in this tab' : 'Select all orders in this tab'}
-                    />
-                  </th>
-                )}
+                {/* Select column */}
+                <th style={{ width: '44px', textAlign: 'center' }}>
+                  <input
+                    type="checkbox"
+                    checked={isAllSelected}
+                    onChange={handleToggleSelectAll}
+                    style={{
+                      cursor: 'pointer',
+                      width: '16px',
+                      height: '16px',
+                      accentColor: '#1E2229',
+                    }}
+                    title={isAllSelected ? 'Deselect all orders in this tab' : 'Select all orders in this tab'}
+                  />
+                </th>
                 <th>Order ID</th>
                 <th>Shipping Address</th>
                 <th>Silhouettes &amp; Qty</th>
@@ -324,7 +337,7 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery, isLoading = false })
               {isLoading ? (
                 <tr>
                   <td
-                    colSpan={selectedStatusTab === 'All' ? 7 : 8}
+                    colSpan={8}
                     style={{ textAlign: 'center', padding: '3rem', color: 'var(--admin-text-muted)' }}
                   >
                     Loading orders…
@@ -333,7 +346,7 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery, isLoading = false })
               ) : filteredOrders.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={selectedStatusTab === 'All' ? 7 : 8}
+                    colSpan={8}
                     style={{ textAlign: 'center', padding: '3rem', color: 'var(--admin-text-muted)' }}
                   >
                     No orders found matching your active filter.
@@ -357,25 +370,30 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery, isLoading = false })
                       key={ord._id || orderRef}
                       style={{ background: isChecked ? '#F8FAFC' : undefined }}
                     >
-                      {/* Select Checkbox Cell - Hidden in 'All' tab */}
-                      {selectedStatusTab !== 'All' && (
-                        <td style={{ width: '44px', textAlign: 'center' }}>
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => handleToggleSelect(orderKey)}
-                            style={{
-                              cursor: 'pointer',
-                              width: '16px',
-                              height: '16px',
-                              accentColor: '#1E2229',
-                            }}
-                            aria-label={`Select order ${orderRef}`}
-                          />
-                        </td>
-                      )}
+                      {/* Select Checkbox Cell */}
+                      <td style={{ width: '44px', textAlign: 'center' }}>
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => handleToggleSelect(orderKey)}
+                          style={{
+                            cursor: 'pointer',
+                            width: '16px',
+                            height: '16px',
+                            accentColor: '#1E2229',
+                          }}
+                          aria-label={`Select order ${orderRef}`}
+                        />
+                      </td>
                       <td>
-                        <strong className="shv-table-order-id">{orderRef}</strong>
+                        <strong
+                          className="shv-table-order-id"
+                          onClick={() => setSelectedOrder(ord)}
+                          style={{ cursor: 'pointer' }}
+                          title="Click to view order details"
+                        >
+                          {orderRef}
+                        </strong>
                         <div style={{ fontSize: '0.74rem', color: 'var(--admin-text-muted)' }}>{placedDate}</div>
                         {ord.waybill && (
                           <div style={{ fontSize: '0.7rem', color: 'var(--admin-text-light)', marginTop: 2 }}>
@@ -475,17 +493,22 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery, isLoading = false })
                 >
                   <div className="shv-moc-header">
                     <div className="shv-moc-id-group">
-                      {selectedStatusTab !== 'All' && (
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => handleToggleSelect(orderKey)}
-                          className="shv-moc-checkbox"
-                          aria-label={`Select order ${orderRef}`}
-                        />
-                      )}
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => handleToggleSelect(orderKey)}
+                        className="shv-moc-checkbox"
+                        aria-label={`Select order ${orderRef}`}
+                      />
                       <div>
-                        <div className="shv-moc-order-id">{orderRef}</div>
+                        <div
+                          className="shv-moc-order-id"
+                          onClick={() => setSelectedOrder(ord)}
+                          style={{ cursor: 'pointer' }}
+                          title="Click to view order details"
+                        >
+                          {orderRef}
+                        </div>
                         <div className="shv-moc-order-date">{placedDate}</div>
                       </div>
                     </div>
@@ -510,11 +533,6 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery, isLoading = false })
                         {itemCount} {itemCount === 1 ? 'Piece' : 'Pieces'}
                         {ord.items?.length > 1 ? ` • +${ord.items.length - 1} more` : ` • ${firstItem?.size || '925 Silver'}`}
                       </div>
-                      {addrCity && (
-                        <div className="shv-moc-customer-dest">
-                          📍 {addrCity} {addrPhone ? `(${addrPhone})` : ''}
-                        </div>
-                      )}
                     </div>
                   </div>
 
@@ -563,19 +581,38 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery, isLoading = false })
               </button>
             </div>
 
-            {/* Shipping Address */}
+            {/* Customer Info */}
             <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '1rem', marginBottom: '1.25rem', border: '1px solid var(--admin-border)' }}>
               <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--admin-text-light)', marginBottom: '0.5rem', fontWeight: 700 }}>
-                Shipping Destination
+                Customer Details
               </div>
               <div style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: '0.2rem' }}>
-                {selectedOrder.address?.addressline || 'Address recorded'}
+                {selectedOrder.userData?.name || selectedOrder.address?.addressline || '—'}
               </div>
               <div style={{ fontSize: '0.84rem', color: 'var(--admin-text-muted)', marginBottom: '0.2rem' }}>
-                {[selectedOrder.address?.city, selectedOrder.address?.state, selectedOrder.address?.pincode].filter(Boolean).join(', ')}
+                Email: {selectedOrder.userData?.email || '—'}
               </div>
               <div style={{ fontSize: '0.84rem', color: 'var(--admin-text-main)' }}>
-                Phone: {selectedOrder.address?.phone || '—'}
+                Phone: {selectedOrder.userData?.phone || selectedOrder.address?.phone || '—'}
+              </div>
+              <div style={{ fontSize: '0.84rem', color: 'var(--admin-text-main)' }}>
+                address: {`${selectedOrder.address?.addressline},${selectedOrder.address?.city},${selectedOrder.address?.state},${selectedOrder.address?.pincode}`  || selectedOrder.address?.phone || '—'}
+              </div>
+            </div>
+
+            {/* Pickup Request Info */}
+            <div style={{ background: '#F8FAFC', borderRadius: '12px', padding: '1rem', marginBottom: '1.25rem', border: '1px solid var(--admin-border)' }}>
+              <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--admin-text-light)', marginBottom: '0.5rem', fontWeight: 700 }}>
+                Pickup Request
+              </div>
+              <div style={{ fontSize: '0.84rem', color: 'var(--admin-text-muted)', marginBottom: '0.2rem' }}>
+                Picup ID: {selectedOrder.picuprequest?.picupId || '—'}
+              </div>
+              <div style={{ fontSize: '0.84rem', color: 'var(--admin-text-main)', marginBottom: '0.2rem' }}>
+                Date: {selectedOrder.picuprequest?.picupdate || '—'}
+              </div>
+              <div style={{ fontSize: '0.84rem', color: 'var(--admin-text-main)' }}>
+                Time: {selectedOrder.picuprequest?.picupTime || '—'}
               </div>
             </div>
 

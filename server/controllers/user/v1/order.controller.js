@@ -282,6 +282,8 @@ export const RozerpayPaymentVerifyPlaceOrder = async (req, res, next) => {
       }
     }
 
+    console.log("delhivery payload",delhiveryPayload)
+
     let waybill = "";
     try {
       console.log(`[Delhivery] Attempting to create shipment for paid order ${orderNumber}...`);
@@ -505,6 +507,8 @@ export const PlaceCodeOrder = async (req, res, next) => {
         "name": process.env.DELHIVERY_PICKUP_LOCATION,
       }
     }
+
+
     let waybill = "";
     try {
       console.log(`[Delhivery] Attempting to create COD shipment for order ${orderNumber}...`);

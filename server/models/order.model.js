@@ -77,9 +77,13 @@ const orderSchema = new mongoose.Schema(
       default: "pending",
     },
 
-    picuprequestId: {
-      type: String,
-      default: "",
+    picuprequest: {
+      type: {
+        picupId: { type: String },
+        picupTime: { type: String },
+        picupdate: { type: String },
+      },
+      default: null
     },
 
     payment: {
@@ -118,10 +122,10 @@ const orderSchema = new mongoose.Schema(
 
     returnData: {
       type: {
-        waybill: {type:String},
-        status:{ type:String},
-        reason: {type: String},
-        completeAt: {type: Date}
+        waybill: { type: String },
+        status: { type: String },
+        reason: { type: String },
+        completeAt: { type: Date }
       },
       default: null,
     },
@@ -142,7 +146,7 @@ const orderSchema = new mongoose.Schema(
           type: String,
           default: ""
         },
-        
+
         accountDetails: {
           type: {
             accountHolderName: { type: String },
@@ -152,7 +156,7 @@ const orderSchema = new mongoose.Schema(
           },
           default: null
         },
-        refundedAt:{type: Date, default: null},
+        refundedAt: { type: Date, default: null },
       },
       default: null
     }

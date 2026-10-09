@@ -62,6 +62,7 @@ export const GetAllOrders = async (req, res, next) => {
                 totalAmount: 1,
                 payment: 1,
                 shipping: 1,
+                picuprequest:1
               },
             },
           ],
@@ -184,14 +185,20 @@ export const GetLabels = async (req, res, next) => {
 
 
     if (type === "pending") {
-       await PickupGenerationService(time, date, generatedWaybills.length)
+      const pikup =  await PickupGenerationService(time, date, generatedWaybills.length)
+      const picuprequest = {
+        picupId:pikup.pickup_id,
+        picupTime:pikup.pickup_time || time,
+        picupdate:pikup.pickup_date || date,
+      }
+
       await orderModel.updateMany(
         {
           waybill: { $in: generatedWaybills },
           status: "pending"
         },
         {
-          $set: { status: "accepted" }
+          $set: { status: "accepted",picuprequest }
         }
       );
     }

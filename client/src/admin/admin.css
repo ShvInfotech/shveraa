@@ -931,6 +931,13 @@
 .shv-table-order-id {
   font-weight: 700;
   color: var(--admin-text-main);
+  cursor: pointer;
+  transition: color 0.15s ease, text-decoration 0.15s ease;
+}
+
+.shv-table-order-id:hover {
+  text-decoration: underline;
+  color: #000000;
 }
 
 .shv-table-item-cell {
@@ -3002,6 +3009,12 @@
     font-size: 0.92rem;
     font-weight: 700;
     color: var(--admin-text-main);
+    cursor: pointer;
+    transition: color 0.15s ease;
+  }
+
+  .shv-moc-order-id:hover {
+    text-decoration: underline;
   }
 
   .shv-moc-order-date {

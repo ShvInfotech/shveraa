@@ -11923,8 +11923,8 @@ h4 { font-size: 1.15rem; }
   color: #1F1B17;
 }
 
-/* 4-Stage Stepper */
-.shv-track-stepper {
+/* 4-Stage Stepper (Legacy) */
+.shv-track-stepper-legacy {
   background: #FFFFFF;
   border-radius: 1.25rem;
   padding: 2.5rem 2rem;
@@ -11937,7 +11937,7 @@ h4 { font-size: 1.15rem; }
 }
 
 @media (max-width: 640px) {
-  .shv-track-stepper {
+  .shv-track-stepper-legacy {
     flex-direction: column;
     gap: 1.5rem;
   }
@@ -13464,6 +13464,10 @@ html, body {
   width: 100%;
 }
 
+.shv-wishlist-item-card .product-image-container::before {
+  display: none !important;
+}
+
 .shv-wishlist-item-card .product-image-container a,
 .shv-wishlist-item-card .product-image-link {
   display: block;
@@ -13477,10 +13481,12 @@ html, body {
   height: 100%;
 }
 
-.shv-wishlist-item-card .product-main-img {
+.shv-wishlist-item-card .product-main-img,
+.shv-wishlist-item-card .product-img-primary {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  opacity: 1 !important;
   transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
@@ -16013,13 +16019,19 @@ html, body {
   flex-shrink: 0;
 }
 
-/* Stepper Bar */
-.shv-track-stepper {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+/* Stepper Bar inside Hero Card */
+.shv-track-stepper,
+.shv-track-hero-card .shv-track-stepper {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
   gap: 8px;
-  padding-top: 1.25rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 1.25rem 0 0 0 !important;
+  border: none !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  margin-bottom: 0 !important;
+  box-shadow: none !important;
   position: relative;
 }
 
@@ -16061,15 +16073,16 @@ html, body {
 }
 
 .shv-step-title {
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 600;
   color: #94A3B8;
-  line-height: 1.2;
+  line-height: 1.25;
 }
 
 .shv-step-node.completed .shv-step-title,
 .shv-step-node.current .shv-step-title {
-  color: #F8FAFC;
+  color: #FFFFFF !important;
+  font-weight: 700;
 }
 
 /* Telemetry Timeline */
@@ -16532,7 +16545,8 @@ html, body {
   transition: opacity 0.35s ease, transform 0.5s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
-.product-img-primary.loaded {
+.product-img-primary.loaded,
+.shv-wishlist-item-card .product-img-primary {
   opacity: 1 !important;
 }
 

@@ -1264,20 +1264,23 @@ if (!/[!@#$%^&*]/.test(formData.newPassword)) {
                     const variantSizes = getVariantSizes(product);
                     const currentSize = selectedSizes[prodId] || variantSizes[0] || 'Standard';
                     const firstVariant = product.variants?.[0];
-                    const imageSrc =
+                    const rawPrimary =
                       firstVariant?.images?.[0] ||
                       (product.images && product.images[0]) ||
                       product.image ||
                       '/hero-ring-banner.jpg';
-                    const secondaryImg =
+                    const imageSrc = getImageUrl(rawPrimary) || '/hero-ring-banner.jpg';
+
+                    const rawSecondary =
                       firstVariant?.images?.[1] ||
                       (product.images && product.images[1]) ||
-                      imageSrc;
+                      rawPrimary;
+                    const secondaryImg = getImageUrl(rawSecondary) || imageSrc;
 
                     return (
                       <div key={prodId} className="shv-wishlist-item-card">
                         {/* Card Media with Smooth Image Stack */}
-                        <div className="product-image-container">
+                        <div className="product-image-container loaded">
                           <Link
                             to={`/product/${product.slug || product._id}`}
                             className="product-image-link"
@@ -1287,9 +1290,15 @@ if (!/[!@#$%^&*]/.test(formData.newPassword)) {
                                 src={imageSrc}
                                 alt={product.name}
                                 loading="lazy"
-                                className="product-main-img product-img-primary"
+                                className="product-main-img product-img-primary loaded"
+                                onLoad={(e) => {
+                                  e.currentTarget.classList.add('loaded');
+                                  e.currentTarget.closest('.product-image-container')?.classList.add('loaded');
+                                }}
                                 onError={(e) => {
                                   e.currentTarget.src = '/hero-ring-banner.jpg';
+                                  e.currentTarget.classList.add('loaded');
+                                  e.currentTarget.closest('.product-image-container')?.classList.add('loaded');
                                 }}
                               />
                               {secondaryImg && secondaryImg !== imageSrc && (
@@ -1339,7 +1348,7 @@ if (!/[!@#$%^&*]/.test(formData.newPassword)) {
 
                             <div className="shv-wishlist-price-row">
                               <span className="shv-wishlist-price">
-                                ₹{Number(product.price || 0).toLocaleString('en-IN')}
+                                ₹{firstVariant?.sizes[0]?.price.toLocaleString('en-IN')}
                               </span>
                               {Boolean(product.originalPrice && Number(product.originalPrice) > Number(product.price)) && (
                                 <span className="shv-wishlist-orig-price">

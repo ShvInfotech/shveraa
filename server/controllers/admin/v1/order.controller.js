@@ -59,11 +59,11 @@ export const GetAllOrders = async (req, res, next) => {
                 createdAt: 1,
                 updatedAt: 1,
                 items: 1,
-                discount:1,
+                discount: 1,
                 shippingcharges: 1,
                 totalAmount: 1,
                 payment: 1,
-                picuprequest:1
+                picuprequest: 1
               },
             },
           ],
@@ -186,11 +186,22 @@ export const GetLabels = async (req, res, next) => {
 
 
     if (type === "pending") {
-      const pikup =  await PickupGenerationService(time, date, generatedWaybills.length)
-      const picuprequest = {
-        picupId:pikup.pickup_id,
-        picupTime:pikup.pickup_time || time,
-        picupdate:pikup.pickup_date || date,
+      const pikup = await PickupGenerationService(time, date, generatedWaybills.length)
+
+
+
+      if (pikup?.prepaid) {
+        return next(CustomeError(400, pikup.prepaid))
+      }
+
+
+      const picuprequest = {}
+      if (pikup?.pickup_id) {
+        picuprequest = {
+          picupId: pikup.pickup_id,
+          picupTime: pikup.pickup_time || time,
+          picupdate: pikup.pickup_date || date,
+        }
       }
 
       await orderModel.updateMany(
@@ -199,7 +210,7 @@ export const GetLabels = async (req, res, next) => {
           status: "pending"
         },
         {
-          $set: { status: "accepted",picuprequest }
+          $set: { status: "accepted", picuprequest }
         }
       );
     }

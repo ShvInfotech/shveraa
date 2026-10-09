@@ -59,9 +59,10 @@ export const GetAllOrders = async (req, res, next) => {
                 createdAt: 1,
                 updatedAt: 1,
                 items: 1,
+                discount:1,
+                shippingcharges: 1,
                 totalAmount: 1,
                 payment: 1,
-                shipping: 1,
                 picuprequest:1
               },
             },

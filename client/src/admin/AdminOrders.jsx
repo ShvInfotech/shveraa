@@ -15,7 +15,7 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery, isLoading = false })
   const [labelNotice, setLabelNotice] = useState(null);
   const [pickupDate, setPickupDate] = useState('');
   const [pickupTime, setPickupTime] = useState('');
-
+  console.log(orders)
   // Filter orders – uses real DB fields
   const filteredOrders = orders.filter((ord) => {
     const matchesTab =
@@ -178,132 +178,132 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery, isLoading = false })
       <div className="shv-admin-table-card">
         {/* Bulk Action & Select All Bar */}
         <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '0.75rem 1.25rem',
-              background: selectedOrderIds.length > 0 ? '#F1F5F9' : '#FAFAFB',
-              borderBottom: '1px solid var(--admin-border)',
-              flexWrap: 'wrap',
-              gap: '0.75rem',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0.75rem 1.25rem',
+            background: selectedOrderIds.length > 0 ? '#F1F5F9' : '#FAFAFB',
+            borderBottom: '1px solid var(--admin-border)',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <button
+              type="button"
+              onClick={handleToggleSelectAll}
+              className="shv-table-filter-btn"
+              style={{
+                background: isAllSelected ? '#1E2229' : '#FFFFFF',
+                color: isAllSelected ? '#FFFFFF' : 'var(--admin-text-main)',
+                borderColor: isAllSelected ? '#1E2229' : 'var(--admin-border)',
+                fontSize: '0.8rem',
+                padding: '0.4rem 0.85rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              <CheckSquare size={14} />
+              <span>{isAllSelected ? 'Deselect All' : `Select All (${filteredOrders.length})`}</span>
+            </button>
+
+            {selectedOrderIds.length > 0 && (
+              <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--admin-text-main)' }}>
+                {selectedOrderIds.length} of {filteredOrders.length} orders selected
+              </span>
+            )}
+          </div>
+
+          {selectedOrderIds.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--admin-text-muted)', fontWeight: 500 }}>
+                Download Label:
+              </span>
+
+              {/* Only a pending batch books a Delhivery pickup, so only it needs a slot. */}
+              {selectedStatusTab === 'pending' && (
+                <>
+                  <input
+                    type="date"
+                    value={pickupDate}
+                    min={todayISODate()}
+                    onChange={(e) => {
+                      setPickupDate(e.target.value);
+                      setLabelNotice(null);
+                    }}
+                    className="shv-overview-select"
+                    aria-label="Pickup date"
+                    title="Select Delhivery Pickup Date"
+                    style={{
+                      padding: '0.35rem 0.6rem',
+                      fontSize: '0.8rem',
+                      borderColor: labelNotice?.tone === 'error' && !pickupDate ? '#EF4444' : undefined,
+                    }}
+                  />
+                  <input
+                    type="time"
+                    value={pickupTime}
+                    onChange={(e) => {
+                      setPickupTime(e.target.value);
+                      setLabelNotice(null);
+                    }}
+                    className="shv-overview-select"
+                    aria-label="Pickup time"
+                    title="Select Delhivery Pickup Time"
+                    style={{
+                      padding: '0.35rem 0.6rem',
+                      fontSize: '0.8rem',
+                      borderColor: labelNotice?.tone === 'error' && !pickupTime ? '#EF4444' : undefined,
+                    }}
+                  />
+                </>
+              )}
+
               <button
                 type="button"
-                onClick={handleToggleSelectAll}
-                className="shv-table-filter-btn"
+                disabled={isDownloadingLabels}
+                onClick={handleDownloadLabels}
+                className="shv-btn-primary"
                 style={{
-                  background: isAllSelected ? '#1E2229' : '#FFFFFF',
-                  color: isAllSelected ? '#FFFFFF' : 'var(--admin-text-main)',
-                  borderColor: isAllSelected ? '#1E2229' : 'var(--admin-border)',
+                  padding: '0.35rem 0.85rem',
                   fontSize: '0.8rem',
-                  padding: '0.4rem 0.85rem',
-                  display: 'flex',
+                  display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '0.45rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
+                  gap: '0.4rem',
+                  opacity: isDownloadingLabels ? 0.6 : 1,
+                  cursor: isDownloadingLabels ? 'progress' : 'pointer',
                 }}
               >
-                <CheckSquare size={14} />
-                <span>{isAllSelected ? 'Deselect All' : `Select All (${filteredOrders.length})`}</span>
+                {isDownloadingLabels ? (
+                  <LoaderCircle size={14} className="shv-admin-spin" />
+                ) : (
+                  <Download size={14} />
+                )}
+                <span>{isDownloadingLabels ? 'Generating…' : 'Download Label'}</span>
               </button>
 
-              {selectedOrderIds.length > 0 && (
-                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--admin-text-main)' }}>
-                  {selectedOrderIds.length} of {filteredOrders.length} orders selected
+              {labelNotice && (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    color: labelNotice.tone === 'error' ? 'var(--admin-red)' : 'var(--admin-green)',
+                  }}
+                >
+                  {labelNotice.tone === 'error' ? <CircleAlert size={14} /> : <CircleCheck size={14} />}
+                  <span>{labelNotice.text}</span>
                 </span>
               )}
             </div>
-
-            {selectedOrderIds.length > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.8rem', color: 'var(--admin-text-muted)', fontWeight: 500 }}>
-                  Download Label:
-                </span>
-
-                {/* Only a pending batch books a Delhivery pickup, so only it needs a slot. */}
-                {selectedStatusTab === 'pending' && (
-                  <>
-                    <input
-                      type="date"
-                      value={pickupDate}
-                      min={todayISODate()}
-                      onChange={(e) => {
-                        setPickupDate(e.target.value);
-                        setLabelNotice(null);
-                      }}
-                      className="shv-overview-select"
-                      aria-label="Pickup date"
-                      title="Select Delhivery Pickup Date"
-                      style={{
-                        padding: '0.35rem 0.6rem',
-                        fontSize: '0.8rem',
-                        borderColor: labelNotice?.tone === 'error' && !pickupDate ? '#EF4444' : undefined,
-                      }}
-                    />
-                    <input
-                      type="time"
-                      value={pickupTime}
-                      onChange={(e) => {
-                        setPickupTime(e.target.value);
-                        setLabelNotice(null);
-                      }}
-                      className="shv-overview-select"
-                      aria-label="Pickup time"
-                      title="Select Delhivery Pickup Time"
-                      style={{
-                        padding: '0.35rem 0.6rem',
-                        fontSize: '0.8rem',
-                        borderColor: labelNotice?.tone === 'error' && !pickupTime ? '#EF4444' : undefined,
-                      }}
-                    />
-                  </>
-                )}
-
-                <button
-                  type="button"
-                  disabled={isDownloadingLabels}
-                  onClick={handleDownloadLabels}
-                  className="shv-btn-primary"
-                  style={{
-                    padding: '0.35rem 0.85rem',
-                    fontSize: '0.8rem',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    opacity: isDownloadingLabels ? 0.6 : 1,
-                    cursor: isDownloadingLabels ? 'progress' : 'pointer',
-                  }}
-                >
-                  {isDownloadingLabels ? (
-                    <LoaderCircle size={14} className="shv-admin-spin" />
-                  ) : (
-                    <Download size={14} />
-                  )}
-                  <span>{isDownloadingLabels ? 'Generating…' : 'Download Label'}</span>
-                </button>
-
-                {labelNotice && (
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.35rem',
-                      fontSize: '0.78rem',
-                      fontWeight: 600,
-                      color: labelNotice.tone === 'error' ? 'var(--admin-red)' : 'var(--admin-green)',
-                    }}
-                  >
-                    {labelNotice.tone === 'error' ? <CircleAlert size={14} /> : <CircleCheck size={14} />}
-                    <span>{labelNotice.text}</span>
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
+          )}
+        </div>
 
         <div className="shv-admin-table-wrap desktop-orders-table">
           <table className="shv-admin-table">
@@ -442,7 +442,7 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery, isLoading = false })
                         </div>
                       </td>
                       <td>
-                          <p className={`shv-status-pill ${getStatusBadgeClass(ord.status)}`}>{ord.status || 'pending'}</p>
+                        <p className={`shv-status-pill ${getStatusBadgeClass(ord.status)}`}>{ord.status || 'pending'}</p>
                       </td>
                       <td>
                         <button
@@ -596,7 +596,7 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery, isLoading = false })
                 Phone: {selectedOrder.userData?.phone || selectedOrder.address?.phone || '—'}
               </div>
               <div style={{ fontSize: '0.84rem', color: 'var(--admin-text-main)' }}>
-                address: {`${selectedOrder.address?.addressline},${selectedOrder.address?.city},${selectedOrder.address?.state},${selectedOrder.address?.pincode}`  || selectedOrder.address?.phone || '—'}
+                address: {`${selectedOrder.address?.addressline},${selectedOrder.address?.city},${selectedOrder.address?.state},${selectedOrder.address?.pincode}` || selectedOrder.address?.phone || '—'}
               </div>
             </div>
 
@@ -650,8 +650,22 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery, isLoading = false })
             {/* Total & actions */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '1rem', borderTop: '1px solid var(--admin-border)' }}>
               <div>
-                <span style={{ fontSize: '0.82rem', color: 'var(--admin-text-muted)' }}>Total Amount: </span>
-                <strong style={{ fontSize: '1.2rem' }}>₹{Number(selectedOrder.totalAmount || 0).toLocaleString('en-IN')}</strong>
+
+                <div>
+
+                  <span style={{ fontSize: '0.82rem', color: 'var(--admin-text-muted)' }}>discount: </span>
+                  <span style={{ fontSize: '1.2rem' }}>₹{Number(selectedOrder.discount || 0).toLocaleString('en-IN')}</span>
+                </div>
+
+                <div>
+                  <span style={{ fontSize: '0.82rem', color: 'var(--admin-text-muted)' }}>Shipping Charges: </span>
+                  <span style={{ fontSize: '1.2rem' }}>₹{Number(selectedOrder.shippingcharges || 0).toLocaleString('en-IN')}</span>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.82rem', color: 'var(--admin-text-muted)' }}>Total Amount: </span>
+                  <strong style={{ fontSize: '1.2rem' }}>₹{Number(selectedOrder.totalAmount || 0).toLocaleString('en-IN')}</strong>
+                </div>
+
                 <div style={{ fontSize: '0.76rem', color: 'var(--admin-text-muted)', marginTop: 2 }}>
                   Payment: <span style={{ textTransform: 'capitalize', fontWeight: 600 }}>
                     {selectedOrder.payment?.method} — {selectedOrder.payment?.status}

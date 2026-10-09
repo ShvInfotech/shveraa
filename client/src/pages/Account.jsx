@@ -489,9 +489,10 @@ const Account = () => {
   };
 
   const handleMoveToBag = async (product) => {
+    console.log(product)
     const id = product._id || product.slug;
     const { size, options } = getCartSelection(product, selectedSizes[id]);
-    const added = await addToCart(product, size, 1, options);
+    const added = await addToCart({...product,price:1999}, size, 1, options);
 
     if (added) {
       toggleWishlist(product);
@@ -1348,9 +1349,21 @@ if (!/[!@#$%^&*]/.test(formData.newPassword)) {
 
                             <div className="shv-wishlist-price-row">
                               <span className="shv-wishlist-price">
-                                ₹{firstVariant?.sizes[0]?.price.toLocaleString('en-IN')}
+                                ₹{(() => {
+                                  const sizeObj = firstVariant?.sizes?.find?.(s => (typeof s === 'object' ? s.size : s) === currentSize) ||
+                                    firstVariant?.sizes?.[0];
+                                  const variantPrice = typeof sizeObj === 'object' ? sizeObj.price : null;
+                                  return (variantPrice || product.price || product.salePrice || 0).toLocaleString('en-IN');
+                                })()}
                               </span>
-                              {Boolean(product.originalPrice && Number(product.originalPrice) > Number(product.price)) && (
+                              {Boolean(product.originalPrice && Number(product.originalPrice) > Number(
+                                (() => {
+                                  const sizeObj = firstVariant?.sizes?.find?.(s => (typeof s === 'object' ? s.size : s) === currentSize) ||
+                                    firstVariant?.sizes?.[0];
+                                  const variantPrice = typeof sizeObj === 'object' ? sizeObj.price : null;
+                                  return variantPrice || product.price || product.salePrice || 0;
+                                })()
+                              )) && (
                                 <span className="shv-wishlist-orig-price">
                                   ₹{Number(product.originalPrice).toLocaleString('en-IN')}
                                 </span>
@@ -1358,7 +1371,7 @@ if (!/[!@#$%^&*]/.test(formData.newPassword)) {
                             </div>
 
                             {/* Size selector if variants exist */}
-                            {variantSizes.length > 1 && (
+                            {/* {variantSizes.length > 1 && (
                               <div className="shv-wishlist-size-row">
                                 <span className="shv-wishlist-size-label">Size:</span>
                                 <div className="shv-wishlist-size-pills">
@@ -1374,17 +1387,22 @@ if (!/[!@#$%^&*]/.test(formData.newPassword)) {
                                   ))}
                                 </div>
                               </div>
-                            )}
+                            )} */}
                           </div>
 
                           {/* Move to Bag Action Button */}
                           <button
                             type="button"
-                            onClick={() => handleMoveToBag(product)}
+                            onClick={() => handleMoveToBag(product, currentSize)}
                             className="btn btn-primary btn-sm shv-wishlist-add-btn"
                           >
                             <ShoppingBag size={14} />
-                            <span>Move to Bag</span>
+                            <span>Move to Bag • ₹{(() => {
+                              const sizeObj = firstVariant?.sizes?.find?.(s => (typeof s === 'object' ? s.size : s) === currentSize) ||
+                                firstVariant?.sizes?.[0];
+                              const variantPrice = typeof sizeObj === 'object' ? sizeObj.price : null;
+                              return (variantPrice || product.price || product.salePrice || 0).toLocaleString('en-IN');
+                            })()}</span>
                           </button>
                         </div>
                       </div>

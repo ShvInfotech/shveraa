@@ -741,7 +741,7 @@ export const ReturnShipment = async (req, res, next) => {
       (currentDate - completeAt) / (1000 * 60 * 60 * 24)
     );
 
-    if (daysPassed >= 7) {
+    if (daysPassed >= 2) {
       return next(CustomeError(400, "Return period has expired. Returns are allowed only within 7 days of delivery"));
     }
 

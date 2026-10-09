@@ -195,7 +195,7 @@ export const GetLabels = async (req, res, next) => {
       }
 
 
-      const picuprequest = {}
+      let picuprequest = {}
       if (pikup?.pickup_id) {
         picuprequest = {
           picupId: pikup.pickup_id,

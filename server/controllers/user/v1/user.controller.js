@@ -391,8 +391,10 @@ export const GetCart = async (req, res, next) => {
 };
 
 export const SyncCart = async (req, res, next) => {
+
   try {
     const { cart } = req.body || {};
+    console.log(cart)
     if (!Array.isArray(cart)) return next(CustomeError(422, 'cart must be an array'));
 
     // Delete all existing items for user then reinsert
@@ -410,6 +412,7 @@ export const SyncCart = async (req, res, next) => {
 
 export const AddToCart = async (req, res, next) => {
   try {
+    console.log(req.body)
     const { productId, variantId, name, price, originalPrice, image, category, size, color, quantity } = req.body || {};
     if (!productId || !name || !price) {
       return next(CustomeError(422, 'productId, name and price are required'));

@@ -314,7 +314,7 @@ const Wishlist = () => {
                       </div>
 
                       {/* Size Selection Pills */}
-                      {variantSizes.length > 0 && (
+                      {/* {variantSizes.length > 0 && (
                         <div className="shv-wishlist-size-picker">
                           <span className="shv-wishlist-size-label">Size:</span>
                           <div className="shv-wishlist-size-pills">
@@ -332,7 +332,7 @@ const Wishlist = () => {
                             ))}
                           </div>
                         </div>
-                      )}
+                      )} */}
 
                       {/* Move to Bag Button */}
                       <button
@@ -341,7 +341,7 @@ const Wishlist = () => {
                         className="btn btn-primary shv-wishlist-add-btn"
                       >
                         <ShoppingBag size={15} />
-                        <span>Move to Bag • ₹{product.price?.toLocaleString('en-IN')}</span>
+                        <span>Move to Bag</span>
                       </button>
                     </div>
                   </div>

@@ -14,6 +14,7 @@ import {
   Gift,
   ChevronRight,
   MapPin,
+  RefreshCw,
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -160,11 +161,6 @@ const Checkout = () => {
 
   // Payment Method State: 'upi', 'card', 'netbanking', 'cod'
   const [paymentMethod, setPaymentMethod] = useState('upi');
-  const [upiId, setUpiId] = useState('');
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardExpiry, setCardExpiry] = useState('');
-  const [cardCvv, setCardCvv] = useState('');
-  const [selectedBank, setSelectedBank] = useState('HDFC Bank');
 
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [isPaymentVerifying, setIsPaymentVerifying] = useState(false);
@@ -177,30 +173,121 @@ const Checkout = () => {
   const deliverySurcharge = deliveryOption === 'whiteglove' ? 249 : 0;
   const finalPayable = Math.max(0, Math.round(cartTotal + deliverySurcharge));
 
+  // Shipping rates per payment method (fetched upfront in parallel based on pincode)
+  const [shippingRates, setShippingRates] = useState({
+    prepaid: null,
+    cod: null,
+    prepaidError: '',
+    codError: '',
+  });
+  const [isCheckingShipping, setIsCheckingShipping] = useState(false);
+
   useEffect(() => {
-    if (!cart.length || !/^\d{6}$/.test(pincode)) return;
+    if (!cart.length || !/^\d{6}$/.test(pincode)) {
+      setShippingRates({ prepaid: null, cod: null, prepaidError: '', codError: '' });
+      setShippingCost(0);
+      return;
+    }
 
     const cartIds = cart.map((item) => item._id).filter(Boolean);
     if (!cartIds.length) return;
 
     const requestId = ++shippingRequestId.current;
-    const isCod = paymentMethod === 'cod';
-    apiCheckShippingDetails(cartIds, pincode, isCod ? 'COD' : 'Pre-paid', isCod ? Math.max(0, cartSubtotal - discountAmount) : 0,)
-      .then((data) => {
-        if (requestId === shippingRequestId.current && data?.shippingCharges !== undefined) {
-          setShippingCost(Math.round(Number(data.shippingCharges) || 0));
+    setIsCheckingShipping(true);
+
+    const payableCodAmount = Math.max(0, cartSubtotal - discountAmount);
+
+    Promise.allSettled([
+      apiCheckShippingDetails(cartIds, pincode, 'Pre-paid', 0),
+      apiCheckShippingDetails(cartIds, pincode, 'COD', payableCodAmount),
+    ])
+      .then(([prepaidRes, codRes]) => {
+        if (requestId !== shippingRequestId.current) return;
+
+        const prepaidCost =
+          prepaidRes.status === 'fulfilled' && prepaidRes.value?.shippingCharges !== undefined
+            ? Math.round(Number(prepaidRes.value.shippingCharges) || 0)
+            : null;
+        const prepaidError = prepaidRes.status === 'rejected' ? (prepaidRes.reason?.message || 'Error') : '';
+
+        const codCost =
+          codRes.status === 'fulfilled' && codRes.value?.shippingCharges !== undefined
+            ? Math.round(Number(codRes.value.shippingCharges) || 0)
+            : null;
+        const codError = codRes.status === 'rejected' ? (codRes.reason?.message || 'Error') : '';
+
+        setShippingRates({
+          prepaid: prepaidCost,
+          cod: codCost,
+          prepaidError,
+          codError,
+        });
+
+        // Set the active shipping cost for the currently selected payment method
+        const activeCost = paymentMethod === 'cod' ? codCost : prepaidCost;
+        if (activeCost !== null && activeCost !== undefined) {
+          setShippingCost(activeCost);
         }
       })
       .catch((error) => {
         if (requestId === shippingRequestId.current) {
           console.error('Error checking checkout shipping charges:', error);
         }
+      })
+      .finally(() => {
+        if (requestId === shippingRequestId.current) {
+          setIsCheckingShipping(false);
+        }
       });
 
     return () => {
       shippingRequestId.current += 1;
     };
-  }, [cart, pincode, paymentMethod, cartSubtotal, discountAmount, setShippingCost]);
+  }, [cart, pincode, cartSubtotal, discountAmount, setShippingCost]);
+
+  // Keep shippingCost in sync whenever paymentMethod changes without extra API calls
+  useEffect(() => {
+    const activeCost = paymentMethod === 'cod' ? shippingRates.cod : shippingRates.prepaid;
+    if (activeCost !== null && activeCost !== undefined) {
+      setShippingCost(activeCost);
+    }
+  }, [paymentMethod, shippingRates, setShippingCost]);
+
+  const renderShippingBadge = (type) => {
+    if (!pincode || !/^\d{6}$/.test(pincode)) {
+      return null;
+    }
+    if (isCheckingShipping) {
+      return (
+        <span className="shv-pay-charge-badge loading">
+          <RefreshCw size={10} className="shv-spin-icon" />
+          <span>Calculating...</span>
+        </span>
+      );
+    }
+    const cost = type === 'cod' ? shippingRates.cod : shippingRates.prepaid;
+    const error = type === 'cod' ? shippingRates.codError : shippingRates.prepaidError;
+
+    if (cost !== null && cost !== undefined) {
+      if (cost === 0) {
+        return <span className="shv-pay-charge-badge free">FREE Delivery</span>;
+      }
+      return (
+        <span className={`shv-pay-charge-badge ${type === 'cod' ? 'cod' : 'prepaid'}`}>
+          +₹{cost} {type === 'cod' ? 'COD Delivery' : 'Delivery'}
+        </span>
+      );
+    }
+
+    if (error) {
+      return (
+        <span className="shv-pay-charge-badge error">
+          {type === 'cod' ? 'COD Unavailable' : 'Unavailable'}
+        </span>
+      );
+    }
+    return null;
+  };
 
   const cachePlacedOrder = (orderData) => {
     try {
@@ -778,22 +865,11 @@ const Checkout = () => {
                           <QrCode size={18} className="shv-pay-icon" />
                           <span>UPI Instant Pay (GPay, PhonePe, Paytm, QR)</span>
                         </div>
-                        <span className="shv-pay-rec-badge">Recommended</span>
-                      </div>
-
-                      {paymentMethod === 'upi' && (
-                        <div className="shv-payment-nested-details">
-                          <p>Enter your UPI VPA or scan QR code on the confirmation screen:</p>
-                          <div className="shv-input-group">
-                            <input
-                              type="text"
-                              placeholder="username@okhdfcbank / mobile@upi"
-                              value={upiId}
-                              onChange={(e) => setUpiId(e.target.value)}
-                            />
-                          </div>
+                        <div className="shv-pay-badges-wrap">
+                          <span className="shv-pay-rec-badge">Recommended</span>
+                          {renderShippingBadge('prepaid')}
                         </div>
-                      )}
+                      </div>
                     </label>
 
                     {/* Credit / Debit Card Option */}
@@ -811,42 +887,10 @@ const Checkout = () => {
                           <CreditCard size={18} className="shv-pay-icon" />
                           <span>Credit / Debit Card (Visa, MasterCard, RuPay, Amex)</span>
                         </div>
-                      </div>
-
-                      {paymentMethod === 'card' && (
-                        <div className="shv-payment-nested-details">
-                          <div className="shv-input-group">
-                            <label>Card Number</label>
-                            <input
-                              type="text"
-                              placeholder="4123 •••• •••• 9842"
-                              value={cardNumber}
-                              onChange={(e) => setCardNumber(e.target.value)}
-                            />
-                          </div>
-                          <div className="shv-form-row">
-                            <div className="shv-input-group">
-                              <label>Expiry (MM/YY)</label>
-                              <input
-                                type="text"
-                                placeholder="12/28"
-                                value={cardExpiry}
-                                onChange={(e) => setCardExpiry(e.target.value)}
-                              />
-                            </div>
-                            <div className="shv-input-group">
-                              <label>CVV</label>
-                              <input
-                                type="password"
-                                maxLength={4}
-                                placeholder="•••"
-                                value={cardCvv}
-                                onChange={(e) => setCardCvv(e.target.value)}
-                              />
-                            </div>
-                          </div>
+                        <div className="shv-pay-badges-wrap">
+                          {renderShippingBadge('prepaid')}
                         </div>
-                      )}
+                      </div>
                     </label>
 
                     {/* NetBanking Option */}
@@ -864,22 +908,10 @@ const Checkout = () => {
                           <Building size={18} className="shv-pay-icon" />
                           <span>NetBanking (50+ Indian Banks)</span>
                         </div>
-                      </div>
-
-                      {paymentMethod === 'netbanking' && (
-                        <div className="shv-payment-nested-details">
-                          <select
-                            value={selectedBank}
-                            onChange={(e) => setSelectedBank(e.target.value)}
-                          >
-                            <option value="HDFC Bank">HDFC Bank</option>
-                            <option value="ICICI Bank">ICICI Bank</option>
-                            <option value="State Bank of India">State Bank of India</option>
-                            <option value="Axis Bank">Axis Bank</option>
-                            <option value="Kotak Mahindra Bank">Kotak Mahindra Bank</option>
-                          </select>
+                        <div className="shv-pay-badges-wrap">
+                          {renderShippingBadge('prepaid')}
                         </div>
-                      )}
+                      </div>
                     </label>
 
                     {/* Cash on Delivery (COD) */}
@@ -897,6 +929,9 @@ const Checkout = () => {
                           <Banknote size={18} className="shv-pay-icon" />
                           <span>Cash on Delivery (Doorstep Cash / UPI)</span>
                         </div>
+                        <div className="shv-pay-badges-wrap">
+                          {renderShippingBadge('cod')}
+                        </div>
                       </div>
 
                       {paymentMethod === 'cod' && (
@@ -904,6 +939,13 @@ const Checkout = () => {
                           <p>
                             An SMS &amp; WhatsApp verification will be sent before courier dispatch. You can pay via Cash or UPI at your doorstep.
                           </p>
+                          {shippingRates.cod !== null && (
+                            <p style={{ marginTop: '6px', fontWeight: 600, color: '#8C6A3E' }}>
+                              {shippingRates.cod === 0
+                                ? '✦ Cash on Delivery includes complimentary free shipping.'
+                                : `✦ ₹${shippingRates.cod} shipping charge is added for Cash on Delivery service.`}
+                            </p>
+                          )}
                         </div>
                       )}
                     </label>

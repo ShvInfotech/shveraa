@@ -7666,6 +7666,21 @@ h4 { font-size: 1.15rem; }
   }
 }
 
+/* Checkout right column – sticky summary */
+.shv-checkout-right-col {
+  position: sticky;
+  top: 116px;          /* navbar: primary-row(70px) + menu-row(33px) + 13px buffer */
+  align-self: start;   /* correct CSS Grid keyword */
+  max-height: calc(100vh - 130px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(160,126,82,0.3) transparent;
+}
+
+.shv-order-summary-sticky {
+  /* inner wrapper – no sticky needed here anymore */
+}
+
 .shv-checkout-step-card {
   background: #FFFFFF;
   border-radius: var(--radius-md);
@@ -7949,6 +7964,59 @@ h4 { font-size: 1.15rem; }
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+.shv-pay-badges-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.shv-pay-charge-badge {
+  font-size: 0.70rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+  transition: all 0.2s ease;
+}
+
+.shv-pay-charge-badge.free {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.shv-pay-charge-badge.prepaid {
+  background: rgba(59, 130, 246, 0.1);
+  color: #2563EB;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.shv-pay-charge-badge.cod {
+  background: rgba(160, 126, 82, 0.14);
+  color: #8C6A3E;
+  border: 1px solid rgba(160, 126, 82, 0.3);
+}
+
+.shv-pay-charge-badge.loading {
+  background: rgba(100, 116, 139, 0.1);
+  color: #64748B;
+  font-size: 0.68rem;
+  font-weight: 500;
+}
+
+.shv-pay-charge-badge.error {
+  background: rgba(239, 68, 68, 0.1);
+  color: #DC2626;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  font-size: 0.68rem;
 }
 
 .shv-cod-fee {
@@ -13490,12 +13558,26 @@ html, body {
   transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
+/* Secondary image must start hidden – override the shared product-main-img opacity:1 rule above */
+.shv-wishlist-item-card .product-img-secondary {
+  opacity: 0 !important;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
 .shv-wishlist-item-card:hover .product-main-img {
   transform: scale(1.05);
 }
 
 .shv-wishlist-item-card:hover .product-img-secondary {
-  opacity: 1;
+  opacity: 1 !important;
+  transform: scale(1.05);
 }
 
 .shv-wishlist-remove-btn {

@@ -193,7 +193,7 @@ const About = () => {
             <span className="shv-cta-eyebrow">Experience the Difference</span>
             <h2>Discover Certified 925 Silver Heirlooms</h2>
             <p>
-              Explore our current curation of rings, earrings, pendants, and bracelets, all backed by complimentary insured shipping and 2-3 days returns.
+              Explore our current curation of rings, earrings, pendants, and bracelets, all backed by complimentary insured shipping and 3 Days returns.
             </p>
             <div className="shv-cta-buttons">
               <Link to="/shop" className="btn btn-primary btn-lg">

@@ -26,6 +26,11 @@ const contactSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    status:{
+      type:String,
+      enum: ["not_replied", "replied"],
+      default:"not_replied"
+    }
   },
   {
     versionKey: false,

@@ -57,7 +57,7 @@ export const sendNotification = async (deviceTokens, title, body) => {
 
             webpush: {
                 notification: {
-                    icon: "https://res.cloudinary.com/dblxejpyp/image/upload/v1790678167/logo.png",
+                    icon: "https://shveraa.com/notification_icon.jpeg",
                 },
             },
         });

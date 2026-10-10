@@ -381,7 +381,7 @@ const Wishlist = () => {
           <div className="shv-w-trust-col">
             <RotateCcw size={20} className="shv-w-trust-icon" />
             <div>
-              <strong>2-3 Days Easy Returns</strong>
+              <strong>3 Days Easy Returns</strong>
               <span>Doorstep pickup with instant refunds</span>
             </div>
           </div>

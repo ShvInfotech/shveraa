@@ -67,11 +67,11 @@ const ROUTE_SEO = {
     desc: 'Preserve the mirror rhodium brilliance of your sterling silver jewellery with our official cleaning and storage guide.',
   },
   '/return-policy': {
-    title: '2-3 Days Returns & Exchange Policy | Shveraa Jewels',
-    desc: 'Enjoy effortless 2-3 days doorstep returns, size swaps, and full refunds on all unworn Shveraa creations.',
+    title: '3 Days Returns & Exchange Policy | Shveraa Jewels',
+    desc: 'Enjoy effortless 3 Days doorstep returns, size swaps, and full refunds on all unworn Shveraa creations.',
   },
   '/returns': {
-    title: '2-3 Days Returns & Exchange Policy | Shveraa Jewels',
+    title: '3 Days Returns & Exchange Policy | Shveraa Jewels',
     desc: 'Doorstep pickup returns and size exchanges on authentic solid 925 silver pieces.',
   },
   '/shipping': {

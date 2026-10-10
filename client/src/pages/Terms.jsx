@@ -94,7 +94,7 @@ const Terms = () => {
           </section>
 
           <section className="shv-legal-section">
-            <h2>5. 2-3 Days Returns &amp; Bespoke Exclusions</h2>
+            <h2>5. 3 Days Returns &amp; Bespoke Exclusions</h2>
             <p>
               We stand firmly behind the design and durability of our jewellery. Patrons are entitled to return or exchange eligible pieces within <strong>2-3 calendar days</strong> of delivery, provided the piece is in pristine, unworn condition with all certificates and packaging intact.
             </p>

@@ -804,7 +804,7 @@ const Shop = () => {
                 <RotateCcw size={20} strokeWidth={1.3} />
               </div>
               <div className="shv-shop-trust-text">
-                <h4>2-3 DAYS RETURN PERIOD</h4>
+                <h4>3 Days RETURN PERIOD</h4>
                 <p>Seamless doorstep exchange &amp; sizing swap</p>
               </div>
             </div>

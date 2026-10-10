@@ -16,9 +16,9 @@ const Returns = () => {
         {/* Hero Header */}
         <div className="shv-legal-header">
           <span className="shv-legal-eyebrow">The Shveraa Assurance</span>
-          <h1 className="shv-legal-title">2-3 Days Easy Returns &amp; Exchanges</h1>
+          <h1 className="shv-legal-title">3 Days Easy Returns &amp; Exchanges</h1>
           <p className="shv-legal-subtitle">
-            Acquiring fine silver should inspire complete serenity. If a silhouette doesn't fit your aesthetic or finger size with absolute perfection, our 2-3 days return protocol has you covered.
+            Acquiring fine silver should inspire complete serenity. If a silhouette doesn't fit your aesthetic or finger size with absolute perfection, our 3 Days return protocol has you covered.
           </p>
           <div className="shv-legal-meta">
             <span>Complimentary Insured Doorstep Pickup</span>
@@ -35,7 +35,7 @@ const Returns = () => {
               <RotateCcw size={20} />
             </div>
             <h3>Initiate Request</h3>
-            <p>Notify our atelier team via our WhatsApp Support or account portal within 2-3 days of receiving your silver parcel.</p>
+            <p>Notify our atelier team via our WhatsApp Support or account portal within 3 Days of receiving your silver parcel.</p>
           </div>
 
           <div className="shv-process-step-card">
@@ -93,7 +93,7 @@ const Returns = () => {
                 <ul>
                   <li>Custom laser-engraved rings or bespoke monograms personalized to your specific initials.</li>
                   <li>Pieces altered, re-sized, or repaired by independent local third-party jewelers.</li>
-                  <li>Requests submitted after the 2-3 days return window has expired.</li>
+                  <li>Requests submitted after the 3 Days return window has expired.</li>
                   <li>Items returned without original protective packaging.</li>
                 </ul>
               </div>
@@ -115,7 +115,7 @@ const Returns = () => {
           <section className="shv-legal-section">
             <h2>The Shveraa Lifetime Care Covenant</h2>
             <p>
-              Beyond the 2-3 days return window, your investment in Shveraa silver is safeguarded for life. Every piece is entitled to complimentary <strong>Lifetime Ultrasonic Spa Cleaning</strong> and annual <strong>Triple Rhodium Re-Dipping</strong> at our atelier to preserve its platinum-bright shine indefinitely.
+              Beyond the 3 Days return window, your investment in Shveraa silver is safeguarded for life. Every piece is entitled to complimentary <strong>Lifetime Ultrasonic Spa Cleaning</strong> and annual <strong>Triple Rhodium Re-Dipping</strong> at our atelier to preserve its platinum-bright shine indefinitely.
             </p>
           </section>
         </div>

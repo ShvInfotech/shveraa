@@ -489,10 +489,10 @@ const Account = () => {
   };
 
   const handleMoveToBag = async (product) => {
-    console.log(product)
     const id = product._id || product.slug;
     const { size, options } = getCartSelection(product, selectedSizes[id]);
-    const added = await addToCart({...product,price:1999}, size, 1, options);
+    const price = product.variants[0]?.sizes[0]?.price || product.price
+    const added = await addToCart({...product,price}, size, 1, options);
 
     if (added) {
       toggleWishlist(product);
@@ -505,10 +505,14 @@ const Account = () => {
   const handleMoveAllToBag = async () => {
     if (!wishlist || wishlist.length === 0) return;
     const movedProducts = [];
+    console.log(wishlist)
     for (const product of wishlist) {
+      
       const id = product._id || product.slug;
       const { size, options } = getCartSelection(product, selectedSizes[id]);
-      const added = await addToCart(product, size, 1, { ...options, silent: true });
+    const price = product.variants[0]?.sizes[0]?.price || product.price
+
+      const added = await addToCart({...product,price}, size, 1, { ...options, silent: true });
       if (added) movedProducts.push(product);
     }
     movedProducts.forEach((product) => toggleWishlist(product));

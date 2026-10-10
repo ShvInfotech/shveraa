@@ -3,6 +3,33 @@ import { Mail, Phone, MapPin, Clock, Send, CheckCircle2, ChevronDown, ChevronUp,
 import { sendContactMessage } from '../services/api';
 import { useDynamicStore } from '../services/storeService';
 
+const faqs = [
+  {
+    q: 'How do I find my correct ring size?',
+    a: 'We recommend using our Ring Size & Silver Care Guide available on the website. You can also WhatsApp us a photo of your finger next to a ruler, and our silversmith team will help you identify the perfect fit. Most Indian sizes fall between 6–18 (US 4–12).',
+  },
+  {
+    q: 'What is your return and exchange policy?',
+    a: 'We offer a 2-3 day easy doorstep return and exchange policy on all unworn pieces. Simply WhatsApp us your order ID within 3 days of delivery, and we will arrange a free pickup from your address. Refunds are processed within 5-7 business days.',
+  },
+  {
+    q: 'How long does shipping take?',
+    a: 'All orders are dispatched within 24-48 hours via BlueDart or Delhivery insured air express. Standard delivery takes 3-5 business days across India. You will receive a tracking AWB number as soon as your parcel is dispatched.',
+  },
+  {
+    q: 'Is your silver certified and hallmarked?',
+    a: 'Yes, every Shveraa piece is crafted from certified BIS hallmarked 925 sterling silver (92.5% pure silver). Each piece is laser-tested for purity and comes with an authenticity certificate, silver care pouch, and polishing cloth.',
+  },
+  {
+    q: 'Can I request custom engravings or bespoke designs?',
+    a: 'Absolutely! We offer custom laser engraving (names, dates, initials, symbols) on most pieces. For fully bespoke designs or bridal curations, please WhatsApp us or use the inquiry form above. Lead time for custom orders is typically 5-7 working days.',
+  },
+  {
+    q: 'What payment methods do you accept?',
+    a: 'We accept all major UPI apps (GPay, PhonePe, Paytm), Visa/Mastercard/RuPay debit & credit cards, Net Banking, and Cash on Delivery (COD). All online transactions are secured with 256-bit SSL encryption via Razorpay.',
+  },
+];
+
 const Contact = () => {
   const { settings } = useDynamicStore();
   const [formData, setFormData] = useState({

@@ -220,13 +220,13 @@ const AdminSidebar = ({
             <li>
               <button
                 type="button"
-                onClick={() => handleNav('support')}
-                className={`shv-sidebar-link ${currentTab === 'support' ? 'active' : ''}`}
-                title="Support & Help"
+                onClick={() => handleNav('inquiries')}
+                className={`shv-sidebar-link ${currentTab === 'inquiries' ? 'active' : ''}`}
+                title="Customer Inquiries"
               >
                 <div className="shv-sidebar-link-left">
-                  <HelpCircle size={18} />
-                  {!isCollapsed && <span>Support &amp; Help</span>}
+                  <MessageSquare size={18} />
+                  {!isCollapsed && <span>Inquiries</span>}
                 </div>
               </button>
             </li>

@@ -95,11 +95,13 @@ const buildSparkPath = (values) => {
 const PLACEHOLDER_IMAGE =
   'https://images.unsplash.com/photo-1605100804763-247f67b3557e?auto=format&fit=crop&w=200&q=85';
 
-const PENDING_FALLBACK_STATUSES = ['pending', 'accepted', 'processing', 'scheduled', 'on hold'];
+const PENDING_FALLBACK_STATUSES = ['pending'];
 
-const isDeliveredStatus = (status) => (status || '').toLowerCase() === 'delivered';
-const isActiveStatus = (status) =>
-  !['delivered', 'cancelled'].includes((status || '').toLowerCase());
+const isDeliveredStatus = (status) => (status || '').toLowerCase().trim() === 'delivered';
+const isActiveStatus = (status) => {
+  const s = (status || '').toLowerCase().trim();
+  return s !== 'delivered' && s !== 'cancelled';
+};
 
 // Shared markup for the three KPI tiles.
 const StatCard = ({ icon, label, value, trend, sparkPath, sparkColor }) => (
@@ -167,13 +169,14 @@ const AdminDashboard = ({ orders = [], onSelectOrder }) => {
   // dashboard fully populated from the orders already loaded by AdminLayout.
   const fallbackStats = useMemo(() => {
     const pending = orders.filter((o) =>
-      PENDING_FALLBACK_STATUSES.includes((o.status || '').toLowerCase())
+      (o.status || '').toLowerCase().trim() === 'pending'
     ).length;
     const delivered = orders.filter((o) => isDeliveredStatus(o.status)).length;
+    const total = orders.filter((o) => (o.status || '').toLowerCase().trim() !== 'cancelled').length;
     return {
       pending: { value: pending, trend: 0 },
       delivered: { value: delivered, trend: 0 },
-      total: { value: orders.length, trend: 0 },
+      total: { value: total, trend: 0 },
     };
   }, [orders]);
 
@@ -185,7 +188,8 @@ const AdminDashboard = ({ orders = [], onSelectOrder }) => {
       const end = new Date(now.getFullYear(), now.getMonth() - offset + 1, 1);
       const rows = orders.filter((o) => {
         const createdAt = new Date(o.createdAt);
-        return !Number.isNaN(createdAt.getTime()) && createdAt >= start && createdAt < end;
+        const notCancelled = (o.status || '').toLowerCase().trim() !== 'cancelled';
+        return notCancelled && !Number.isNaN(createdAt.getTime()) && createdAt >= start && createdAt < end;
       });
       buckets.push({
         month: start.toLocaleString('en-US', { month: 'short' }),
@@ -208,22 +212,25 @@ const AdminDashboard = ({ orders = [], onSelectOrder }) => {
           item: o.items?.[0]?.name || 'Order item',
           qty: Number(o.items?.[0]?.quantity ?? o.items?.[0]?.qty) || 1,
           date: formatDateValue(o.createdAt || o.date),
-          status: (o.status || 'pending').toLowerCase(),
+          status: (o.status || 'pending').toLowerCase().trim(),
         })),
     [orders]
   );
 
   const fallbackHistory = useMemo(
     () =>
-      orders.slice(0, 4).map((o, index) => ({
-        id: o._id || o.orderId || `history-${index}`,
-        orderCode: o.orderNumber || o.orderId || '—',
-        name: o.items?.[0]?.name || 'Order item',
-        image: o.items?.[0]?.image || '',
-        qty: Number(o.items?.[0]?.quantity ?? o.items?.[0]?.qty) || 1,
-        status: (o.status || 'pending').toLowerCase(),
-        date: formatDateValue(o.createdAt || o.date),
-      })),
+      orders
+        .filter((o) => (o.status || '').toLowerCase().trim() !== 'cancelled')
+        .slice(0, 4)
+        .map((o, index) => ({
+          id: o._id || o.orderId || `history-${index}`,
+          orderCode: o.orderNumber || o.orderId || '—',
+          name: o.items?.[0]?.name || 'Order item',
+          image: o.items?.[0]?.image || '',
+          qty: Number(o.items?.[0]?.quantity ?? o.items?.[0]?.qty) || 1,
+          status: (o.status || 'pending').toLowerCase().trim(),
+          date: formatDateValue(o.createdAt || o.date),
+        })),
     [orders]
   );
 
@@ -248,8 +255,8 @@ const AdminDashboard = ({ orders = [], onSelectOrder }) => {
 
   const visibleRows =
     tableFilter === 'All'
-      ? upcomingRows
-      : upcomingRows.filter((r) => (r.status || '').toLowerCase() === 'pending');
+      ? upcomingRows.filter((r) => (r.status || '').toLowerCase().trim() !== 'cancelled')
+      : upcomingRows.filter((r) => (r.status || '').toLowerCase().trim() === 'pending');
 
   const maxVolume = Math.max(...chartMonths.map((m) => m.volume), 1);
   const sparkPending = useMemo(

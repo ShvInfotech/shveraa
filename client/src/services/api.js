@@ -248,6 +248,31 @@ export const sendContactMessage = async (formData) => {
   }
 };
 
+// Admin: Get all customer inquiries
+export const apiGetInquiries = async () => {
+  const token = sessionStorage.getItem('shveraa_admin_token');
+  const res = await fetch(`${API_BASE_URL}/contact/Inquiry`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error(`Failed to fetch inquiries: ${res.status}`);
+  return await res.json();
+};
+
+// Admin: Update inquiry status (not_replied | replied)
+export const apiUpdateInquiryStatus = async (id, status) => {
+  const token = sessionStorage.getItem('shveraa_admin_token');
+  const res = await fetch(`${API_BASE_URL}/contact/Inquiry/${id}/status`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) throw new Error(`Failed to update inquiry: ${res.status}`);
+  return await res.json();
+};
+
 /* ==========================================================================
    UNIVERSAL API FETCH WITH 401 UNAUTHORIZED AUTOMATIC REDIRECT INTERCEPTOR
    ========================================================================== */
@@ -993,14 +1018,19 @@ export const apiGetProductReviews = async (productId) => {
 };
 
 // Fetch ALL orders for admin panel
-export const apiAdminGetAllOrders = async ({ page = 1, limit = 100, status, search } = {}) => {
-  const params = new URLSearchParams({ page, limit });
+
+export const apiAdminGetAllOrders = async ({ page = 1, limit, status, search } = {}) => {
+  const params = new URLSearchParams({ page });
+  if (limit) params.append('limit', limit);
   if (status && status !== 'All') params.append('status', status);
   if (search) params.append('search', search);
+
   const res = await apiFetch(`/api/v1/admin/orders/all?${params.toString()}`);
   const data = await res.json();
+
   if (!res.ok) throw new Error(data.message || 'Failed to fetch orders');
-  return data; // { success, orders, total }
+
+  return data;
 };
 
 // Fetch admin Return + RTO orders → GET /admin/orders/return-rto

@@ -353,6 +353,53 @@ export const RozerpayPaymentVerifyPlaceOrder = async (req, res, next) => {
     const tokens = admins.flatMap(admin => admin.deviceToken || []);
     sendNotification(tokens, "New Order Placed", `Order ${orderNumber} has been placed by ${req.user.name}.`);
 
+
+    for (const item of items) {
+  const product = await productModel.findOneAndUpdate(
+    {
+      _id: item.productId,
+      variants: {
+        $elemMatch: {
+          _id: item.variantId,
+          sizes: {
+            $elemMatch: {
+              size: item.size,
+              stock: { $gte: item.quantity }
+            }
+          }
+        }
+      }
+    },
+    {
+      $inc: {
+        "variants.$[variant].sizes.$[size].stock": -item.quantity
+      }
+    },
+    {
+      arrayFilters: [
+        { "variant._id": item.variantId },
+        { "size.size": item.size }
+      ],
+      new: true
+    }
+  );
+  
+
+  const variant = product?.variants.find(v => v._id.toString() === item.variantId.toString());
+  const size = variant.sizes.find(s =>s.size === item.size)
+  console.log("items",item)
+  console.log("items size",item.size)
+    console.log("size",size)
+
+    if( size.stock> 0 && size.stock < 3){
+      sendNotification(tokens,`Low Stock Aelert`,`${product.name} ${variant.color} ${size.size} stock is low. Remaining stock: ${size.stock}`)
+    }
+    
+    if(size.stock <=0){
+      sendNotification(tokens,`Out Of Stock`,`${product.name} ${variant.color} ${size.size}  is Out Of Stock`)
+    }
+  
+}
     return res.status(200).json({ success: true, message: "Payment verified and order placed successfully", order: newOrder });
   } catch (error) {
     return next(error);
@@ -511,23 +558,22 @@ export const PlaceCodeOrder = async (req, res, next) => {
 
     let waybill = "";
     try {
-      console.log(`[Delhivery] Attempting to create COD shipment for order ${orderNumber}...`);
+      
       const result = await CreateShippingOrderService(delhiveryPayload);
-      console.log(`[Delhivery] COD Order ${orderNumber} response:`, JSON.stringify(result));
-
+     
       if (result && result.success && result.packages && result.packages.length > 0) {
         const pkg = result.packages[0];
         if (pkg.status !== "Fail" && pkg.waybill) {
           waybill = pkg.waybill;
-          console.log(`[Delhivery] COD Shipment created successfully! Waybill: ${waybill}`);
+         
         } else {
-          console.warn("[Delhivery] COD Shipment package marked as Fail:", pkg.remarks || pkg);
+          console.log("[Delhivery] COD Shipment package marked as Fail:", pkg.remarks || pkg);
         }
       } else {
-        console.warn("[Delhivery] COD Shipment creation did not return success:", result?.rmk || result);
+        console.log("[Delhivery] COD Shipment creation did not return success:", result?.rmk || result);
       }
     } catch (delErr) {
-      console.error("[Delhivery] Error invoking CreateShippingOrderService for COD:", delErr.message);
+      console.log("[Delhivery] Error invoking CreateShippingOrderService for COD:", delErr.message);
     }
 
     const orderData = {
@@ -577,7 +623,54 @@ export const PlaceCodeOrder = async (req, res, next) => {
     const admins = await userModel.find({ role: "admin" }).select("deviceToken");
     const tokens = admins.flatMap(admin => admin.deviceToken || []);
     sendNotification(tokens, "New Order Placed", `Order ${orderNumber} has been placed by ${req.user.name}.`);
-    SendWahtsappMessage(9714920969, "order is confrom");
+    // SendWahtsappMessage(9714920969, "order is confrom");
+    
+// Reduce stock after order notification
+for (const item of items) {
+  const product = await productModel.findOneAndUpdate(
+    {
+      _id: item.productId,
+      variants: {
+        $elemMatch: {
+          _id: item.variantId,
+          sizes: {
+            $elemMatch: {
+              size: item.size,
+              stock: { $gte: item.quantity }
+            }
+          }
+        }
+      }
+    },
+    {
+      $inc: {
+        "variants.$[variant].sizes.$[size].stock": -item.quantity
+      }
+    },
+    {
+      arrayFilters: [
+        { "variant._id": item.variantId },
+        { "size.size": item.size }
+      ],
+      new: true
+    }
+  );
+  
+
+  const variant = product?.variants.find(v => v._id.toString() === item.variantId.toString());
+  const size = variant.sizes.find(s =>s.size === item.size)
+
+     if( size.stock> 0 && size.stock < 3){
+      sendNotification(tokens,`Low Stock Aelert`,`${product.name} ${variant.color} ${size.size} stock is low. Remaining stock: ${size.stock}`)
+    }
+    
+    if(size.stock <=0){
+      sendNotification(tokens,`Out Of Stock`,`${product.name} ${variant.color} ${size.size}  is Out Of Stock`)
+    }
+  
+}
+
+
     return res.status(200).json({ success: true, message: "Order placed successfully", order: newOrder });
   } catch (error) {
     return next(error);

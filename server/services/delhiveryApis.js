@@ -55,7 +55,7 @@ export const CheckShippingChargesService = async (delhiveryData) => {
     const baseUrl = getDelhiveryURL();
 
     const url = `https://track.delhivery.com/api/kinko/v1/invoice/charges/.json?${params.toString()}`;
-    console.log(url)
+    
     const token = process.env.DELHIVERY_AUTH_TOKEN;
     const response = await fetch(url, {
       method: "GET",
@@ -86,7 +86,6 @@ export const CreateShippingOrderService = async (shippingData) => {
     formData.append("data", JSON.stringify(shippingData));
 
     let baseUrl = getDelhiveryURL();
-    console.log(`[Delhivery] Calling Create Order API at: ${baseUrl}api/cmu/create.json`);
 
     let response = await fetch(`${baseUrl}api/cmu/create.json`, {
       method: "POST",
@@ -122,7 +121,6 @@ export const CreateShippingOrderService = async (shippingData) => {
       return { success: false, rmk: rawText.slice(0, 300) };
     }
 
-    console.log("[Delhivery] API Response:", JSON.stringify(data));
     return data;
   } catch (error) {
     console.error("CreateShippingOrderService Error:", error.message);
@@ -184,7 +182,6 @@ export const CancelShipmentService = async (waybill) => {
 export const LabelGenerationService = async (waybills) => {
   try {
     const wbns = waybills.join(",");
-console.log(process.env.DELHIVERY_AUTH_TOKEN)
     const response = await fetch(`${getDelhiveryURL()}api/p/packing_slip?wbns=${wbns}&pdf=true&pdf_size=`, {
       method: "GET",
       headers: {

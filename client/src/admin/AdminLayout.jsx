@@ -13,13 +13,10 @@ import AdminReturns from './AdminReturns';
 import AdminCoupons from './AdminCoupons';
 import AdminPayments from './AdminPayments';
 import AdminSettings from './AdminSettings';
+import AdminInquiries from './AdminInquiries';
 import { useDynamicStore, getAdminAuth, logoutAdmin } from '../services/storeService';
 import { apiAdminGetAllOrders } from '../services/api';
 import {
-  HelpCircle,
-  Mail,
-  Phone,
-  MessageSquare,
   LayoutDashboard,
   ShoppingBag,
   Package,
@@ -38,13 +35,15 @@ const AdminLayout = () => {
   const { categories, products, coupons, settings, refreshStore } = useDynamicStore();
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
-
+  const [pendingorders,setPendingorders] = useState(0)
   const fetchAllOrders = useCallback(async () => {
     if (!getAdminAuth()) return;
     setOrdersLoading(true);
     try {
-      const data = await apiAdminGetAllOrders({ limit: 200 });
+      const data = await apiAdminGetAllOrders();
       setOrders(data.orders || []);
+      const pendingCount = data.orders.filter(order => order.status === "pending").length;
+      setPendingorders(pendingCount)
     } catch (err) {
       console.error('Admin: Failed to fetch orders:', err);
     } finally {
@@ -110,7 +109,7 @@ const AdminLayout = () => {
       <AdminSidebar
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}
-        orderCount={orders.length}
+        orderCount={pendingorders}
         isCollapsed={isCollapsed}
         setIsCollapsed={setIsCollapsed}
         onSignOut={handleSignOut}
@@ -213,53 +212,8 @@ const AdminLayout = () => {
             <AdminSettings />
           )}
 
-          {currentTab === 'support' && (
-            <div style={{ maxWidth: '720px' }}>
-              <div className="shv-table-card-header" style={{ marginBottom: '1.5rem' }}>
-                <div>
-                  <h2 className="shv-table-title" style={{ fontSize: '1.4rem' }}>
-                    Atelier Support &amp; Technical Help
-                  </h2>
-                  <p style={{ fontSize: '0.86rem', color: 'var(--admin-text-muted)' }}>
-                    Immediate assistance with e-commerce operations, payment gateways, or courier APIs.
-                  </p>
-                </div>
-              </div>
-
-              <div className="shv-admin-table-card">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1E2229' }}>
-                      <Phone size={20} />
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: 600 }}>Customer Care Helpline</div>
-                      <div style={{ fontSize: '0.84rem', color: 'var(--admin-text-muted)' }}>+91 99980 46559 (Priority Support Line)</div>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1E2229' }}>
-                      <Mail size={20} />
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: 600 }}>Technical Operations Desk</div>
-                      <div style={{ fontSize: '0.84rem', color: 'var(--admin-text-muted)' }}>shvera925@gmail.com</div>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1E2229' }}>
-                      <MessageSquare size={20} />
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: 600 }}>Direct WhatsApp Channel</div>
-                      <div style={{ fontSize: '0.84rem', color: 'var(--admin-text-muted)' }}>Instant resolution for courier consignments &amp; Razorpay payouts</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+          {currentTab === 'inquiries' && (
+            <AdminInquiries searchQuery={searchQuery} />
           )}
         </main>
       </div>

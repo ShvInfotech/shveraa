@@ -1,32 +1,30 @@
 import React from 'react';
-import { DollarSign, ArrowUpRight, CreditCard, Smartphone, Building, RefreshCw, CheckCircle2, RotateCcw } from 'lucide-react';
+import { DollarSign, CreditCard, Smartphone, Building, RefreshCw, CheckCircle2 } from 'lucide-react';
 
-const AdminPayments = ({ orders }) => {
-  const totalRevenue = orders.reduce((acc, o) => acc + (o.totalAmount || 0), 0);
-  const paidOrders = orders.filter((o) => o.payment?.status === 'paid');
-  const paidRevenue = paidOrders.reduce((acc, o) => acc + (o.totalAmount || 0), 0);
+const AdminPayments = ({ orders = [] }) => {
+  // Exclude cancelled orders entirely — cancelled orders do not count toward revenue or gross sales
+  const validOrders = (orders || []).filter(
+    (o) => (o.status || '').toLowerCase().trim() !== 'cancelled'
+  );
+
+  const totalRevenue = validOrders.reduce((acc, o) => acc + (Number(o.totalAmount) || 0), 0);
+  const paidOrders = validOrders.filter((o) => (o.payment?.status || '').toLowerCase().trim() === 'paid');
+  const paidRevenue = paidOrders.reduce((acc, o) => acc + (Number(o.totalAmount) || 0), 0);
 
   // Pending COD / Transit → ONLY orders whose payment status is "pending"
-  // AND whose payment method is COD. Delivered and cancelled orders are
-  // excluded — cash already collected / order no longer live in transit.
-  const pendingCodOrders = orders.filter((o) => {
-    const orderStatus = (o.status || '').toLowerCase();
+  // AND whose payment method is COD. Delivered and cancelled orders are excluded.
+  const pendingCodOrders = validOrders.filter((o) => {
+    const orderStatus = (o.status || '').toLowerCase().trim();
+    const payStatus = (o.payment?.status || '').toLowerCase().trim();
+    const payMethod = (o.payment?.method || '').toLowerCase().trim();
     return (
-      o.payment?.status === 'pending' &&
-      o.payment?.method === 'cod' &&
-      orderStatus !== 'delivered' &&
-      orderStatus !== 'cancelled'
+      payStatus === 'pending' &&
+      payMethod === 'cod' &&
+      orderStatus !== 'delivered'
     );
   });
   const pendingCodRevenue = pendingCodOrders.reduce(
-    (acc, o) => acc + (o.totalAmount || 0),
-    0
-  );
-
-  // Refunded / reversed amounts are shown in their own card beside it.
-  const refundedOrders = orders.filter((o) => o.payment?.status === 'refunded');
-  const refundedRevenue = refundedOrders.reduce(
-    (acc, o) => acc + (o.totalAmount || 0),
+    (acc, o) => acc + (Number(o.totalAmount) || 0),
     0
   );
 
@@ -44,8 +42,8 @@ const AdminPayments = ({ orders }) => {
         </div>
       </div>
 
-      {/* 4 Metric Cards */}
-      <div className="shv-admin-stats-grid grid-4" style={{ marginBottom: '2rem' }}>
+      {/* 3 Metric Cards (Gross Sales, Settled Bank Balance, Pending COD) */}
+      <div className="shv-admin-stats-grid" style={{ marginBottom: '2rem' }}>
         <div className="shv-admin-stat-card">
           <div className="shv-stat-card-header">
             <div className="shv-stat-card-icon">
@@ -57,8 +55,7 @@ const AdminPayments = ({ orders }) => {
             <div>
               <div className="shv-stat-card-number">₹{totalRevenue.toLocaleString('en-IN')}</div>
               <div className="shv-stat-trend positive">
-                <span>+34.2%</span>
-                <span>vs Last Month</span>
+                <span>{validOrders.length} Valid {validOrders.length === 1 ? 'Order' : 'Orders'}</span>
               </div>
             </div>
           </div>
@@ -75,7 +72,7 @@ const AdminPayments = ({ orders }) => {
             <div>
               <div className="shv-stat-card-number">₹{paidRevenue.toLocaleString('en-IN')}</div>
               <div className="shv-stat-trend positive">
-                <span>Direct HDFC Account</span>
+                <span>Direct Bank / Gateway Account</span>
               </div>
             </div>
           </div>
@@ -92,24 +89,9 @@ const AdminPayments = ({ orders }) => {
             <div>
               <div className="shv-stat-card-number">₹{pendingCodRevenue.toLocaleString('en-IN')}</div>
               <div className="shv-stat-trend">
-                <span>{pendingCodOrders.length} Pending COD {pendingCodOrders.length === 1 ? 'Order' : 'Orders'} • On Air Express Delivery</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="shv-admin-stat-card">
-          <div className="shv-stat-card-header">
-            <div className="shv-stat-card-icon">
-              <RotateCcw size={18} />
-            </div>
-            <span>Refunded / Reversals</span>
-          </div>
-          <div className="shv-stat-card-body">
-            <div>
-              <div className="shv-stat-card-number">₹{refundedRevenue.toLocaleString('en-IN')}</div>
-              <div className="shv-stat-trend">
-                <span>{refundedOrders.length} Refunded {refundedOrders.length === 1 ? 'Order' : 'Orders'}</span>
+                <span>
+                  {pendingCodOrders.length} Pending COD {pendingCodOrders.length === 1 ? 'Order' : 'Orders'} • In Transit
+                </span>
               </div>
             </div>
           </div>
@@ -121,7 +103,7 @@ const AdminPayments = ({ orders }) => {
         <div className="shv-table-card-header">
           <h3 className="shv-table-title">Recent Payment Transactions</h3>
           <span style={{ fontSize: '0.8rem', color: 'var(--admin-text-muted)' }}>
-            256-Bit Encrypted Gateway Ledger
+            256-Bit Encrypted Gateway Ledger ({validOrders.length} records)
           </span>
         </div>
 
@@ -138,45 +120,53 @@ const AdminPayments = ({ orders }) => {
               </tr>
             </thead>
             <tbody>
-              {orders.map((ord, idx) => {
-                const txnId = `TXN-${984102 + idx * 73}`;
-                const isPaid = ord.paymentStatus === 'Paid';
-                return (
-                  <tr key={ord.orderId}>
-                    <td>
-                      <span style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--admin-text-muted)' }}>
-                        {ord.payment.paymentId || "COD"}
-                      </span>
-                    </td>
-                    <td>
-                      <strong>{ord.orderNumber}</strong>
-                    </td>
-                    <td>
-                      <span>{ord.userData.name}</span>
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        {ord.paymentMethod?.includes('UPI') ? (
-                          <Smartphone size={14} style={{ color: '#2563EB' }} />
-                        ) : ord.paymentMethod?.includes('Card') ? (
-                          <CreditCard size={14} style={{ color: '#A07E52' }} />
-                        ) : (
-                          <Building size={14} style={{ color: '#64748B' }} />
-                        )}
-                        <span>{ord.payment.method}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <strong>₹{(ord.totalAmount || 0).toLocaleString('en-IN')}</strong>
-                    </td>
-                    <td>
-                      <span className={`shv-status-pill ${isPaid ? 'delivered' : ord.paymentStatus === 'Refunded' ? 'cancelled' : 'onhold'}`}>
-                        {ord.payment.status}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
+              {validOrders.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '3rem', color: 'var(--admin-text-muted)' }}>
+                    No payment transactions found.
+                  </td>
+                </tr>
+              ) : (
+                validOrders.map((ord, idx) => {
+                  const isPaid = (ord.payment?.status || '').toLowerCase().trim() === 'paid';
+                  const method = (ord.payment?.method || '').toLowerCase().trim();
+                  return (
+                    <tr key={ord._id || ord.orderNumber || idx}>
+                      <td>
+                        <span style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--admin-text-muted)' }}>
+                          {ord.payment?.paymentId || ord.payment?.orderId || 'COD'}
+                        </span>
+                      </td>
+                      <td>
+                        <strong>{ord.orderNumber}</strong>
+                      </td>
+                      <td>
+                        <span>{ord.userData?.name || ord.address?.name || 'Customer'}</span>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          {method === 'cod' ? (
+                            <Building size={14} style={{ color: '#64748B' }} />
+                          ) : method === 'razorpay' ? (
+                            <Smartphone size={14} style={{ color: '#2563EB' }} />
+                          ) : (
+                            <CreditCard size={14} style={{ color: '#A07E52' }} />
+                          )}
+                          <span style={{ textTransform: 'uppercase' }}>{ord.payment?.method || 'N/A'}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <strong>₹{(ord.totalAmount || 0).toLocaleString('en-IN')}</strong>
+                      </td>
+                      <td>
+                        <span className={`shv-status-pill ${isPaid ? 'delivered' : 'onhold'}`}>
+                          {ord.payment?.status || 'pending'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

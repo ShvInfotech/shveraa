@@ -9,8 +9,8 @@ import orderModel from "../../../models/order.model.js";
    - "Buying History" side-panel feed
    -------------------------------------------------------------------------- */
 
-// Statuses that still need admin attention (stat card #1).
-const PENDING_STATUSES = ["pending", "accepted", "processing"];
+// Statuses that are strictly pending (stat card #1).
+const PENDING_STATUSES = ["pending"];
 // Statuses still moving towards the customer → "Upcoming Deliveries".
 const ACTIVE_STATUSES = ["pending", "accepted", "processing", "shipped", "out_for_delivery"];
 
@@ -106,10 +106,10 @@ export const GetAdminDashboardStats = async (req, res, next) => {
       upcomingOrders,
       recentOrders,
     ] = await Promise.all([
-      orderModel.countDocuments({ status: { $in: PENDING_STATUSES } }),
-      orderModel.countDocuments({ status: { $in: PENDING_STATUSES }, createdAt: { $gte: startOfThisMonth } }),
+      orderModel.countDocuments({ status: "pending" }),
+      orderModel.countDocuments({ status: "pending", createdAt: { $gte: startOfThisMonth } }),
       orderModel.countDocuments({
-        status: { $in: PENDING_STATUSES },
+        status: "pending",
         createdAt: { $gte: startOfLastMonth, $lt: startOfThisMonth },
       }),
       orderModel.countDocuments({ status: "delivered", updatedAt: { $gte: startOfThisMonth } }),
@@ -117,17 +117,17 @@ export const GetAdminDashboardStats = async (req, res, next) => {
         status: "delivered",
         updatedAt: { $gte: startOfLastMonth, $lt: startOfThisMonth },
       }),
-      orderModel.countDocuments({}),
-      orderModel.countDocuments({ createdAt: { $gte: startOfThisMonth } }),
-      orderModel.countDocuments({ createdAt: { $gte: startOfLastMonth, $lt: startOfThisMonth } }),
-      orderModel.find({ createdAt: { $gte: rangeStart, $lt: rangeEnd } }, { createdAt: 1, totalAmount: 1 }).lean(),
+      orderModel.countDocuments({ status: { $ne: "cancelled" } }),
+      orderModel.countDocuments({ createdAt: { $gte: startOfThisMonth }, status: { $ne: "cancelled" } }),
+      orderModel.countDocuments({ createdAt: { $gte: startOfLastMonth, $lt: startOfThisMonth }, status: { $ne: "cancelled" } }),
+      orderModel.find({ createdAt: { $gte: rangeStart, $lt: rangeEnd }, status: { $ne: "cancelled" } }, { createdAt: 1, totalAmount: 1 }).lean(),
       orderModel
-        .find({ status: { $in: ACTIVE_STATUSES } }, { orderNumber: 1, status: 1, createdAt: 1, items: 1 })
+        .find({ status: { $in: ACTIVE_STATUSES, $nin: ["cancelled", "delivered"] } }, { orderNumber: 1, status: 1, createdAt: 1, items: 1 })
         .sort({ createdAt: -1 })
         .limit(20)
         .lean(),
       orderModel
-        .find({}, { orderNumber: 1, status: 1, createdAt: 1, items: 1, totalAmount: 1 })
+        .find({ status: { $ne: "cancelled" } }, { orderNumber: 1, status: 1, createdAt: 1, items: 1, totalAmount: 1 })
         .sort({ createdAt: -1 })
         .limit(4)
         .lean(),

@@ -2,7 +2,10 @@ import React, { useState } from 'react';
 import { Eye, Printer, CheckSquare, Download, LoaderCircle, CircleAlert, CircleCheck } from 'lucide-react';
 import { getImageUrl, apiAdminDownloadLabels, downloadBlobFile } from '../services/api';
 
-const STATUS_TABS = ['pending', 'accepted', 'processing', 'shipped', 'out_for_delivery', 'delivered', 'cancelled'];
+const STATUS_TABS = ['pending', 'accepted', 'dispatch', 'delivered', 'cancelled'];
+
+// Statuses that belong under the unified "Dispatch" tab
+const DISPATCH_STATUSES = ['processing', 'shipped', 'out_for_delivery'];
 
 // Today in YYYY-MM-DD, used as the default Delhivery pickup date.
 const todayISODate = () => new Date().toISOString().slice(0, 10);
@@ -15,11 +18,14 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery, isLoading = false })
   const [labelNotice, setLabelNotice] = useState(null);
   const [pickupDate, setPickupDate] = useState('');
   const [pickupTime, setPickupTime] = useState('');
-  console.log(orders)
+
   // Filter orders – uses real DB fields
   const filteredOrders = orders.filter((ord) => {
+    const status = (ord.status || '').toLowerCase();
     const matchesTab =
-      (ord.status || '').toLowerCase() === selectedStatusTab.toLowerCase();
+      selectedStatusTab === 'dispatch'
+        ? DISPATCH_STATUSES.includes(status)
+        : status === selectedStatusTab.toLowerCase();
 
     const q = (searchQuery || '').toLowerCase();
     const orderRef = (ord.orderNumber || ord._id || '').toLowerCase();
@@ -168,7 +174,7 @@ const AdminOrders = ({ orders, onUpdateStatus, searchQuery, isLoading = false })
                 flexShrink: 0,
               }}
             >
-              {tab === 'out_for_delivery' ? 'Out for Delivery' : tab}
+              {tab === 'dispatch' ? ' Dispatch' : tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
         </div>

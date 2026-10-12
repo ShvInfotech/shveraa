@@ -32,6 +32,7 @@ import ShippingCancellation from './pages/ShippingCancellation';
 import AdminLayout from './admin/AdminLayout';
 import CookieConsent from './components/CookieConsent';
 import ErrorBoundary from './components/ErrorBoundary';
+import WhatsAppButton from './components/WhatsAppButton';
 
 const ROUTE_SEO = {
   '/': {
@@ -283,6 +284,7 @@ const AppContent = () => {
       <CartDrawer />
       <GlobalToast />
       <CookieConsent />
+      <WhatsAppButton />
     </div>
   );
 };

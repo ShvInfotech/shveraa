@@ -12,8 +12,9 @@ const generateOrderNumber = () =>
 import addressModel from "../../../models/address.model.js";
 import { CancelShipmentService, CreateShippingOrderService, PincodeServiceability, TrackShipmentService } from "../../../services/delhiveryApis.js";
 import userModel from "../../../models/user.model.js";
-import { sendNotification, SendWahtsappMessage } from "../../../helper/helper.js";
+import { sendNotification } from "../../../helper/helper.js";
 import { RazorpayRefundApi } from "../../../services/razorpayapi.js";
+import { SendWhatsAppMessage } from "../../../services/Whatsapp.js";
 
 
 
@@ -282,19 +283,17 @@ export const RozerpayPaymentVerifyPlaceOrder = async (req, res, next) => {
       }
     }
 
-    console.log("delhivery payload",delhiveryPayload)
+    console.log("delhivery payload", delhiveryPayload)
 
     let waybill = "";
     try {
-      console.log(`[Delhivery] Attempting to create shipment for paid order ${orderNumber}...`);
+      
       const result = await CreateShippingOrderService(delhiveryPayload);
-      console.log(`[Delhivery] Order ${orderNumber} response:`, JSON.stringify(result));
-
+     
       if (result && result.success && result.packages && result.packages.length > 0) {
         const pkg = result.packages[0];
         if (pkg.status !== "Fail" && pkg.waybill) {
           waybill = pkg.waybill;
-          console.log(`[Delhivery] Shipment created successfully! Waybill: ${waybill}`);
         } else {
           console.warn("[Delhivery] Shipment package marked as Fail:", pkg.remarks || pkg);
         }
@@ -352,54 +351,66 @@ export const RozerpayPaymentVerifyPlaceOrder = async (req, res, next) => {
     const admins = await userModel.find({ role: "admin" }).select("deviceToken");
     const tokens = admins.flatMap(admin => admin.deviceToken || []);
     sendNotification(tokens, "New Order Placed", `Order ${orderNumber} has been placed by ${req.user.name}.`);
-
+     
+     const number = address.phone || req.user.phone
+    const template_code = "shveraa_order_confirmation_template"
+    const variables = {
+      customer_name: req.user.name || "",
+      order_number: newOrder.orderNumber,
+      product_name:products.map(product => product.name).join(", "),
+      total_amount: newOrder.totalAmount,
+      payment_method: "UPI/CART/NETBANKING",
+      order_date: new Date(newOrder.createdAt).toLocaleDateString("en-GB"),
+      tracking_link: `https://www.delhivery.com/track-v2/package/${waybill}`
+    }
+    SendWhatsAppMessage(number, template_code,variables)
 
     for (const item of items) {
-  const product = await productModel.findOneAndUpdate(
-    {
-      _id: item.productId,
-      variants: {
-        $elemMatch: {
-          _id: item.variantId,
-          sizes: {
+      const product = await productModel.findOneAndUpdate(
+        {
+          _id: item.productId,
+          variants: {
             $elemMatch: {
-              size: item.size,
-              stock: { $gte: item.quantity }
+              _id: item.variantId,
+              sizes: {
+                $elemMatch: {
+                  size: item.size,
+                  stock: { $gte: item.quantity }
+                }
+              }
             }
           }
+        },
+        {
+          $inc: {
+            "variants.$[variant].sizes.$[size].stock": -item.quantity
+          }
+        },
+        {
+          arrayFilters: [
+            { "variant._id": item.variantId },
+            { "size.size": item.size }
+          ],
+          new: true
         }
-      }
-    },
-    {
-      $inc: {
-        "variants.$[variant].sizes.$[size].stock": -item.quantity
-      }
-    },
-    {
-      arrayFilters: [
-        { "variant._id": item.variantId },
-        { "size.size": item.size }
-      ],
-      new: true
-    }
-  );
-  
+      );
 
-  const variant = product?.variants.find(v => v._id.toString() === item.variantId.toString());
-  const size = variant.sizes.find(s =>s.size === item.size)
-  console.log("items",item)
-  console.log("items size",item.size)
-    console.log("size",size)
 
-    if( size.stock> 0 && size.stock < 3){
-      sendNotification(tokens,`Low Stock Aelert`,`${product.name} ${variant.color} ${size.size} stock is low. Remaining stock: ${size.stock}`)
+      const variant = product?.variants.find(v => v._id.toString() === item.variantId.toString());
+      const size = variant.sizes.find(s => s.size === item.size)
+      console.log("items", item)
+      console.log("items size", item.size)
+      console.log("size", size)
+
+      if (size.stock > 0 && size.stock < 3) {
+        sendNotification(tokens, `Low Stock Aelert`, `${product.name} ${variant.color} ${size.size} stock is low. Remaining stock: ${size.stock}`)
+      }
+
+      if (size.stock <= 0) {
+        sendNotification(tokens, `Out Of Stock`, `${product.name} ${variant.color} ${size.size}  is Out Of Stock`)
+      }
+
     }
-    
-    if(size.stock <=0){
-      sendNotification(tokens,`Out Of Stock`,`${product.name} ${variant.color} ${size.size}  is Out Of Stock`)
-    }
-  
-}
     return res.status(200).json({ success: true, message: "Payment verified and order placed successfully", order: newOrder });
   } catch (error) {
     return next(error);
@@ -558,14 +569,14 @@ export const PlaceCodeOrder = async (req, res, next) => {
 
     let waybill = "";
     try {
-      
+
       const result = await CreateShippingOrderService(delhiveryPayload);
-     
+
       if (result && result.success && result.packages && result.packages.length > 0) {
         const pkg = result.packages[0];
         if (pkg.status !== "Fail" && pkg.waybill) {
           waybill = pkg.waybill;
-         
+
         } else {
           console.log("[Delhivery] COD Shipment package marked as Fail:", pkg.remarks || pkg);
         }
@@ -623,52 +634,66 @@ export const PlaceCodeOrder = async (req, res, next) => {
     const admins = await userModel.find({ role: "admin" }).select("deviceToken");
     const tokens = admins.flatMap(admin => admin.deviceToken || []);
     sendNotification(tokens, "New Order Placed", `Order ${orderNumber} has been placed by ${req.user.name}.`);
-    // SendWahtsappMessage(9714920969, "order is confrom");
-    
-// Reduce stock after order notification
-for (const item of items) {
-  const product = await productModel.findOneAndUpdate(
-    {
-      _id: item.productId,
-      variants: {
-        $elemMatch: {
-          _id: item.variantId,
-          sizes: {
+
+  
+
+    const number = address.phone || req.user.phone
+    const template_code = "shveraa_order_confirmation_template"
+    const variables = {
+      customer_name: req.user.name || "",
+      order_number: newOrder.orderNumber,
+      product_name:products.map(product => product.name).join(", "),
+      total_amount: newOrder.totalAmount,
+      payment_method: newOrder.payment.method,
+      order_date: new Date(newOrder.createdAt).toLocaleDateString("en-GB"),
+      tracking_link: `https://www.delhivery.com/track-v2/package/${waybill}`
+    }
+    SendWhatsAppMessage(number, template_code,variables)
+
+    // Reduce stock after order notification
+    for (const item of items) {
+      const product = await productModel.findOneAndUpdate(
+        {
+          _id: item.productId,
+          variants: {
             $elemMatch: {
-              size: item.size,
-              stock: { $gte: item.quantity }
+              _id: item.variantId,
+              sizes: {
+                $elemMatch: {
+                  size: item.size,
+                  stock: { $gte: item.quantity }
+                }
+              }
             }
           }
+        },
+        {
+          $inc: {
+            "variants.$[variant].sizes.$[size].stock": -item.quantity
+          }
+        },
+        {
+          arrayFilters: [
+            { "variant._id": item.variantId },
+            { "size.size": item.size }
+          ],
+          new: true
         }
-      }
-    },
-    {
-      $inc: {
-        "variants.$[variant].sizes.$[size].stock": -item.quantity
-      }
-    },
-    {
-      arrayFilters: [
-        { "variant._id": item.variantId },
-        { "size.size": item.size }
-      ],
-      new: true
-    }
-  );
-  
+      );
 
-  const variant = product?.variants.find(v => v._id.toString() === item.variantId.toString());
-  const size = variant.sizes.find(s =>s.size === item.size)
 
-     if( size.stock> 0 && size.stock < 3){
-      sendNotification(tokens,`Low Stock Aelert`,`${product.name} ${variant.color} ${size.size} stock is low. Remaining stock: ${size.stock}`)
+      const variant = product?.variants.find(v => v._id.toString() === item.variantId.toString());
+      const size = variant.sizes.find(s => s.size === item.size)
+
+      if (size.stock > 0 && size.stock < 3) {
+        sendNotification(tokens, `Low Stock Aelert`, `${product.name} ${variant.color} ${size.size} stock is low. Remaining stock: ${size.stock}`)
+      }
+
+      if (size.stock <= 0) {
+        sendNotification(tokens, `Out Of Stock`, `${product.name} ${variant.color} ${size.size}  is Out Of Stock`)
+      }
+
     }
-    
-    if(size.stock <=0){
-      sendNotification(tokens,`Out Of Stock`,`${product.name} ${variant.color} ${size.size}  is Out Of Stock`)
-    }
-  
-}
 
 
     return res.status(200).json({ success: true, message: "Order placed successfully", order: newOrder });
@@ -677,7 +702,6 @@ for (const item of items) {
   }
 };
 
-// GET /api/v1/user/order/my-orders  → Returns orders for the logged-in user
 export const GetMyOrders = async (req, res, next) => {
   try {
     const userId = req.user._id;
@@ -924,7 +948,7 @@ export const ReturnShipment = async (req, res, next) => {
 
     if (order.payment?.method === "razorpay" && order.payment?.status === "paid") {
 
-      
+
 
       const refundData = {
         method: "razorpay",

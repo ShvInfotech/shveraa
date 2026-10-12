@@ -1,6 +1,6 @@
 import sendEmail from '../../../config/nodemailer.confing.js'
 import { ForgetPasswordMail } from '../../../helper/emailTemplate.js'
-import { DeleteImage, hashUserPassword } from '../../../helper/helper.js'
+import { DeleteImage, GenerateOTP, hashUserPassword } from '../../../helper/helper.js'
 import { CustomeError } from '../../../middleware/globelError.js'
 import { ForgotgenerateJwtToken, generatehashToken, generateJwtToken } from '../../../middleware/jwtToken.js'
 import UserModel from '../../../models/user.model.js'
@@ -9,6 +9,7 @@ import jwt from 'jsonwebtoken'
 import AddressModel from '../../../models/address.model.js'
 import CartModel from '../../../models/cart.model.js'
 import WishlistModel from '../../../models/wishlist.model.js'
+import { SendWhatsAppMessage } from '../../../services/Whatsapp.js'
 
 
 
@@ -116,6 +117,35 @@ export const UserLogin = async (req, res, next) => {
     } catch (error) {
         return next(error)
     }
+}
+
+
+export const SendUserLoginOtp = async(req,res,next)=>{
+  try {
+        const {phone} = req.body || {}
+
+        if(!phone){
+          return next(CustomeError(422,"Phone Number Required"))
+        }
+
+         let user = await UserModel.findOne({phone:phone})
+
+         if(!user){
+          user = await UserModel.create({phone:phone})
+         }
+
+         const otp = GenerateOTP()
+    const template_code = "shveraa_otp_login"
+    const variables = {
+      otp:otp,
+      validity:"5"
+    }
+         SendWhatsAppMessage(phone,template_code,variables)
+
+         return res.status(200).json({success:true,message:"OTP Send Your Wahtaspp Number",otp:otp,userId:user._id})
+  } catch (error) {
+    
+  }
 }
 
 export const UserLogout = async (req, res, next) => {

@@ -4,13 +4,14 @@ import {
   GetUserAddresses, AddUserAddress, UpdateUserAddress, DeleteUserAddress, SetDefaultUserAddress,
   GetCart, SyncCart, AddToCart, UpdateCartItem, RemoveCartItem, ClearCart,
   GetWishlist, ToggleWishlist, UpdateDeviceToken,
+  SendUserLoginOtp,
 } from "../../../controllers/user/v1/user.controller.js";
 import { verifyjwtAccessToken } from "../../../middleware/jwtToken.js";
 const router = express.Router()
 
 router.post('/register', UserRegister)
 router.post('/login', UserLogin)
-
+router.post('/send-login-otp',SendUserLoginOtp)
 router.put('/update', verifyjwtAccessToken, UserUpdateProfile)
 router.post('/device-token', verifyjwtAccessToken, UpdateDeviceToken)
 router.post('/logout', verifyjwtAccessToken, UserLogout)

@@ -4,6 +4,6 @@ import { verifyjwtAccessToken } from '../../../middleware/jwtToken.js';
 
 const router = express.Router();
 
-router.post('/verify', verifyjwtAccessToken, VerifyCoupon);
+router.post('/verify', VerifyCoupon);
 
 export default router;

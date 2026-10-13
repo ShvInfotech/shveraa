@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   ShoppingBag,
   ArrowRight,
@@ -11,10 +11,14 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import CartItem from '../components/CartItem';
 import { apiCheckShippingDetails, apiGetUserAddresses } from '../services/api';
+import { triggerMagicCheckout } from '../utils/magicCheckout';
 
 const Cart = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const {
     cart,
     isCartOpen,
@@ -32,11 +36,13 @@ const Cart = () => {
     freeShippingProgress,
     amountNeededForFreeShipping,
     clearCart,
+    showToast,
   } = useCart();
 
   const [couponInput, setCouponInput] = useState('');
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
   const [pincode, setPincode] = useState('');
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
 
   const handleApplyCoupon = async (e) => {
     e.preventDefault();
@@ -68,10 +74,9 @@ console.log(shippingCost)
             <ShoppingBag size={48} className="cart-page-empty-icon" />
             <h2>Your Bag is Waiting</h2>
             <p>Discover everyday brilliance crafted in pure 925 sterling silver.</p>
-            <Link to="/shop" className="btn btn-primary btn-lg">
-              Explore 925 Silver <ArrowRight size={16} />
-            </Link>
-          </div>
+            <Link to="/shop" className="btn btn-primary">
+              Start Exploring
+            </Link></div>
         ) : (
           <div className="cart-page-grid">
             {/* Left Col: Free shipping bar & Cart Items */}
@@ -192,8 +197,21 @@ console.log(shippingCost)
                 </div>
 
                 {/* Checkout CTA */}
-                <Link
-                  to="/checkout"
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await triggerMagicCheckout({
+                      cartItems: cart,
+                      couponId: appliedCoupon?.coupenId || appliedCoupon?._id || '',
+                      shippingCost,
+                      user,
+                      navigate,
+                      clearCart,
+                      showToast,
+                      setLoading: setIsCheckingOut,
+                    });
+                  }}
+                  disabled={isCheckingOut || !cart.length}
                   className="btn btn-primary btn-lg"
                   style={{
                     width: '100%',
@@ -202,13 +220,18 @@ console.log(shippingCost)
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '8px',
-                    textDecoration: 'none',
+                    border: 'none',
+                    cursor: isCheckingOut ? 'not-allowed' : 'pointer',
                   }}
                 >
                   <Lock size={16} />
-                  <span>Proceed to Checkout • ₹{Math.round(cartTotal).toLocaleString('en-IN')}</span>
+                  <span>
+                    {isCheckingOut
+                      ? 'Opening Secure Checkout...'
+                      : `Proceed to Checkout • ₹${Math.round(cartTotal).toLocaleString('en-IN')}`}
+                  </span>
                   <ArrowRight size={16} />
-                </Link>
+                </button>
 
                 {/* Trust Badges */}
                 <div className="cart-summary-trust-list">

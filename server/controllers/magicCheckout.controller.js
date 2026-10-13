@@ -13,6 +13,22 @@ import { sendNotification } from "../helper/helper.js";
 const generateOrderNumber = () =>
   "SHV_" + Math.floor(100000 + Math.random() * 900000) + Date.now().toString().slice(-6);
 
+const formatValidUrl = (urlStr) => {
+  if (!urlStr || typeof urlStr !== "string") return undefined;
+  let clean = urlStr.trim().replace(/\\/g, "/");
+  if (!clean || clean === "undefined" || clean === "null") return undefined;
+  if (!clean.startsWith("http://") && !clean.startsWith("https://")) {
+    clean = `https://shveraa.com${clean.startsWith("/") ? "" : "/"}${clean}`;
+  }
+  try {
+    const parsed = new URL(clean);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return undefined;
+    return encodeURI(decodeURI(parsed.href));
+  } catch (_) {
+    return undefined;
+  }
+};
+
 /**
  * 1. SHIPPING INFO API (Called by Razorpay Magic Checkout Server)
  * Razorpay requests shipping serviceability, methods, shipping fees, and COD fees.
@@ -248,16 +264,22 @@ export const CreateMagicOrder = async (req, res, next) => {
         calculatedPrice += unitPrice * item.quantity;
 
         const unitPricePaise = Math.round(unitPrice * 100);
-        line_items.push({
+        const lineItemObj = {
           sku: product.sku || String(product._id),
           variant_id: item.variantId ? String(item.variantId) : String(product._id),
           price: unitPricePaise,
           offer_price: unitPricePaise,
           quantity: item.quantity || 1,
           name: product.name + (item.size ? ` (${item.size})` : ""),
-          image_url: matchVariant?.images?.[0] || product.images?.[0] || "",
-          product_url: `https://shveraa.com/product/${product._id}`,
-        });
+        };
+
+        const rawImg = matchVariant?.images?.[0] || product.images?.[0];
+        lineItemObj.image_url = formatValidUrl(rawImg) || "https://shveraa.com/logo.png";
+
+        const validProdUrl = formatValidUrl(`/product/${product._id}`);
+        lineItemObj.product_url = validProdUrl || `https://shveraa.com/product/${product._id}`;
+
+        line_items.push(lineItemObj);
       }
     }
 

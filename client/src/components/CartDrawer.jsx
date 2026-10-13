@@ -14,13 +14,17 @@ import {
   Check,
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { apiCheckShippingDetails, apiGetUserAddresses, getImageUrl } from '../services/api';
+import { triggerMagicCheckout } from '../utils/magicCheckout';
 
 const CartDrawer = () => {
   const {
     cart,
     isCartOpen,
     closeCart,
+    clearCart,
+    showToast,
     updateQuantity,
     removeFromCart,
     cartCount,
@@ -124,9 +128,21 @@ const CartDrawer = () => {
 
 
 
-  const handleCheckoutClick = () => {
-    closeCart();
-    navigate('/checkout');
+  const { user } = useAuth();
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+
+  const handleCheckoutClick = async () => {
+    await triggerMagicCheckout({
+      cartItems: cart,
+      couponId: appliedCoupon?.coupenId || appliedCoupon?._id || '',
+      shippingCost,
+      user,
+      navigate,
+      clearCart,
+      closeCart,
+      showToast,
+      setLoading: setIsCheckingOut,
+    });
   };
 
   return (
@@ -354,8 +370,9 @@ const CartDrawer = () => {
                 type="button"
                 onClick={handleCheckoutClick}
                 className="btn btn-primary cart-checkout-btn"
+                disabled={isCheckingOut}
               >
-                <span>Checkout Now</span>
+                <span>{isCheckingOut ? 'Opening Secure Checkout...' : 'Checkout Now'}</span>
                 <span>₹{Math.round(cartTotal).toLocaleString('en-IN')}</span>
               </button>
 

@@ -413,7 +413,7 @@ const Checkout = () => {
         currency: order.currency || 'INR',
         name: 'SHVERAA',
         description: 'Fine 925 Sterling Silver Order',
-        image: '/logo.png',
+        image: typeof window !== 'undefined' ? `${window.location.origin}/logo.png` : 'https://shveraa.com/logo.png',
         order_id: order.id,
         handler: async function (response) {
           try {

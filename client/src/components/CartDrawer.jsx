@@ -19,6 +19,12 @@ import { apiCheckShippingDetails, apiGetUserAddresses, getImageUrl } from '../se
 import { triggerMagicCheckout } from '../utils/magicCheckout';
 
 const CartDrawer = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [couponInput, setCouponInput] = useState('');
+  const [pincode, setPincode] = useState('');
+
   const {
     cart,
     isCartOpen,
@@ -43,18 +49,6 @@ const CartDrawer = () => {
     addToCart,
   } = useCart();
 
-  const [couponInput, setCouponInput] = useState('');
-  const [pincode, setPincode] = useState('');
-
-  const navigate = useNavigate();
-
-
-
-
-
-  
-
-
   useEffect(() => {
     if (isCartOpen) {
       const fetchAddresses = async () => {
@@ -62,31 +56,22 @@ const CartDrawer = () => {
           const data = await apiGetUserAddresses();
           if (data?.addresses?.length) {
             const def = data.addresses.find((a) => a.isDefault) || data.addresses[0];
-
             if (def) {
               setPincode(def.pincode);
-            };
-          } else {
-            setSelectedAddrId('__new__');
+            }
           }
         } catch (_) {
         }
       };
       fetchAddresses();
-
     }
   }, [isCartOpen]);
-
-
-
-
 
   useEffect(() => {
     if (!cart.length || !/^\d{6}$/.test(pincode)) return;
 
     const cartIds = cart.map((item) => item._id).filter(Boolean);
     if (!cartIds.length) return;
-
 
     apiCheckShippingDetails(cartIds, pincode)
       .then((data) => {
@@ -95,22 +80,9 @@ const CartDrawer = () => {
         }
       })
       .catch((error) => {
-
         console.error('Error checking checkout shipping charges:', error);
-
       });
-
-
   }, [cart, pincode]);
-
-
-
-
-
-
-  if (!isCartOpen) return null;
-
-
 
   const handleApplyCoupon = (e) => {
     e.preventDefault();
@@ -119,17 +91,6 @@ const CartDrawer = () => {
       setCouponInput('');
     }
   };
-
-
-
-
-
-
-
-
-
-  const { user } = useAuth();
-  const [isCheckingOut, setIsCheckingOut] = useState(false);
 
   const handleCheckoutClick = async () => {
     await triggerMagicCheckout({
@@ -144,6 +105,8 @@ const CartDrawer = () => {
       setLoading: setIsCheckingOut,
     });
   };
+
+  if (!isCartOpen) return null;
 
   return (
     <div className="cart-drawer-wrapper">

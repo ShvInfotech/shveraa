@@ -108,4 +108,17 @@ const optionalJwtAccessToken = async (req, res, next) => {
     }
 };
 
+const checkRole = (...roles) => {
+    return (req, res, next) => {
+        if (!req.user) {
+            return next(CustomeError(401, "unauthorized"));
+        }
+
+        if (!roles.includes(req.user.role)) {
+            return next(CustomeError(403, "access denied"));
+        }
+        next();
+    };
+};
+
 export { generateJwtToken, ForgotgenerateJwtToken, generatehashToken, verifyjwtAccessToken, optionalJwtAccessToken, checkRole };

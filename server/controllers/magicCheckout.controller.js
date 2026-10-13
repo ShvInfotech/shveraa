@@ -313,18 +313,23 @@ export const CreateMagicOrder = async (req, res, next) => {
       }
     }
 
+    const lineItemsTotalPaise = line_items.reduce(
+      (sum, item) => sum + (Number(item.offer_price || item.price || 0) * Number(item.quantity || 1)),
+      0
+    );
+
     const cleanShippingCost = Math.round(Number(shippingCost) || 0);
     const totalAmount = Math.max(0, Math.round(calculatedPrice + cleanShippingCost - discountAmount));
-    const totalAmountPaise = Math.round(totalAmount * 100);
+    const totalAmountPaise = Math.max(100, Math.round(totalAmount * 100));
 
     const options = {
       amount: totalAmountPaise,
       currency: "INR",
       receipt: `rcpt_${Date.now()}`,
-      line_items_total: totalAmountPaise,
+      line_items_total: lineItemsTotalPaise,
       line_items: line_items,
       notes: {
-        cart_ids: cartIds.join(","),
+        cart_ids: Array.isArray(cartIds) ? cartIds.join(",") : "",
         coupon_id: effectiveCouponId || "",
         discount_amount: String(discountAmount),
       },
@@ -334,7 +339,7 @@ export const CreateMagicOrder = async (req, res, next) => {
     try {
       order = await razorpay.orders.create(options);
     } catch (rzpErr) {
-      console.error("[Magic Checkout] Razorpay order creation error:", rzpErr);
+      console.error("[Magic Checkout] Razorpay order creation error:", JSON.stringify(rzpErr?.error || rzpErr?.message || rzpErr));
       return next(
         CustomeError(
           500,

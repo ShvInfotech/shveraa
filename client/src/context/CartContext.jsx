@@ -26,7 +26,7 @@ const getToken = () => {
   }
 };
 
-const isLoggedIn = () => !!getToken() || !!localStorage.getItem('shveraa_user');
+const isLoggedIn = () => !!getToken();
 
 export const CartProvider = ({ children }) => {
   const [, setStoreVersion] = useState(0);
@@ -119,9 +119,8 @@ export const CartProvider = ({ children }) => {
       selectedColor: color,
       quantity,
     };
-
-    // If user is NOT logged in: add directly to guest cart state & localStorage
-    if (!isLoggedIn()) {
+ 
+    const addGuestItem = () => {
       setCart((prevCart) => {
         const existingIndex = prevCart.findIndex(
           (item) =>
@@ -164,6 +163,11 @@ export const CartProvider = ({ children }) => {
       showToast(`Added "${product.name}" to your bag`);
       if (!options.silent) setIsCartOpen(true);
       return true;
+    };
+
+    // If user is NOT logged in: add directly to guest cart state & localStorage
+    if (!isLoggedIn()) {
+      return addGuestItem();
     }
 
     try {
@@ -183,8 +187,8 @@ export const CartProvider = ({ children }) => {
       if (!options.silent) setIsCartOpen(true);
       return true;
     } catch (error) {
-      showToast(error.message || 'Unable to update your bag');
-      return false;
+      console.warn('apiAddToCart failed, falling back to guest cart:', error);
+      return addGuestItem();
     }
   };
 

@@ -340,7 +340,8 @@ export const apiFetch = async (url, options = {}) => {
       localStorage.removeItem('shveraa_user');
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('shveraa_user_unauthorized'));
-        if (window.location.pathname !== '/login') {
+        // Only redirect to /login if currently on a protected account dashboard
+        if (window.location.pathname.startsWith('/account')) {
           window.location.href = '/login';
         }
       }

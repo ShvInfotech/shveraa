@@ -967,8 +967,8 @@ export const apiVerifyPaymentPlaceOrder = async ({
   return data;
 };
 
-export const apiCreateMagicOrder = async ({ cartIds, couponId, shippingCost }) => {
-  const payload = { cartIds, shippingCost };
+export const apiCreateMagicOrder = async ({ cartIds, items, couponId, shippingCost }) => {
+  const payload = { cartIds, items, shippingCost };
   if (couponId) payload.couponId = couponId;
   const res = await apiFetch('/api/v1/magic-checkout/create-order', {
     method: 'POST',
@@ -984,6 +984,7 @@ export const apiVerifyMagicOrder = async ({
   razorpay_payment_id,
   razorpay_signature,
   cartIds,
+  items,
   couponId,
   shippingCost,
   addressId,
@@ -993,6 +994,7 @@ export const apiVerifyMagicOrder = async ({
     razorpay_payment_id: razorpay_payment_id || '',
     razorpay_signature: razorpay_signature || '',
     cartIds,
+    items,
     couponId: couponId || '',
     shippingCost: shippingCost || 0,
     addressId: addressId || '',

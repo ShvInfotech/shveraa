@@ -74,24 +74,38 @@ const verifyjwtAccessToken = async (req, res, next) => {
 }
 
 
-const checkRole = (...roles) => {
-    return (req, res, next) => {
-
-
-        if (!req.user) {
-            return next(CustomeError(401, "unauthorized"));
+const optionalJwtAccessToken = async (req, res, next) => {
+    try {
+        const auth = req.headers.authorization;
+        if (!auth) {
+            req.user = null;
+            return next();
         }
-
-        if (!roles.includes(req.user.role)) {
-            return next(CustomeError(403, "access denied"));
+        const token = auth.split(" ")[1];
+        if (!token) {
+            req.user = null;
+            return next();
+        }
+        try {
+            const decodeToken = jwt.verify(token, process.env.JWT_SECRET);
+            if (mongoose.isValidObjectId(decodeToken.id)) {
+                const user = await userModel.findById(decodeToken.id);
+                if (user && user.status !== "block" && user.status !== "inactive") {
+                    req.user = user;
+                    req.token = generatehashToken(token);
+                } else {
+                    req.user = null;
+                }
+            } else {
+                req.user = null;
+            }
+        } catch (_) {
+            req.user = null;
         }
         next();
-    };
+    } catch (error) {
+        next(error);
+    }
 };
 
-
-
-
-
-
-export  {generateJwtToken,ForgotgenerateJwtToken,  generatehashToken, verifyjwtAccessToken, checkRole}
+export { generateJwtToken, ForgotgenerateJwtToken, generatehashToken, verifyjwtAccessToken, optionalJwtAccessToken, checkRole };

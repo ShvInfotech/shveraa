@@ -6,7 +6,7 @@ import {
   CreateMagicOrder,
   VerifyMagicOrder,
 } from "../controllers/magicCheckout.controller.js";
-import { verifyjwtAccessToken } from "../middleware/jwtToken.js";
+import { optionalJwtAccessToken } from "../middleware/jwtToken.js";
 
 const router = express.Router();
 
@@ -25,8 +25,9 @@ router.post("/apply-promotion", ApplyMagicPromotion);
 
 /**
  * Endpoints called by Client frontend:
+ * Accessible to both logged-in and guest users!
  */
-router.post("/create-order", verifyjwtAccessToken, CreateMagicOrder);
-router.post("/verify-order", verifyjwtAccessToken, VerifyMagicOrder);
+router.post("/create-order", optionalJwtAccessToken, CreateMagicOrder);
+router.post("/verify-order", optionalJwtAccessToken, VerifyMagicOrder);
 
 export default router;

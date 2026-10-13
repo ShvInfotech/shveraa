@@ -526,7 +526,31 @@ const ProductDetail = () => {
         }
       );
       if (added) {
+        let checkoutItems = [];
+        try {
+          const rawCart = localStorage.getItem('shveraa_cart');
+          if (rawCart) checkoutItems = JSON.parse(rawCart);
+        } catch (_) {}
+
+        if (!Array.isArray(checkoutItems) || !checkoutItems.length) {
+          checkoutItems = [
+            {
+              productId: product._id || product.slug,
+              variantId: activeVariant?._id || activeVariant?.id || activeVariant?.sku || '',
+              name: product.name,
+              price: displayPrice,
+              image: selectedImg,
+              size: selectedSize || 'Standard',
+              selectedSize: selectedSize || 'Standard',
+              color: selectedColor || selectedColorObj?.name || 'Pure 925 Silver',
+              selectedColor: selectedColor || selectedColorObj?.name || 'Pure 925 Silver',
+              quantity,
+            },
+          ];
+        }
+
         await triggerMagicCheckout({
+          cartItems: checkoutItems,
           user,
           navigate,
           clearCart,

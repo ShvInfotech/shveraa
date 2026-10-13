@@ -74,10 +74,42 @@ const verifyjwtAccessToken = async (req, res, next) => {
 }
 
 
+const optionalJwtAccessToken = async (req, res, next) => {
+    try {
+        const auth = req.headers.authorization;
+        if (!auth) {
+            req.user = null;
+            return next();
+        }
+        const token = auth.split(" ")[1];
+        if (!token) {
+            req.user = null;
+            return next();
+        }
+        try {
+            const decodeToken = jwt.verify(token, process.env.JWT_SECRET);
+            if (mongoose.isValidObjectId(decodeToken.id)) {
+                const user = await userModel.findById(decodeToken.id);
+                if (user && user.status !== "block" && user.status !== "inactive") {
+                    req.user = user;
+                    req.token = generatehashToken(token);
+                } else {
+                    req.user = null;
+                }
+            } else {
+                req.user = null;
+            }
+        } catch (_) {
+            req.user = null;
+        }
+        next();
+    } catch (error) {
+        next(error);
+    }
+};
+
 const checkRole = (...roles) => {
     return (req, res, next) => {
-
-
         if (!req.user) {
             return next(CustomeError(401, "unauthorized"));
         }
@@ -89,9 +121,4 @@ const checkRole = (...roles) => {
     };
 };
 
-
-
-
-
-
-export  {generateJwtToken,ForgotgenerateJwtToken,  generatehashToken, verifyjwtAccessToken, checkRole}
+export { generateJwtToken, ForgotgenerateJwtToken, generatehashToken, verifyjwtAccessToken, optionalJwtAccessToken, checkRole };

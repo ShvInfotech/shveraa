@@ -41,29 +41,53 @@ export const triggerMagicCheckout = async ({
   try {
     if (setLoading) setLoading(true);
 
-    const token = localStorage.getItem('shveraa_user_token');
-    if (!token) {
-      if (closeCart) closeCart();
-      const currentPath = window.location.pathname + window.location.search;
-      window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
-      return false;
-    }
-
     let items = cartItems;
     if (!items || !items.length) {
-      const cartRes = await apiGetCart();
-      items = cartRes?.cart || [];
+      try {
+        const localCart = localStorage.getItem('shveraa_cart');
+        if (localCart) {
+          const parsed = JSON.parse(localCart);
+          if (Array.isArray(parsed) && parsed.length) {
+            items = parsed;
+          }
+        }
+      } catch (_) {}
     }
 
-    const cartIds = (items || [])
-      .map((item) => (typeof item === 'object' ? item._id || item.id : item))
-      .filter(Boolean);
+    if (!items || !items.length) {
+      const token = localStorage.getItem('shveraa_user_token');
+      if (token) {
+        try {
+          const cartRes = await apiGetCart();
+          items = cartRes?.cart || [];
+        } catch (_) {}
+      }
+    }
 
-    if (!cartIds.length) {
+    if (!items || !items.length) {
       if (showToast) showToast('Your shopping bag is empty.');
       if (setLoading) setLoading(false);
       return false;
     }
+
+    const formattedRawItems = (items || []).map((item) => ({
+      productId: item.productId?._id || item.productId?.id || item.productId || item._id || item.id,
+      variantId: item.variantId || '',
+      size: item.size || item.selectedSize || 'Standard',
+      quantity: Number(item.quantity) || 1,
+      price: Number(
+        item.price ||
+        item.productId?.salePrice ||
+        item.productId?.originalPrice ||
+        item.productId?.price ||
+        0
+      ),
+      name: item.name || item.productId?.name || 'Fine Silver Jewellery',
+    }));
+
+    const cartIds = (items || [])
+      .map((item) => (typeof item === 'object' ? item._id || item.id : item))
+      .filter((id) => id && !String(id).startsWith('guest_') && !String(id).startsWith('buy_now_') && !String(id).startsWith('item_'));
 
     const isLoaded = await loadRazorpayMagicScript();
     if (!isLoaded) {
@@ -72,6 +96,7 @@ export const triggerMagicCheckout = async ({
 
     const data = await apiCreateMagicOrder({
       cartIds,
+      items: formattedRawItems,
       couponId: couponId || '',
       shippingCost: Math.round(Number(shippingCost) || 0),
     });
@@ -119,9 +144,18 @@ export const triggerMagicCheckout = async ({
             razorpay_payment_id: response.razorpay_payment_id || '',
             razorpay_signature: response.razorpay_signature || '',
             cartIds,
+            items: formattedRawItems,
             couponId: couponId || '',
             shippingCost: Math.round(Number(shippingCost) || 0),
           });
+
+          if (verifyRes?.token) {
+            localStorage.setItem('shveraa_user_token', verifyRes.token);
+            if (verifyRes.user) {
+              localStorage.setItem('shveraa_user', JSON.stringify(verifyRes.user));
+            }
+            window.dispatchEvent(new CustomEvent('shveraa_user_logged_in'));
+          }
 
           const placedOrder = verifyRes?.order;
           if (clearCart) {
@@ -131,6 +165,9 @@ export const triggerMagicCheckout = async ({
               console.warn('Error clearing cart state:', cErr);
             }
           }
+          try {
+            localStorage.removeItem('shveraa_cart');
+          } catch (_) {}
 
           const formattedOrder = {
             ...(placedOrder || {}),

@@ -9,6 +9,7 @@ import userModel from "../models/user.model.js";
 import { razorpay, razorpaySignature, getRazorpayKeyId } from "../config/razorpay.config.js";
 import { PincodeServiceability, CreateShippingOrderService } from "../services/delhiveryApis.js";
 import { sendNotification } from "../helper/helper.js";
+import { generateJwtToken } from "../middleware/jwtToken.js";
 
 const generateOrderNumber = () =>
   "SHV_" + Math.floor(100000 + Math.random() * 900000) + Date.now().toString().slice(-6);
@@ -228,19 +229,33 @@ export const ApplyMagicPromotion = async (req, res, next) => {
  */
 export const CreateMagicOrder = async (req, res, next) => {
   try {
-    const { cartIds, couponId, shippingCost } = req.body || {};
+    const { cartIds, items: rawItems, couponId, shippingCost } = req.body || {};
     const effectiveCouponId = couponId || "";
 
-    if (!cartIds || !Array.isArray(cartIds) || cartIds.length === 0) {
+    let cartItems = [];
+    if (Array.isArray(cartIds) && cartIds.length > 0) {
+      const validIds = cartIds.filter((id) => mongoose.isValidObjectId(id));
+      if (validIds.length > 0) {
+        cartItems = await cartModel.find({ _id: { $in: validIds } });
+      }
+    }
+
+    if (!cartItems.length && Array.isArray(rawItems) && rawItems.length > 0) {
+      cartItems = rawItems.map((item) => ({
+        productId: String(item.productId || item.id || item._id || ""),
+        variantId: item.variantId ? String(item.variantId) : "",
+        size: item.size || item.selectedSize || "Standard",
+        quantity: Number(item.quantity) || 1,
+      }));
+    }
+
+    if (!cartItems.length) {
       return next(CustomeError(422, "Please select at least one item to checkout"));
     }
 
-    const cartItems = await cartModel.find({ _id: { $in: cartIds } });
-    if (!cartItems.length) {
-      return next(CustomeError(404, "Cart items not found"));
-    }
-
-    const productIDs = cartItems.map((item) => item.productId);
+    const productIDs = cartItems
+      .map((item) => item.productId)
+      .filter((id) => mongoose.isValidObjectId(id));
     const products = await productModel.find({ _id: { $in: productIDs } });
 
     let calculatedPrice = 0;
@@ -298,18 +313,23 @@ export const CreateMagicOrder = async (req, res, next) => {
       }
     }
 
+    const lineItemsTotalPaise = line_items.reduce(
+      (sum, item) => sum + (Number(item.offer_price || item.price || 0) * Number(item.quantity || 1)),
+      0
+    );
+
     const cleanShippingCost = Math.round(Number(shippingCost) || 0);
     const totalAmount = Math.max(0, Math.round(calculatedPrice + cleanShippingCost - discountAmount));
-    const totalAmountPaise = Math.round(totalAmount * 100);
+    const totalAmountPaise = Math.max(100, Math.round(totalAmount * 100));
 
     const options = {
       amount: totalAmountPaise,
       currency: "INR",
       receipt: `rcpt_${Date.now()}`,
-      line_items_total: totalAmountPaise,
+      line_items_total: lineItemsTotalPaise,
       line_items: line_items,
       notes: {
-        cart_ids: cartIds.join(","),
+        cart_ids: Array.isArray(cartIds) ? cartIds.join(",") : "",
         coupon_id: effectiveCouponId || "",
         discount_amount: String(discountAmount),
       },
@@ -319,7 +339,7 @@ export const CreateMagicOrder = async (req, res, next) => {
     try {
       order = await razorpay.orders.create(options);
     } catch (rzpErr) {
-      console.error("[Magic Checkout] Razorpay order creation error:", rzpErr);
+      console.error("[Magic Checkout] Razorpay order creation error:", JSON.stringify(rzpErr?.error || rzpErr?.message || rzpErr));
       return next(
         CustomeError(
           500,
@@ -344,11 +364,13 @@ export const CreateMagicOrder = async (req, res, next) => {
  */
 export const VerifyMagicOrder = async (req, res, next) => {
   try {
+
     const {
       razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature,
       cartIds,
+      items: rawItems,
       couponId,
       shippingCost,
       addressId,
@@ -356,10 +378,6 @@ export const VerifyMagicOrder = async (req, res, next) => {
 
     if (!razorpay_order_id) {
       return next(CustomeError(422, "razorpay_order_id is required"));
-    }
-
-    if (!cartIds || !Array.isArray(cartIds) || cartIds.length === 0) {
-      return next(CustomeError(422, "cartIds is required"));
     }
 
     // 1. Fetch full order details from Razorpay (contains customer address filled in modal)
@@ -384,8 +402,26 @@ export const VerifyMagicOrder = async (req, res, next) => {
     }
 
     // 2. Fetch cart items & products
-    const cartItems = await cartModel.find({ _id: { $in: cartIds } });
-    const productIDs = cartItems.map((item) => item.productId);
+    let cartItems = [];
+    if (Array.isArray(cartIds) && cartIds.length > 0) {
+      const validIds = cartIds.filter((id) => mongoose.isValidObjectId(id));
+      if (validIds.length > 0) {
+        cartItems = await cartModel.find({ _id: { $in: validIds } });
+      }
+    }
+
+    if (!cartItems.length && Array.isArray(rawItems) && rawItems.length > 0) {
+      cartItems = rawItems.map((item) => ({
+        productId: String(item.productId || item.id || item._id || ""),
+        variantId: item.variantId ? String(item.variantId) : "",
+        size: item.size || item.selectedSize || "Standard",
+        quantity: Number(item.quantity) || 1,
+      }));
+    }
+
+    const productIDs = cartItems
+      .map((item) => item.productId)
+      .filter((id) => mongoose.isValidObjectId(id));
     const products = await productModel.find({ _id: { $in: productIDs } });
 
     const items = [];
@@ -432,9 +468,42 @@ export const VerifyMagicOrder = async (req, res, next) => {
       itemsPrice += it.price * it.quantity;
     }
 
-    // 3. Coupon discount
+    // 3. Coupon discount & Customer resolution
     let discount = 0;
     const effectiveCouponId = couponId || rzpOrder?.notes?.coupon_id || null;
+
+    // 3.5. Resolve Customer User Account (Find existing by phone/email or create new user)
+    const rzpCustomer = rzpOrder?.customer_details || {};
+    const rzpShipping = rzpCustomer?.shipping_address || {};
+    const contact = rzpShipping?.contact || rzpCustomer?.contact || "";
+    const email = rzpCustomer?.email || "";
+    const customerName = rzpShipping?.name || rzpCustomer?.name || "Customer";
+    const cleanPhone = (contact || "").replace(/\D/g, "").slice(-10);
+
+    let customerUser = req.user;
+    if (!customerUser) {
+      if (cleanPhone && cleanPhone.length === 10) {
+        customerUser = await userModel.findOne({ phone: cleanPhone });
+      }
+      if (!customerUser && email) {
+        customerUser = await userModel.findOne({ email });
+      }
+      if (!customerUser) {
+        try {
+          customerUser = await userModel.create({
+            name: customerName,
+            phone: cleanPhone && cleanPhone.length === 10 ? cleanPhone : null,
+            email: email || `customer_${Date.now()}@shveraa.com`,
+            role: "user",
+            status: "active",
+          });
+        } catch (createUserErr) {
+          console.warn("[Magic Checkout] User creation fallback:", createUserErr.message);
+          customerUser = (await userModel.findOne({ role: "user" })) || (await userModel.findOne());
+        }
+      }
+    }
+
     if (effectiveCouponId && mongoose.isValidObjectId(effectiveCouponId)) {
       const coupon = await couponModel.findById(effectiveCouponId);
       if (coupon) {
@@ -447,10 +516,12 @@ export const VerifyMagicOrder = async (req, res, next) => {
           discount = Math.min(coupon.discountValue, itemsPrice);
         }
 
-        await couponModel.findByIdAndUpdate(effectiveCouponId, {
-          $inc: { usedCount: 1 },
-          $addToSet: { usedBy: req.user._id },
-        });
+        if (customerUser?._id) {
+          await couponModel.findByIdAndUpdate(effectiveCouponId, {
+            $inc: { usedCount: 1 },
+            $addToSet: { usedBy: customerUser._id },
+          });
+        }
       }
     }
 
@@ -464,18 +535,17 @@ export const VerifyMagicOrder = async (req, res, next) => {
       addressDoc = await addressModel.findById(addressId);
     }
 
-    const rzpShipping = rzpOrder?.customer_details?.shipping_address;
     if (!addressDoc && rzpShipping) {
       try {
         addressDoc = await addressModel.create({
-          userId: req.user._id,
-          fullName: rzpShipping.name || req.user.name || "Customer",
-          phone: rzpShipping.contact || req.user.phone || "",
-          street: rzpShipping.line1 || "Street Address",
-          locality: rzpShipping.line2 || "",
+          userId: customerUser._id,
+          fullName: rzpShipping.name || customerUser.name || "Customer",
+          phone: rzpShipping.contact || customerUser.phone || "",
+          street: rzpShipping.line1 || rzpShipping.street1 || "Street Address",
+          locality: rzpShipping.line2 || rzpShipping.street2 || "",
           city: rzpShipping.city || "City",
           state: rzpShipping.state || "State",
-          pincode: rzpShipping.zipcode || "395010",
+          pincode: rzpShipping.zipcode || rzpShipping.postal_code || "395010",
           isDefault: true,
           label: "Home",
         });
@@ -484,15 +554,18 @@ export const VerifyMagicOrder = async (req, res, next) => {
       }
     }
 
+    const streetCombined = (rzpShipping?.line1 || rzpShipping?.street1 || "") + 
+      ((rzpShipping?.line2 || rzpShipping?.street2) ? " " + (rzpShipping?.line2 || rzpShipping?.street2) : "");
+
     const orderAddress = {
       addressline: addressDoc
         ? `${addressDoc.street} ${addressDoc.locality || ""}`.trim()
-        : `${rzpShipping?.line1 || ""} ${rzpShipping?.line2 || ""}`.trim() || "Address",
+        : streetCombined.trim() || "Address",
       city: addressDoc?.city || rzpShipping?.city || "Surat",
       state: addressDoc?.state || rzpShipping?.state || "Gujarat",
       country: "India",
-      pincode: addressDoc?.pincode || rzpShipping?.zipcode || "395010",
-      phone: addressDoc?.phone || rzpShipping?.contact || req.user.phone || "",
+      pincode: addressDoc?.pincode || rzpShipping?.zipcode || rzpShipping?.postal_code || "395010",
+      phone: addressDoc?.phone || rzpShipping?.contact || customerUser.phone || "",
     };
 
     // 5. Create Delhivery shipping order
@@ -501,7 +574,7 @@ export const VerifyMagicOrder = async (req, res, next) => {
       const delhiveryPayload = {
         shipments: [
           {
-            name: addressDoc?.fullName || req.user.name,
+            name: addressDoc?.fullName || customerUser?.name || customerName,
             add: orderAddress.addressline,
             pin: orderAddress.pincode,
             city: orderAddress.city,
@@ -545,7 +618,7 @@ export const VerifyMagicOrder = async (req, res, next) => {
 
     // 6. Create Order in Database
     const orderData = {
-      userId: req.user._id,
+      userId: customerUser._id,
       orderNumber: orderNumber,
       waybill: waybill,
       address: orderAddress,
@@ -566,9 +639,12 @@ export const VerifyMagicOrder = async (req, res, next) => {
 
     const newOrder = await OrderModel.create(orderData);
 
-    // 7. Clear cart items
+    // 7. Clear cart items if user has db cart
     try {
-      await cartModel.deleteMany({ _id: { $in: cartIds } });
+      const validIds = (cartIds || []).filter((id) => mongoose.isValidObjectId(id));
+      if (validIds.length > 0) {
+        await cartModel.deleteMany({ _id: { $in: validIds } });
+      }
     } catch (cartErr) {
       console.warn("Could not delete cart items:", cartErr.message);
     }
@@ -580,16 +656,29 @@ export const VerifyMagicOrder = async (req, res, next) => {
       sendNotification(
         tokens,
         "New Order Placed (Magic Checkout)",
-        `Order ${orderNumber} (${paymentMethod.toUpperCase()}) has been placed by ${req.user.name}.`
+        `Order ${orderNumber} (${paymentMethod.toUpperCase()}) has been placed by ${customerUser?.name || customerName}.`
       );
     } catch (notifyErr) {
       console.warn("Notification error:", notifyErr.message);
     }
 
+    let generatedToken = null;
+    try {
+      generatedToken = generateJwtToken(customerUser);
+    } catch (_) {}
+
     return res.status(200).json({
       success: true,
       message: "Order placed successfully via Magic Checkout",
       order: newOrder,
+      token: generatedToken,
+      user: {
+        _id: customerUser._id,
+        name: customerUser.name,
+        email: customerUser.email,
+        phone: customerUser.phone,
+        role: customerUser.role,
+      },
     });
   } catch (error) {
     return next(error);

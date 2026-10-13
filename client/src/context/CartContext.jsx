@@ -26,7 +26,7 @@ const getToken = () => {
   }
 };
 
-const isLoggedIn = () => !!getToken() || !!localStorage.getItem('shveraa_user');
+const isLoggedIn = () => !!getToken();
 
 export const CartProvider = ({ children }) => {
   const [, setStoreVersion] = useState(0);
@@ -37,12 +37,18 @@ export const CartProvider = ({ children }) => {
   }, []);
 
   // ─── Cart State ──────────────────────────────────────────────────────────
-  const [cart, setCart] = useState([]);
-
-  useEffect(() => {
-    // Remove the legacy browser cart once. It is no longer read or written.
-    localStorage.removeItem('shveraa_cart');
-  }, []);
+  const [cart, setCart] = useState(() => {
+    try {
+      const token = localStorage.getItem('shveraa_user_token');
+      if (!token) {
+        const saved = localStorage.getItem('shveraa_cart');
+        return saved ? JSON.parse(saved) : [];
+      }
+    } catch {
+      return [];
+    }
+    return [];
+  });
 
   // ─── Wishlist State (always stores full product objects) ──────────────────
   const [wishlist, setWishlist] = useState(() => {
@@ -79,25 +85,6 @@ export const CartProvider = ({ children }) => {
 
   // ─── ADD TO CART ──────────────────────────────────────────────────────────
   const addToCart = async (product, selectedSize = null, quantity = 1, options = {}) => {
-    if (!isLoggedIn()) {
-      try {
-        localStorage.setItem(
-          'shveraa_pending_cart_item',
-          JSON.stringify({
-            product,
-            selectedSize,
-            quantity,
-            options,
-          })
-        );
-      } catch (err) {
-        console.warn('Could not store pending cart item:', err);
-      }
-      const currentPath = window.location.pathname + window.location.search;
-      window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
-      return false;
-    }
-
     let color = options.color || product.selectedColor || product.color || '';
     let variantId = options.variantId || product.selectedVariantId || '';
     const selectedVariant =
@@ -132,6 +119,56 @@ export const CartProvider = ({ children }) => {
       selectedColor: color,
       quantity,
     };
+ 
+    const addGuestItem = () => {
+      setCart((prevCart) => {
+        const existingIndex = prevCart.findIndex(
+          (item) =>
+            String(item.productId?._id || item.productId) === String(cartItem.productId) &&
+            String(item.variantId || '') === String(cartItem.variantId || '') &&
+            String(item.size || item.selectedSize || '') === String(cartItem.size)
+        );
+
+        let updatedCart;
+        if (existingIndex > -1) {
+          updatedCart = prevCart.map((item, idx) =>
+            idx === existingIndex
+              ? { ...item, quantity: item.quantity + quantity }
+              : item
+          );
+        } else {
+          const guestItem = {
+            ...cartItem,
+            _id: `guest_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          };
+          updatedCart = [...prevCart, guestItem];
+        }
+
+        try {
+          localStorage.setItem('shveraa_cart', JSON.stringify(updatedCart));
+        } catch (err) {
+          console.warn('Could not store guest cart:', err);
+        }
+        return updatedCart;
+      });
+
+      trackPixelEvent('AddToCart', {
+        content_name: product.name,
+        content_ids: [product._id || product.slug],
+        content_type: 'product',
+        value: Number(cartItem.price || product.price || 0),
+        currency: 'INR',
+      });
+
+      showToast(`Added "${product.name}" to your bag`);
+      if (!options.silent) setIsCartOpen(true);
+      return true;
+    };
+
+    // If user is NOT logged in: add directly to guest cart state & localStorage
+    if (!isLoggedIn()) {
+      return addGuestItem();
+    }
 
     try {
       const response = await apiAddToCart(cartItem);
@@ -150,8 +187,8 @@ export const CartProvider = ({ children }) => {
       if (!options.silent) setIsCartOpen(true);
       return true;
     } catch (error) {
-      showToast(error.message || 'Unable to update your bag');
-      return false;
+      console.warn('apiAddToCart failed, falling back to guest cart:', error);
+      return addGuestItem();
     }
   };
 
@@ -218,12 +255,37 @@ export const CartProvider = ({ children }) => {
     // Re-run on login event
     const handleLogin = async () => {
       dbLoadedRef.current = false;
+      // Sync guest cart to DB if any exists
+      try {
+        const guestCartRaw = localStorage.getItem('shveraa_cart');
+        if (guestCartRaw) {
+          const guestItems = JSON.parse(guestCartRaw);
+          if (Array.isArray(guestItems) && guestItems.length > 0) {
+            for (const item of guestItems) {
+              await apiAddToCart({
+                productId: item.productId?._id || item.productId,
+                variantId: item.variantId || '',
+                size: item.size || item.selectedSize || 'Standard',
+                quantity: item.quantity || 1,
+                name: item.name,
+                price: item.price,
+                image: item.image,
+                color: item.color || item.selectedColor,
+              }).catch(() => {});
+            }
+          }
+          localStorage.removeItem('shveraa_cart');
+        }
+      } catch (syncErr) {
+        console.warn('Could not sync guest cart to DB on login:', syncErr);
+      }
       await loadFromDB();
       await processPendingCartItem();
     };
     const handleLogout = () => {
       dbLoadedRef.current = false;
       setCart([]);
+      try { localStorage.removeItem('shveraa_cart'); } catch (_) {}
     };
     window.addEventListener('shveraa_user_logged_in', handleLogin);
     window.addEventListener('shveraa_user_logged_out', handleLogout);
@@ -238,7 +300,19 @@ export const CartProvider = ({ children }) => {
   // ─── UPDATE QUANTITY ──────────────────────────────────────────────────────
   const updateQuantity = async (cartId, quantity) => {
     if (quantity <= 0) { removeFromCart(cartId); return; }
-    if (!isLoggedIn()) return;
+    if (!isLoggedIn()) {
+      setCart((prev) => {
+        const next = prev.map((item) =>
+          (String(item._id) === String(cartId) || String(item.id) === String(cartId))
+            ? { ...item, quantity }
+            : item
+        );
+        try { localStorage.setItem('shveraa_cart', JSON.stringify(next)); } catch (_) {}
+        return next;
+      });
+      setAppliedCoupon(null);
+      return;
+    }
     try {
       const response = await apiUpdateCartItem(cartId, quantity);
       setCart(Array.isArray(response?.cart) ? response.cart : []);
@@ -250,7 +324,18 @@ export const CartProvider = ({ children }) => {
 
   // ─── REMOVE FROM CART ─────────────────────────────────────────────────────
   const removeFromCart = async (cartId) => {
-    if (!isLoggedIn()) return;
+    if (!isLoggedIn()) {
+      setCart((prev) => {
+        const next = prev.filter(
+          (item) => String(item._id) !== String(cartId) && String(item.id) !== String(cartId)
+        );
+        try { localStorage.setItem('shveraa_cart', JSON.stringify(next)); } catch (_) {}
+        return next;
+      });
+      setAppliedCoupon(null);
+      showToast('Item removed from your bag');
+      return;
+    }
     try {
       const response = await apiRemoveCartItem(cartId);
       setCart(Array.isArray(response?.cart) ? response.cart : []);
@@ -265,6 +350,7 @@ export const CartProvider = ({ children }) => {
   const clearCart = async () => {
     setCart([]);
     setAppliedCoupon(null);
+    try { localStorage.removeItem('shveraa_cart'); } catch (_) {}
     if (!isLoggedIn()) return;
     try {
       const response = await apiClearCart();

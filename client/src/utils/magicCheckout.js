@@ -120,7 +120,7 @@ export const triggerMagicCheckout = async ({
       currency: order.currency || 'INR',
       name: 'SHVERAA',
       description: 'Fine 925 Sterling Silver Order',
-      image: typeof window !== 'undefined' ? `${window.location.origin}/logo.png` : 'https://shveraa.com/logo.png',
+      image: typeof window !== 'undefined' ? `${window.location.origin}/razorpay_logo.jpeg` : 'https://shveraa.com/razorpay_logo.jpeg',
       order_id: order.id,
       prefill: {
         name: user?.name || '',

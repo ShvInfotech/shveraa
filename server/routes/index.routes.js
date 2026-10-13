@@ -4,10 +4,12 @@ import AdminRoutes from './admin/v1/admin.routes.js';
 import { UploadImage } from '../middleware/imageUploading.js';
 import { UploadFileHandler } from '../controllers/upload.controller.js';
 import WebhookRoutes from './webhook.routes.js';
+import MagicCheckoutRoutes from './magicCheckout.routes.js';
 const router = express.Router();
 
 router.use('/user', UserRoutes);
 router.use('/admin', AdminRoutes);
+router.use('/magic-checkout', MagicCheckoutRoutes);
 
 router.use('/webhook',WebhookRoutes);
 

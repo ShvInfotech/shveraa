@@ -917,8 +917,44 @@ export const apiVerifyPaymentPlaceOrder = async ({
   return data;
 };
 
+export const apiCreateMagicOrder = async ({ cartIds, couponId, shippingCost }) => {
+  const payload = { cartIds, shippingCost };
+  if (couponId) payload.couponId = couponId;
+  const res = await apiFetch('/api/v1/magic-checkout/create-order', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to create Magic Checkout order');
+  return data;
+};
 
-
+export const apiVerifyMagicOrder = async ({
+  razorpay_order_id,
+  razorpay_payment_id,
+  razorpay_signature,
+  cartIds,
+  couponId,
+  shippingCost,
+  addressId,
+}) => {
+  const payload = {
+    razorpay_order_id,
+    razorpay_payment_id: razorpay_payment_id || '',
+    razorpay_signature: razorpay_signature || '',
+    cartIds,
+    couponId: couponId || '',
+    shippingCost: shippingCost || 0,
+    addressId: addressId || '',
+  };
+  const res = await apiFetch('/api/v1/magic-checkout/verify-order', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to verify Magic Checkout order');
+  return data;
+};
 
 export const apiCODPlaceOrder = async ({
   cartIds,

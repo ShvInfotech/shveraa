@@ -36,7 +36,7 @@ const loadRazorpayScript = () => {
       return;
     }
     const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.src = 'https://checkout.razorpay.com/v1/magic-checkout.js';
     script.onload = () => resolve(true);
     script.onerror = () => resolve(false);
     document.body.appendChild(script);
@@ -407,6 +407,8 @@ const Checkout = () => {
 
       const options = {
         key: razorpayKey,
+        one_click_checkout: true,
+        show_coupons: true,
         amount: order.amount,
         currency: order.currency || 'INR',
         name: 'SHVERAA',
@@ -421,8 +423,8 @@ const Checkout = () => {
 
             const verifyRes = await apiVerifyPaymentPlaceOrder({
               razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
+              razorpay_payment_id: response.razorpay_payment_id || '',
+              razorpay_signature: response.razorpay_signature || '',
               cartIds,
               couponId,
               shippingCost: Math.round(Number(shippingCost) || 0),

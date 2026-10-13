@@ -54,14 +54,13 @@ export const CheckShippingChargesService = async (delhiveryData) => {
     });
     const baseUrl = getDelhiveryURL();
 
-    const url = `https://track.delhivery.com/api/kinko/v1/invoice/charges/.json?${params.toString()}`;
-    
+    const url = `${baseUrl}api/kinko/v1/invoice/charges/.json?${params.toString()}`;
     const token = process.env.DELHIVERY_AUTH_TOKEN;
     const response = await fetch(url, {
       method: "GET",
       headers: {
         Accept: "application/json",
-        Authorization: `Token c4a879ebfaca226e04835194373408ffcb5d3e49`,
+        Authorization: `Token ${token}`,
       },
     });
 
@@ -72,6 +71,8 @@ export const CheckShippingChargesService = async (delhiveryData) => {
     throw error;
   }
 };
+
+
 
 
 export const CreateShippingOrderService = async (shippingData) => {

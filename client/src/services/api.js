@@ -372,6 +372,37 @@ export const apiUserRegister = async ({ name, email, phone, password, deviceToke
   return data;
 };
 
+export const apiUserSendLoginOtp = async (phone) => {
+  const res = await apiFetch('/api/v1/user/auth/send-login-otp', {
+    method: 'POST',
+    body: JSON.stringify({ phone }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to send OTP to WhatsApp');
+  }
+  return data;
+};
+
+export const apiUserVerifyOtpLogin = async ({ userId, otp, deviceToken }) => {
+  const payload = { userId, otp: Number(otp) };
+  if (deviceToken) payload.deviceToken = deviceToken;
+
+  const res = await apiFetch('/api/v1/user/auth/verify-otp-login', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'OTP verification failed');
+  }
+  if (data.AccessToken) {
+    localStorage.setItem('shveraa_user_token', data.AccessToken);
+    localStorage.setItem('shveraa_user', JSON.stringify(data.user));
+  }
+  return data;
+};
+
 export const apiUserLogin = async ({ email, password, deviceToken }) => {
   const payload = { email, password };
   if (deviceToken) payload.deviceToken = deviceToken;
@@ -383,6 +414,25 @@ export const apiUserLogin = async ({ email, password, deviceToken }) => {
   const data = await res.json();
   if (!res.ok) {
     throw new Error(data.message || 'Login failed');
+  }
+  if (data.AccessToken) {
+    localStorage.setItem('shveraa_user_token', data.AccessToken);
+    localStorage.setItem('shveraa_user', JSON.stringify(data.user));
+  }
+  return data;
+};
+
+export const apiUserGoogleLogin = async ({ GoogleIdToken, deviceToken }) => {
+  const payload = { GoogleIdToken };
+  if (deviceToken) payload.deviceToken = deviceToken;
+
+  const res = await apiFetch('/api/v1/user/auth/googlelogin', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Google login failed');
   }
   if (data.AccessToken) {
     localStorage.setItem('shveraa_user_token', data.AccessToken);

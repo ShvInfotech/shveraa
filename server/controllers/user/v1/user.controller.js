@@ -10,289 +10,403 @@ import AddressModel from '../../../models/address.model.js'
 import CartModel from '../../../models/cart.model.js'
 import WishlistModel from '../../../models/wishlist.model.js'
 import { SendWhatsAppMessage } from '../../../services/Whatsapp.js'
-
+import otpModel from '../../../models/otp.model.js'
+import { getAuth } from 'firebase-admin/auth'
+import firebaseadmin from '../../../config/firebase.js'
 
 
 export const UserRegister = async (req, res, next) => {
-    try {
+  try {
 
-        const { name, email, phone, password, deviceToken } = req.body || {}
+    const { name, email, phone, password, deviceToken } = req.body || {}
 
-        if (!name) {
-            return next(CustomeError(422, 'name is required'))
-        }
-
-
-        if (!email) {
-            return next(CustomeError(422, 'email is required'))
-        }
-
-        if (!phone) {
-            return next(CustomeError(422, 'contact number is required'))
-        }
-
-        if (!password) {
-            return next(CustomeError(422, 'password is required'))
-        }
-
-
-        const hashPassword = await hashUserPassword(password)
-        console.log(hashPassword)
-        const userData = {
-            name,
-            email,
-            phone,
-            password: hashPassword
-        }
-
-
-        let user = await UserModel.create(userData)
-
-        const token = generateJwtToken(user)
-        const hashAccessToken = generatehashToken(token)
-
-
-
-        const updateData = { $addToSet: { accessToken: hashAccessToken } };
-
-        if (deviceToken) {
-            updateData.$addToSet.deviceToken = deviceToken;
-        }
-
-        user = await UserModel.findByIdAndUpdate(user._id, updateData, { returnDocument: 'after' }).select('name email phone profile createdAt')
-
-
-        return res.status(200).json({ success: true, message: "User Register", user, AccessToken: token })
-    } catch (error) {
-        return next(error)
+    if (!name) {
+      return next(CustomeError(422, 'name is required'))
     }
+
+
+    if (!email) {
+      return next(CustomeError(422, 'email is required'))
+    }
+
+    if (!phone) {
+      return next(CustomeError(422, 'contact number is required'))
+    }
+
+    if (!password) {
+      return next(CustomeError(422, 'password is required'))
+    }
+
+
+    const hashPassword = await hashUserPassword(password)
+    console.log(hashPassword)
+    const userData = {
+      name,
+      email,
+      phone,
+      password: hashPassword
+    }
+
+
+    let user = await UserModel.create(userData)
+
+    const token = generateJwtToken(user)
+    const hashAccessToken = generatehashToken(token)
+
+
+
+    const updateData = { $addToSet: { accessToken: hashAccessToken } };
+
+    if (deviceToken) {
+      updateData.$addToSet.deviceToken = deviceToken;
+    }
+
+    user = await UserModel.findByIdAndUpdate(user._id, updateData, { returnDocument: 'after' }).select('name email phone profile createdAt')
+
+
+    return res.status(200).json({ success: true, message: "User Register", user, AccessToken: token })
+  } catch (error) {
+    return next(error)
+  }
 }
 
 
 export const UserLogin = async (req, res, next) => {
-    try {
-        const { email, password, deviceToken } = req.body || {}
-
-        if (!email) {
-            return next(CustomeError(422, "email is required"))
-        }
-
-        if (!password) {
-            return next(CustomeError(422, "password is required"))
-        }
-
-        let user = await UserModel.findOne({ email: email})
-
-        if (!user) {
-            return next(CustomeError(404, "User Not Found"))
-        }
-
-        if(user.status == "inactive" || user.status == "block"){
-            return next(CustomeError(401,"Your Account is Inactive or Block"))
-        }
-
-        const matchPassword = await bcrypt.compare(password, user.password)
-
-        if (!matchPassword) {
-            return next(CustomeError(403, "Invalid  Password"))
-        }
-
-        const token = generateJwtToken(user)
-        const hashAccessToken = generatehashToken(token)
-
-
-
-        const updateData = { $addToSet: { accessToken: hashAccessToken } };
-
-        if (deviceToken) {
-            updateData.$addToSet.deviceToken = deviceToken;
-        }
-
-        user = await UserModel.findByIdAndUpdate(user._id, updateData, { returnDocument: 'after' }).select('name email phone profile createdAt')
-
-
-        return res.status(200).json({ success: true, message: "User Register", user, AccessToken: token })
-
-
-    } catch (error) {
-        return next(error)
-    }
-}
-
-
-export const SendUserLoginOtp = async(req,res,next)=>{
   try {
-        const {phone} = req.body || {}
+    const { email, password, deviceToken } = req.body || {}
 
-        if(!phone){
-          return next(CustomeError(422,"Phone Number Required"))
-        }
-
-         let user = await UserModel.findOne({phone:phone})
-
-         if(!user){
-          user = await UserModel.create({phone:phone})
-         }
-
-         const otp = GenerateOTP()
-    const template_code = "shveraa_otp_login"
-    const variables = {
-      otp:otp,
-      validity:"5"
+    if (!email) {
+      return next(CustomeError(422, "email is required"))
     }
-         SendWhatsAppMessage(phone,template_code,variables)
 
-         return res.status(200).json({success:true,message:"OTP Send Your Wahtaspp Number",otp:otp,userId:user._id})
+    if (!password) {
+      return next(CustomeError(422, "password is required"))
+    }
+
+    let user = await UserModel.findOne({ email: email })
+
+    if (!user) {
+      return next(CustomeError(404, "User Not Found"))
+    }
+
+    if (user.status == "inactive" || user.status == "block") {
+      return next(CustomeError(401, "Your Account is Inactive or Block"))
+    }
+
+    const matchPassword = await bcrypt.compare(password, user.password)
+
+    if (!matchPassword) {
+      return next(CustomeError(403, "Invalid  Password"))
+    }
+
+    const token = generateJwtToken(user)
+    const hashAccessToken = generatehashToken(token)
+
+
+
+    const updateData = { $addToSet: { accessToken: hashAccessToken } };
+
+    if (deviceToken) {
+      updateData.$addToSet.deviceToken = deviceToken;
+    }
+
+    user = await UserModel.findByIdAndUpdate(user._id, updateData, { returnDocument: 'after' }).select('name email phone profile createdAt')
+
+
+    return res.status(200).json({ success: true, message: "User Register", user, AccessToken: token })
+
+
   } catch (error) {
-    
+    return next(error)
   }
 }
 
-export const UserLogout = async (req, res, next) => {
-    try {
-        const token = req.token
 
-        if (token) {
-            await UserModel.findByIdAndUpdate(req.user._id, { $pull: { accessToken: token } }, { returnDocument: "after" })
-        }
+export const SendUserLoginOtp = async (req, res, next) => {
+  try {
+    const { phone } = req.body || {}
 
-        return res.status(200).json({ success: true, message: 'User Logout', token })
-    } catch (error) {
-        return next(error)
+    if (!phone) {
+      return next(CustomeError(422, "Phone Number Required"))
     }
+
+    let user = await UserModel.findOne({ phone: phone })
+
+    if (!user) {
+      user = await UserModel.create({ phone: phone })
+    }
+
+    const otp = GenerateOTP()
+    const template_code = "shveraa_otp_login"
+    const variables = {
+      otp: otp,
+      validity: "5"
+    }
+
+    let sentotp = await otpModel.findOne({ userId: user._id })
+    if (!sentotp) {
+      sentotp = await otpModel.create({ userId: user._id, otp: otp })
+      SendWhatsAppMessage(phone, template_code, variables)
+      return res.status(200).json({ success: true, message: "OTP Send Your Wahtaspp Number", userId: sentotp.userId })
+    }
+
+    if (sentotp) {
+      sentotp = await otpModel.findByIdAndUpdate(sentotp._id, { userId: user._id, otp })
+      SendWhatsAppMessage(phone, template_code, variables)
+      return res.status(200).json({ success: true, message: "OTP Send Your Wahtaspp Number", userId: sentotp.userId })
+    }
+
+  } catch (error) {
+    return next(error)
+  }
+}
+
+
+export const VerifyOtpAndLogin = async (req, res, next) => {
+  try {
+
+    const { userId, otp,deviceToken } = req.body || {}
+
+    if (!userId) {
+      return next(CustomeError(422, "User Id is reqiured"))
+    }
+
+
+    if (!otp) {
+      return next(CustomeError(422, "Otp is reqiured"))
+    }
+
+    const dbotp = await otpModel.findOne({ userId })
+
+    if (!dbotp) {
+      return next(CustomeError(400, "otp is expired"))
+    }
+   
+    if (String(dbotp.otp).trim() !== String(otp).trim()) {
+      return next(CustomeError(400, "Invalid OTP"))
+    }
+
+ 
+    let user =await UserModel.findById(userId)
+    const token = generateJwtToken(user)
+    const hashAccessToken = generatehashToken(token)
+
+
+
+    const updateData = { $addToSet: { accessToken: hashAccessToken } };
+
+    if (deviceToken) {
+      updateData.$addToSet.deviceToken = deviceToken;
+    }
+
+    user = await UserModel.findByIdAndUpdate(user._id, updateData, { returnDocument: 'after' }).select('name email phone profile createdAt')
+    await otpModel.findByIdAndDelete(dbotp._id)
+    return res.status(200).json({ success: true, message: "User Login", user, AccessToken: token })
+
+  } catch (error) {
+    return next(error)
+  }
+}
+
+
+export const UserGoogelLogin = async (req, res, next) => {
+  try {
+    const { deviceToken, GoogleIdToken } = req.body || {};
+
+    if (!GoogleIdToken) {
+      return next(CustomeError(422, "GoogleIdToken is required"));
+    }
+
+    if (!firebaseadmin) {
+      return next(CustomeError(500, "Firebase service is not initialized on the server"));
+    }
+
+    const decoded = await getAuth(firebaseadmin).verifyIdToken(GoogleIdToken);
+    if (!decoded || !decoded.email) {
+      return next(CustomeError(401, "Invalid Google user token"));
+    }
+
+    let user = await UserModel.findOne({ email: decoded.email });
+
+    if (user) {
+      if (user.status === "inactive" || user.status === "block") {
+        return next(CustomeError(401, "Your Account is Inactive or Block"));
+      }
+      if (!user.googleId) {
+        user.googleId = decoded.sub;
+        await user.save();
+      }
+    } else {
+      user = await UserModel.create({
+        name: decoded.name || decoded.email.split('@')[0],
+        email: decoded.email,
+        googleId: decoded.sub,
+        profile: decoded.picture || '',
+      });
+    }
+
+    const token = generateJwtToken(user);
+    const hashAccessToken = generatehashToken(token);
+
+    const updateData = { $addToSet: { accessToken: hashAccessToken } };
+
+    if (deviceToken) {
+      updateData.$addToSet.deviceToken = deviceToken;
+    }
+
+    user = await UserModel.findByIdAndUpdate(user._id, updateData, { returnDocument: 'after' }).select('name email phone profile createdAt');
+
+    return res.status(200).json({ success: true, message: "User Login", user, AccessToken: token });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const UserLogout = async (req, res, next) => {
+  try {
+    const token = req.token
+
+    if (token) {
+      await UserModel.findByIdAndUpdate(req.user._id, { $pull: { accessToken: token } }, { returnDocument: "after" })
+    }
+
+    return res.status(200).json({ success: true, message: 'User Logout', token })
+  } catch (error) {
+    return next(error)
+  }
 }
 
 export const UserForgotPassword = async (req, res, next) => {
-    try {
-        const { email } = req.body
+  try {
+    const { email } = req.body
 
-        if (!email) {
-            return next(CustomeError(422, 'Enter Your Register Email'))
-        }
-
-        const user = await UserModel.findOne({ email: email, status: 'active' })
-
-        if (!user) {
-            return next(CustomeError(404, "Inavlid Email Enter Your Register Email"))
-        }
-
-
-        const token = ForgotgenerateJwtToken(user)
-
-        const link = `${process.env.BACKEND_DOMIN_URL}/reset-password/${token}`
-
-        await sendEmail(ForgetPasswordMail(user.email, user.name, link))
-
-        return res.status(200).json({ success: true, message: "Reset Password Link Sent Your Register Email" })
-
-    } catch (error) {
-        return next(error)
+    if (!email) {
+      return next(CustomeError(422, 'Enter Your Register Email'))
     }
+
+    const user = await UserModel.findOne({ email: email, status: 'active' })
+
+    if (!user) {
+      return next(CustomeError(404, "Inavlid Email Enter Your Register Email"))
+    }
+
+
+    const token = ForgotgenerateJwtToken(user)
+
+    const link = `${process.env.BACKEND_DOMIN_URL}/reset-password/${token}`
+
+    await sendEmail(ForgetPasswordMail(user.email, user.name, link))
+
+    return res.status(200).json({ success: true, message: "Reset Password Link Sent Your Register Email" })
+
+  } catch (error) {
+    return next(error)
+  }
 }
 
 
 export const ResetPasswordpage = async (req, res, next) => {
-    try {
-        const token = req.params.token
-        res.render('reset-password', { token, message: "", type: "" })
-    } catch (error) {
-        return next(error)
-    }
+  try {
+    const token = req.params.token
+    res.render('reset-password', { token, message: "", type: "" })
+  } catch (error) {
+    return next(error)
+  }
 }
 
 
 export const ResetPassword = async (req, res, next) => {
 
-    try {
+  try {
 
-        const token = req.params.token;
-        const { password } = req.body;
+    const token = req.params.token;
+    const { password } = req.body;
 
-        if(!password){
-            return res.render("reset-password", {
-                token: token,
-                message: "Password Is Required.",
-                type: "error"
-            });
-        }
-
-        const decoded = jwt.verify(token, process.env.FORGOT_PASSWORD_JWT_SECRET);
-        const userId = decoded.id;
-
-
-        // 2. hash password
-        const hashPassword = await bcrypt.hash(password, 12);
-
-        await UserModel.findByIdAndUpdate(userId, { password: hashPassword, accessToken: [] });
-        return res.render("reset-password", {
-            token,
-            message: "Password updated successfully",
-            type: "success"
-        });
-
-    } catch (error) {
-        console.log(error)
-        if (error.name === "TokenExpiredError") {
-            return res.render("reset-password", {
-                token: null,
-                message: "Your reset password link has expired. Please request a new one.",
-                type: "expired"
-            });
-        }
-
-        if (error.name === "JsonWebTokenError") {
-            return res.render("reset-password", {
-                token: null,
-                message: "Invalid reset password link.",
-                type: "error"
-            });
-        }
-        return next(error);
+    if (!password) {
+      return res.render("reset-password", {
+        token: token,
+        message: "Password Is Required.",
+        type: "error"
+      });
     }
+
+    const decoded = jwt.verify(token, process.env.FORGOT_PASSWORD_JWT_SECRET);
+    const userId = decoded.id;
+
+
+    // 2. hash password
+    const hashPassword = await bcrypt.hash(password, 12);
+
+    await UserModel.findByIdAndUpdate(userId, { password: hashPassword, accessToken: [] });
+    return res.render("reset-password", {
+      token,
+      message: "Password updated successfully",
+      type: "success"
+    });
+
+  } catch (error) {
+    console.log(error)
+    if (error.name === "TokenExpiredError") {
+      return res.render("reset-password", {
+        token: null,
+        message: "Your reset password link has expired. Please request a new one.",
+        type: "expired"
+      });
+    }
+
+    if (error.name === "JsonWebTokenError") {
+      return res.render("reset-password", {
+        token: null,
+        message: "Invalid reset password link.",
+        type: "error"
+      });
+    }
+    return next(error);
+  }
 };
 
-export const UserUpdateProfile = async (req,res,next) =>{
-    try {
-        const userId = req.user._id
+export const UserUpdateProfile = async (req, res, next) => {
+  try {
+    const userId = req.user._id
 
-        let user = await UserModel.findById(userId)
+    let user = await UserModel.findById(userId)
 
-        if(!user){
-            return next(CustomeError(401,'User Not Found'))
-        }
-        let profile = user.profile
-        if(req.file){
-            if(profile !==""){
-                DeleteImage(user.profile)
-            }
-            profile = `/uploads/${req.file.fieldname}/${req.file.filename}`
-        }
-
-
-        if(req.body?.name && req.body?.phone){
-
-           await UserModel.findByIdAndUpdate(user._id,{name:req.body.name.trim(),phone:req.body.phone.trim()})     
-           return res.status(200).json({success:true,message:"User Update Successfully"})
-        }
-
-        if(req.body?.currentPassword && req.body?.newPassword){
-           const matchPassword = await bcrypt.compare(req.body?.currentPassword, user.password)
-
-        if (!matchPassword) {
-            return next(CustomeError(403, " currentPassword Is Invalid"))
-        }
-
-
-        const hashPassword = await hashUserPassword(req.body?.newPassword)
-           await UserModel.findByIdAndUpdate(user._id,{password:hashPassword})     
-
-          return res.status(200).json({success:true,message:"Password Update Successfully"})
-        }
-
-
-    } catch (error) {
-        return next(error)
+    if (!user) {
+      return next(CustomeError(401, 'User Not Found'))
     }
+    let profile = user.profile
+    if (req.file) {
+      if (profile !== "") {
+        DeleteImage(user.profile)
+      }
+      profile = `/uploads/${req.file.fieldname}/${req.file.filename}`
+    }
+
+
+    if (req.body?.name && req.body?.phone) {
+
+      await UserModel.findByIdAndUpdate(user._id, { name: req.body.name.trim(), phone: req.body.phone.trim() })
+      return res.status(200).json({ success: true, message: "User Update Successfully" })
+    }
+
+    if (req.body?.currentPassword && req.body?.newPassword) {
+      const matchPassword = await bcrypt.compare(req.body?.currentPassword, user.password)
+
+      if (!matchPassword) {
+        return next(CustomeError(403, " currentPassword Is Invalid"))
+      }
+
+
+      const hashPassword = await hashUserPassword(req.body?.newPassword)
+      await UserModel.findByIdAndUpdate(user._id, { password: hashPassword })
+
+      return res.status(200).json({ success: true, message: "Password Update Successfully" })
+    }
+
+
+  } catch (error) {
+    return next(error)
+  }
 }
 
 /* ==========================================================================
@@ -431,7 +545,7 @@ export const SyncCart = async (req, res, next) => {
     await CartModel.deleteMany({ userId: req.user._id });
     if (cart.length > 0) {
       const docs = cart.map(item => ({ ...item, userId: req.user._id }));
-      await CartModel.insertMany(docs, { ordered: false }).catch(() => {});
+      await CartModel.insertMany(docs, { ordered: false }).catch(() => { });
     }
     const updated = await CartModel.find({ userId: req.user._id });
     return res.status(200).json({ success: true, cart: updated });

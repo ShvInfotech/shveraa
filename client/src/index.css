@@ -7535,6 +7535,219 @@ h4 { font-size: 1.15rem; }
   transform: translateY(-1px);
 }
 
+/* Phone OTP & Google Login Enhancements */
+.shv-phone-input-group {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid rgba(160, 126, 82, 0.28);
+  border-radius: var(--radius-xs);
+  background: #FFFFFF;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.shv-phone-input-group:focus-within {
+  border-color: #1F1B17;
+  box-shadow: 0 0 0 2px rgba(31, 27, 23, 0.1);
+}
+
+.shv-country-code-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  background: #FAF7F2;
+  border-right: 1px solid rgba(160, 126, 82, 0.22);
+  color: #1F1B17;
+  font-weight: 600;
+  font-size: 0.88rem;
+  letter-spacing: 0.02em;
+  user-select: none;
+}
+
+.shv-country-flag {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.shv-phone-input-group input {
+  flex: 1;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 12px 14px;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  outline: none;
+  background: transparent;
+  color: #1F1B17;
+}
+
+.shv-whatsapp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.74rem;
+  color: #166534;
+  background: #DCFCE7;
+  border: 1px solid #BBF7D0;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  margin-top: 4px;
+  font-weight: 500;
+  width: fit-content;
+}
+
+/* 4-digit OTP grid */
+.shv-otp-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin: 10px 0 6px;
+}
+
+.shv-otp-boxes {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.shv-otp-box {
+  width: 58px;
+  height: 62px;
+  border: 1.5px solid rgba(160, 126, 82, 0.35);
+  border-radius: var(--radius-sm);
+  background: #FAF7F2;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #1F1B17;
+  text-align: center;
+  outline: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.shv-otp-box:focus {
+  background: #FFFFFF;
+  border-color: #A07E52;
+  box-shadow: 0 0 0 3px rgba(160, 126, 82, 0.2);
+  transform: translateY(-2px);
+}
+
+.shv-otp-box.filled {
+  border-color: #1F1B17;
+  background: #FFFFFF;
+}
+
+.shv-otp-sent-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #FAF7F2;
+  border: 1px solid rgba(160, 126, 82, 0.2);
+  border-radius: var(--radius-xs);
+  padding: 10px 14px;
+  font-size: 0.82rem;
+  color: #554D43;
+}
+
+.shv-otp-edit-btn {
+  background: transparent;
+  border: none;
+  color: #A07E52;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 0.78rem;
+  padding: 0;
+}
+
+.shv-otp-edit-btn:hover {
+  color: #1F1B17;
+}
+
+.shv-otp-timer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  font-size: 0.80rem;
+  color: #6C6257;
+  margin-top: 4px;
+}
+
+.shv-resend-btn {
+  background: transparent;
+  border: none;
+  color: #A07E52;
+  font-weight: 600;
+  font-size: 0.80rem;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.shv-resend-btn:disabled {
+  color: #A8A199;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+.shv-auth-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 18px 0 14px;
+  color: #A8A199;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.shv-auth-divider::before,
+.shv-auth-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid rgba(160, 126, 82, 0.2);
+}
+
+.shv-auth-divider span {
+  padding: 0 12px;
+}
+
+.shv-google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 18px;
+  border-radius: var(--radius-full);
+  background: #FFFFFF;
+  border: 1px solid rgba(160, 126, 82, 0.32);
+  color: #1F1B17;
+  font-size: 0.84rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(60, 48, 36, 0.04);
+}
+
+.shv-google-btn:hover {
+  background: #FAF7F2;
+  border-color: #1F1B17;
+  box-shadow: 0 4px 12px rgba(60, 48, 36, 0.08);
+  transform: translateY(-1px);
+}
+
+.shv-google-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .shv-auth-switch-footer {
   text-align: center;
   margin-top: 20px;

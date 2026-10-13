@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage, isSupported } from 'firebase/messaging';
+import { getAuth, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 
 // Firebase client credentials from Vite environment variables with project fallback defaults
 
@@ -18,6 +19,10 @@ const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY || '';
 
 let app = null;
 let messagingInstance = null;
+let authInstance = null;
+
+const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 export const initFirebase = () => {
   if (typeof window === 'undefined') return null;
@@ -134,3 +139,32 @@ export const onForegroundMessage = (callback) => {
     return () => {};
   }
 };
+
+/**
+ * Get or initialize Firebase Auth instance
+ */
+export const getFirebaseAuth = () => {
+  const firebaseApp = initFirebase();
+  if (!firebaseApp) return null;
+  if (!authInstance) {
+    authInstance = getAuth(firebaseApp);
+  }
+  return authInstance;
+};
+
+/**
+ * Trigger Google Sign-In popup and retrieve user credentials & Firebase ID Token
+ */
+export const signInWithGooglePopup = async () => {
+  const auth = getFirebaseAuth();
+  if (!auth) {
+    throw new Error('Firebase authentication is not available.');
+  }
+  const result = await signInWithPopup(auth, googleProvider);
+  const idToken = await result.user.getIdToken();
+  return {
+    user: result.user,
+    idToken,
+  };
+};
+

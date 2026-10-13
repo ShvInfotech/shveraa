@@ -5,6 +5,8 @@ import {
   GetCart, SyncCart, AddToCart, UpdateCartItem, RemoveCartItem, ClearCart,
   GetWishlist, ToggleWishlist, UpdateDeviceToken,
   SendUserLoginOtp,
+  VerifyOtpAndLogin,
+  UserGoogelLogin,
 } from "../../../controllers/user/v1/user.controller.js";
 import { verifyjwtAccessToken } from "../../../middleware/jwtToken.js";
 const router = express.Router()
@@ -12,6 +14,8 @@ const router = express.Router()
 router.post('/register', UserRegister)
 router.post('/login', UserLogin)
 router.post('/send-login-otp',SendUserLoginOtp)
+router.post('/verify-otp-login',VerifyOtpAndLogin)
+router.post('/googlelogin',UserGoogelLogin)
 router.put('/update', verifyjwtAccessToken, UserUpdateProfile)
 router.post('/device-token', verifyjwtAccessToken, UpdateDeviceToken)
 router.post('/logout', verifyjwtAccessToken, UserLogout)

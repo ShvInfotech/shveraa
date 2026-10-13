@@ -9,6 +9,22 @@ import ReviewModel from "../../../models/review.model.js";
 
 const generateOrderNumber = () =>
   "SHV_" + Math.floor(100000 + Math.random() * 900000) + Date.now().toString().slice(-6);
+
+const formatValidUrl = (urlStr) => {
+  if (!urlStr || typeof urlStr !== "string") return undefined;
+  let clean = urlStr.trim().replace(/\\/g, "/");
+  if (!clean || clean === "undefined" || clean === "null") return undefined;
+  if (!clean.startsWith("http://") && !clean.startsWith("https://")) {
+    clean = `https://shveraa.com${clean.startsWith("/") ? "" : "/"}${clean}`;
+  }
+  try {
+    const parsed = new URL(clean);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return undefined;
+    return encodeURI(decodeURI(parsed.href));
+  } catch (_) {
+    return undefined;
+  }
+};
 import addressModel from "../../../models/address.model.js";
 import { CancelShipmentService, CreateShippingOrderService, PincodeServiceability, TrackShipmentService } from "../../../services/delhiveryApis.js";
 import userModel from "../../../models/user.model.js";
@@ -109,11 +125,43 @@ export const RozerpayPaymentOrder = async (req, res, next) => {
 
     const cleanShippingCost = Math.round(Number(shippingCost) || 0);
     const totalAmount = Math.max(0, Math.round(price + cleanShippingCost - discountAmount));
+    const totalAmountPaise = Math.round(totalAmount * 100);
+
+    const lineItems = [];
+    for (const item of cartItems) {
+      const product = products.find((p) => p._id.toString() === item.productId);
+      if (product) {
+        const matchVariant = product.variants?.find(
+          (v) => v._id?.toString() === item.variantId?.toString()
+        );
+        const sizeObj = matchVariant?.sizes?.find((s) => s.size === item.size);
+        const unitPrice = sizeObj?.price || product.salePrice || product.originalPrice || 0;
+        const unitPricePaise = Math.round(unitPrice * 100);
+        const lineItemObj = {
+          sku: product.sku || String(product._id),
+          variant_id: item.variantId ? String(item.variantId) : String(product._id),
+          price: unitPricePaise,
+          offer_price: unitPricePaise,
+          quantity: item.quantity || 1,
+          name: product.name + (item.size ? ` (${item.size})` : ""),
+        };
+
+        const rawImg = matchVariant?.images?.[0] || product.images?.[0];
+        lineItemObj.image_url = formatValidUrl(rawImg) || "https://shveraa.com/logo.png";
+
+        const validProdUrl = formatValidUrl(`/product/${product._id}`);
+        lineItemObj.product_url = validProdUrl || `https://shveraa.com/product/${product._id}`;
+
+        lineItems.push(lineItemObj);
+      }
+    }
 
     const options = {
-      amount: Math.round(totalAmount * 100),
+      amount: totalAmountPaise,
       currency: "INR",
       receipt: `rcpt_${Date.now()}`,
+      line_items_total: totalAmountPaise,
+      line_items: lineItems,
     };
 
     let order;
@@ -148,21 +196,30 @@ export const RozerpayPaymentVerifyPlaceOrder = async (req, res, next) => {
       return next(CustomeError(422, "razorpay_order_id is required"));
     }
 
-    if (!razorpay_payment_id) {
-      return next(CustomeError(422, "razorpay_payment_id is required"));
+    let isMagicCod = false;
+    let rzpOrder = null;
+    if (!razorpay_payment_id || !razorpay_signature) {
+      try {
+        rzpOrder = await razorpay.orders.fetch(razorpay_order_id);
+        if (rzpOrder?.status === "placed") {
+          isMagicCod = true;
+        }
+      } catch (_) {}
     }
 
-    if (!razorpay_signature) {
-      return next(CustomeError(422, "razorpay_signature is required"));
-    }
+    if (!isMagicCod) {
+      if (!razorpay_payment_id) {
+        return next(CustomeError(422, "razorpay_payment_id is required"));
+      }
 
-    if (!cartIds || !cartIds?.length) {
-      return next(CustomeError(422, "cartIds id required"));
-    }
+      if (!razorpay_signature) {
+        return next(CustomeError(422, "razorpay_signature is required"));
+      }
 
-    const signature = razorpaySignature(razorpay_order_id, razorpay_payment_id);
-    if (signature !== razorpay_signature) {
-      return next(CustomeError(409, "payment not verify"));
+      const signature = razorpaySignature(razorpay_order_id, razorpay_payment_id);
+      if (signature !== razorpay_signature) {
+        return next(CustomeError(409, "Payment verification signature mismatch"));
+      }
     }
 
     const cartItems = await cartModel.find({ _id: { $in: cartIds } });
@@ -237,11 +294,34 @@ export const RozerpayPaymentVerifyPlaceOrder = async (req, res, next) => {
 
 
 
-    if (!addressId || !mongoose.isValidObjectId(addressId)) {
-      return next(CustomeError(400, "Valid delivery address is required"));
+    let address = null;
+    if (addressId && mongoose.isValidObjectId(addressId)) {
+      address = await addressModel.findById(addressId);
     }
 
-    const address = await addressModel.findById(addressId);
+    if (!address && razorpay_order_id) {
+      try {
+        const rzpOrder = await razorpay.orders.fetch(razorpay_order_id);
+        const rzpShipping = rzpOrder?.customer_details?.shipping_address;
+        if (rzpShipping) {
+          address = await addressModel.create({
+            userId: req.user._id,
+            fullName: rzpShipping.name || req.user.name || "Customer",
+            phone: rzpShipping.contact || req.user.phone || "",
+            street: rzpShipping.line1 || "Street Address",
+            locality: rzpShipping.line2 || "",
+            city: rzpShipping.city || "City",
+            state: rzpShipping.state || "State",
+            pincode: rzpShipping.zipcode || "395010",
+            isDefault: true,
+            label: "Home",
+          });
+        }
+      } catch (fetchErr) {
+        console.warn("[Razorpay] Could not fetch shipping address from order:", fetchErr.message);
+      }
+    }
+
     if (!address) {
       return next(CustomeError(400, "Delivery address not found"));
     }
@@ -260,9 +340,9 @@ export const RozerpayPaymentVerifyPlaceOrder = async (req, res, next) => {
           "country": "India",
           "phone": address.phone || req.user.phone,
           "order": orderNumber,
-          "payment_mode": "Prepaid",
+          "payment_mode": isMagicCod ? "COD" : "Prepaid",
           "products_desc": productdescription,
-          "cod_amount": "0",
+          "cod_amount": isMagicCod ? String(totalAmount) : "0",
           "total_amount": totalAmount,
           "quantity": String(quantity),
           "weight": weigth * 1000,
@@ -325,10 +405,10 @@ export const RozerpayPaymentVerifyPlaceOrder = async (req, res, next) => {
       status: "pending",
       picuprequestId: "",
       payment: {
-        method: "razorpay",
-        status: "paid",
+        method: isMagicCod ? "cod" : "razorpay",
+        status: isMagicCod ? "pending" : "paid",
         orderId: razorpay_order_id,
-        paymentId: razorpay_payment_id,
+        paymentId: razorpay_payment_id || "",
       },
     };
 

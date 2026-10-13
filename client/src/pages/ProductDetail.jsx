@@ -35,6 +35,7 @@ import ProductCard from '../components/ProductCard';
 import Loader from '../components/Loader';
 import SizeGuideModal from '../components/SizeGuideModal';
 import { trackPixelEvent } from '../utils/metaPixel';
+import { triggerMagicCheckout } from '../utils/magicCheckout';
 
 // "Free Size" is a placeholder used for one-size jewellery pieces. It is not a
 // real selectable option, so it must never be shown as a size pill to shoppers.
@@ -153,8 +154,10 @@ const ProductDetail = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { addToCart, toggleWishlist, isInWishlist } = useCart();
+  const { addToCart, toggleWishlist, isInWishlist, clearCart, showToast } = useCart();
   const { user, isAuthenticated } = useAuth();
+
+  const [isBuyingNow, setIsBuyingNow] = useState(false);
 
   const [product, setProduct] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
@@ -503,24 +506,39 @@ const ProductDetail = () => {
   };
 
   const handleBuyNow = async () => {
-    const selectedImg = images[selectedImageIndex] || activeVariant?.image || activeVariant?.images?.[0] || product.image || (product.images && product.images[0]) || '';
-    const added = await addToCart(
-      {
-        ...product,
-        price: displayPrice,
-      },
-      selectedSize,
-      quantity,
-      {
-        color: selectedColor || selectedColorObj?.name || 'Pure 925 Silver',
-        variantId: activeVariant?._id || activeVariant?.id || activeVariant?.sku || '',
-        image: selectedImg,
-        sku: activeSizeObj?.sku || product.sku,
-        customText: customEngraving.trim() || undefined,
+    setIsBuyingNow(true);
+    try {
+      const selectedImg = images[selectedImageIndex] || activeVariant?.image || activeVariant?.images?.[0] || product.image || (product.images && product.images[0]) || '';
+      const added = await addToCart(
+        {
+          ...product,
+          price: displayPrice,
+        },
+        selectedSize,
+        quantity,
+        {
+          color: selectedColor || selectedColorObj?.name || 'Pure 925 Silver',
+          variantId: activeVariant?._id || activeVariant?.id || activeVariant?.sku || '',
+          image: selectedImg,
+          sku: activeSizeObj?.sku || product.sku,
+          customText: customEngraving.trim() || undefined,
+          silent: true,
+        }
+      );
+      if (added) {
+        await triggerMagicCheckout({
+          user,
+          navigate,
+          clearCart,
+          showToast,
+          setLoading: setIsBuyingNow,
+        });
       }
-    );
-    if (added) {
-      navigate('/checkout');
+    } catch (buyErr) {
+      console.error('Buy Now error:', buyErr);
+      if (showToast) showToast(buyErr.message || 'Could not initiate Magic Checkout');
+    } finally {
+      setIsBuyingNow(false);
     }
   };
 
@@ -957,9 +975,10 @@ const ProductDetail = () => {
                 type="button"
                 onClick={handleBuyNow}
                 className="btn btn-outline btn-lg product-buy-now-btn"
+                disabled={isBuyingNow}
               >
                 <Zap size={16} fill="currentColor" />
-                <span>Buy Now</span>
+                <span>{isBuyingNow ? 'Opening Checkout...' : 'Buy Now'}</span>
               </button>
 
               <button

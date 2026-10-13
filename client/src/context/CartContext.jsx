@@ -287,13 +287,27 @@ export const CartProvider = ({ children }) => {
       setCart([]);
       try { localStorage.removeItem('shveraa_cart'); } catch (_) {}
     };
+
+    const handleUnauthorized = () => {
+      dbLoadedRef.current = false;
+      try {
+        const saved = localStorage.getItem('shveraa_cart');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setCart(parsed);
+          }
+        }
+      } catch (_) {}
+    };
+
     window.addEventListener('shveraa_user_logged_in', handleLogin);
     window.addEventListener('shveraa_user_logged_out', handleLogout);
-    window.addEventListener('shveraa_user_unauthorized', handleLogout);
+    window.addEventListener('shveraa_user_unauthorized', handleUnauthorized);
     return () => {
       window.removeEventListener('shveraa_user_logged_in', handleLogin);
       window.removeEventListener('shveraa_user_logged_out', handleLogout);
-      window.removeEventListener('shveraa_user_unauthorized', handleLogout);
+      window.removeEventListener('shveraa_user_unauthorized', handleUnauthorized);
     };
   }, []);
 

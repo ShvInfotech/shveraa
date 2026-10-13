@@ -50,7 +50,8 @@ const CartDrawer = () => {
   } = useCart();
 
   useEffect(() => {
-    if (isCartOpen) {
+    const token = localStorage.getItem('shveraa_user_token');
+    if (isCartOpen && token) {
       const fetchAddresses = async () => {
         try {
           const data = await apiGetUserAddresses();
@@ -70,17 +71,19 @@ const CartDrawer = () => {
   useEffect(() => {
     if (!cart.length || !/^\d{6}$/.test(pincode)) return;
 
-    const cartIds = cart.map((item) => item._id).filter(Boolean);
-    if (!cartIds.length) return;
+    const validCartIds = cart
+      .map((item) => item._id || item.id)
+      .filter((id) => id && /^[0-9a-fA-F]{24}$/.test(String(id)));
+    if (!validCartIds.length) return;
 
-    apiCheckShippingDetails(cartIds, pincode)
+    apiCheckShippingDetails(validCartIds, pincode)
       .then((data) => {
         if (data?.shippingCharges !== undefined) {
           setShippingCost(Number(data.shippingCharges) || 0);
         }
       })
       .catch((error) => {
-        console.error('Error checking checkout shipping charges:', error);
+        console.warn('Error checking checkout shipping charges:', error);
       });
   }, [cart, pincode]);
 
@@ -181,85 +184,95 @@ const CartDrawer = () => {
             </div>
           ) : (
             <div className="cart-drawer-items">
-              {cart.map((item) => (
-                <div key={item._id} className="cart-drawer-item">
-                  <Link
-                    to={`/product/${item.productId}`}
-                    onClick={closeCart}
-                    className="cart-drawer-item-img-link"
-                  >
-                    <img
-                      src={getImageUrl(item.image)}
-                      alt={item.name}
-                      onError={(e) => {
-                        e.currentTarget.src = '/hero-ring-banner.jpg';
-                      }}
-                    />
-                  </Link>
+              {cart.map((item, idx) => {
+                const prodId = typeof item.productId === 'object' ? item.productId?._id || item.productId?.slug : item.productId;
+                const itemId = item._id || item.id || `cart_item_${idx}`;
+                const itemName = item.name || item.productId?.name || '925 Sterling Silver';
+                const itemImg = item.image || item.productId?.images?.[0] || item.productId?.image || '';
+                const itemPrice = Number(item.price || item.productId?.salePrice || item.productId?.originalPrice || item.productId?.price || 0);
+                const itemOrigPrice = Number(item.originalPrice || item.productId?.originalPrice || 0);
+                const itemQty = Number(item.quantity) || 1;
 
-                  <div className="cart-drawer-item-details">
-                    <div className="cart-drawer-item-header">
-                      <Link
-                        to={`/product/${item.productId}`}
-                        onClick={closeCart}
-                        className="cart-drawer-item-name"
-                      >
-                        {item.name}
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => removeFromCart(item._id)}
-                        className="cart-drawer-item-remove"
-                        aria-label="Remove item"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
+                return (
+                  <div key={itemId} className="cart-drawer-item">
+                    <Link
+                      to={`/product/${prodId || ''}`}
+                      onClick={closeCart}
+                      className="cart-drawer-item-img-link"
+                    >
+                      <img
+                        src={getImageUrl(itemImg)}
+                        alt={itemName}
+                        onError={(e) => {
+                          e.currentTarget.src = '/hero-ring-banner.jpg';
+                        }}
+                      />
+                    </Link>
 
-                    <div className="cart-drawer-item-meta">
-                      <span className="cart-drawer-color-badge">{item.color || 'Pure 925 Silver'}</span>
-                      <span className="cart-drawer-meta-divider">•</span>
-                      <span>Size: {item.size}</span>
-                      {item.customText && (
-                        <span className="cart-drawer-engraving-tag">
-                          Engraved: "{item.customText}"
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="cart-drawer-item-footer">
-                      {/* Quantity Controller */}
-                      <div className="cart-qty-controller">
+                    <div className="cart-drawer-item-details">
+                      <div className="cart-drawer-item-header">
+                        <Link
+                          to={`/product/${prodId || ''}`}
+                          onClick={closeCart}
+                          className="cart-drawer-item-name"
+                        >
+                          {itemName}
+                        </Link>
                         <button
                           type="button"
-                          onClick={() => updateQuantity(item._id, item.quantity - 1)}
-                          aria-label="Decrease quantity"
+                          onClick={() => removeFromCart(itemId)}
+                          className="cart-drawer-item-remove"
+                          aria-label="Remove item"
                         >
-                          <Minus size={13} />
-                        </button>
-                        <span>{item.quantity}</span>
-                        <button
-                          type="button"
-                          onClick={() => updateQuantity(item._id, item.quantity + 1)}
-                          aria-label="Increase quantity"
-                        >
-                          <Plus size={13} />
+                          <Trash2 size={15} />
                         </button>
                       </div>
 
-                      {/* Price */}
-                      <div className="cart-drawer-item-price">
-                        <span>₹{item.price * item.quantity}</span>
-                        {item.originalPrice > item.price && (
-                          <span className="cart-drawer-item-orig-price">
-                            ₹{item.originalPrice * item.quantity}
+                      <div className="cart-drawer-item-meta">
+                        <span className="cart-drawer-color-badge">{item.color || item.selectedColor || 'Pure 925 Silver'}</span>
+                        <span className="cart-drawer-meta-divider">•</span>
+                        <span>Size: {item.size || item.selectedSize || 'Standard'}</span>
+                        {item.customText && (
+                          <span className="cart-drawer-engraving-tag">
+                            Engraved: "{item.customText}"
                           </span>
                         )}
                       </div>
+
+                      <div className="cart-drawer-item-footer">
+                        {/* Quantity Controller */}
+                        <div className="cart-qty-controller">
+                          <button
+                            type="button"
+                            onClick={() => updateQuantity(itemId, itemQty - 1)}
+                            aria-label="Decrease quantity"
+                          >
+                            <Minus size={13} />
+                          </button>
+                          <span>{itemQty}</span>
+                          <button
+                            type="button"
+                            onClick={() => updateQuantity(itemId, itemQty + 1)}
+                            aria-label="Increase quantity"
+                          >
+                            <Plus size={13} />
+                          </button>
+                        </div>
+
+                        {/* Price */}
+                        <div className="cart-drawer-item-price">
+                          <span>₹{(itemPrice * itemQty).toLocaleString('en-IN')}</span>
+                          {itemOrigPrice > itemPrice && (
+                            <span className="cart-drawer-item-orig-price">
+                              ₹{(itemOrigPrice * itemQty).toLocaleString('en-IN')}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
             </div>
           )}

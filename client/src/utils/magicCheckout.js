@@ -94,11 +94,17 @@ export const triggerMagicCheckout = async ({
       throw new Error('Could not load Razorpay payment SDK. Please check your internet connection.');
     }
 
+    const itemsTotal = formattedRawItems.reduce(
+      (sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 1)),
+      0
+    );
+    const cleanShippingCost = itemsTotal >= 4999 ? 0 : Math.round(Number(shippingCost) || 0);
+
     const data = await apiCreateMagicOrder({
       cartIds,
       items: formattedRawItems,
       couponId: couponId || '',
-      shippingCost: Math.round(Number(shippingCost) || 0),
+      shippingCost: cleanShippingCost,
     });
 
     const order = data?.order;
@@ -146,7 +152,7 @@ export const triggerMagicCheckout = async ({
             cartIds,
             items: formattedRawItems,
             couponId: couponId || '',
-            shippingCost: Math.round(Number(shippingCost) || 0),
+            shippingCost: cleanShippingCost,
           });
 
           if (verifyRes?.token) {

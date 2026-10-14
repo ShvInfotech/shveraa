@@ -123,7 +123,7 @@ export const RozerpayPaymentOrder = async (req, res, next) => {
       }
     }
 
-    const cleanShippingCost = Math.round(Number(shippingCost) || 0);
+    const cleanShippingCost = price >= 4999 ? 0 : Math.round(Number(shippingCost) || 0);
     const totalAmount = Math.max(0, Math.round(price + cleanShippingCost - discountAmount));
     const totalAmountPaise = Math.round(totalAmount * 100);
 
@@ -326,7 +326,7 @@ export const RozerpayPaymentVerifyPlaceOrder = async (req, res, next) => {
       return next(CustomeError(400, "Delivery address not found"));
     }
     const orderNumber = generateOrderNumber();
-    const cleanShippingCost = Math.round(Number(shippingCost) || 0);
+    const cleanShippingCost = price >= 4999 ? 0 : Math.round(Number(shippingCost) || 0);
     const totalAmount = Math.max(0, Math.round(price - discount + cleanShippingCost));
 
     const delhiveryPayload = {
@@ -609,7 +609,7 @@ export const PlaceCodeOrder = async (req, res, next) => {
 
 
     const orderNumber = generateOrderNumber();
-    const cleanShippingCost = Math.round(Number(shippingCost) || 0);
+    const cleanShippingCost = price >= 4999 ? 0 : Math.round(Number(shippingCost) || 0);
     const totalAmount = Math.max(0, Math.round(price - discount + cleanShippingCost));
 
     const delhiveryPayload = {

@@ -1733,13 +1733,38 @@ h4 { font-size: 1.15rem; }
   background-size: cover;
   background-position: center right;
   opacity: 0;
-  transform: scale(1.015);
-  transition: opacity 0.85s cubic-bezier(0.4, 0, 0.2, 1), transform 8s ease-out;
+  transform: scale(1);
+  transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, opacity;
 }
 
-.shv-hero-bg-slide.active {
+/* Alternate smooth zoom in and zoom out animations when slide is active */
+.shv-hero-bg-slide:nth-child(even).active {
   opacity: 1;
-  transform: scale(1);
+  animation: shvHeroZoomIn 7.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+.shv-hero-bg-slide:nth-child(odd).active {
+  opacity: 1;
+  animation: shvHeroZoomOut 7.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+@keyframes shvHeroZoomIn {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.08);
+  }
+}
+
+@keyframes shvHeroZoomOut {
+  0% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 /* Soft directional ambient wash for maximum typography contrast */
@@ -13027,8 +13052,14 @@ html.lenis, html.lenis-smooth {
   scroll-behavior: auto !important;
 }
 
+@media (hover: hover) and (pointer: fine) {
+  html, body {
+    overscroll-behavior: none;
+  }
+}
+
 html, body {
-  overscroll-behavior: none;
+  overscroll-behavior-y: auto;
 }
 
 .lenis.lenis-smooth [data-lenis-prevent] {

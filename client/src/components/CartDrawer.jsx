@@ -69,6 +69,10 @@ const CartDrawer = () => {
   }, [isCartOpen]);
 
   useEffect(() => {
+    if (freeShippingReached) {
+      setShippingCost(0);
+      return;
+    }
     if (!cart.length || !/^\d{6}$/.test(pincode)) return;
 
     const validCartIds = cart
@@ -85,7 +89,7 @@ const CartDrawer = () => {
       .catch((error) => {
         console.warn('Error checking checkout shipping charges:', error);
       });
-  }, [cart, pincode]);
+  }, [cart, pincode, freeShippingReached]);
 
   const handleApplyCoupon = (e) => {
     e.preventDefault();

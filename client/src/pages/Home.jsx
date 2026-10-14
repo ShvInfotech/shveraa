@@ -325,7 +325,7 @@ const Home = () => {
               </div>
               <div className="shv-trust-ribbon-info">
                 <h4>INSURED ATELIER SHIPPING</h4>
-                <p>Complimentary On Orders Above ₹999</p>
+                <p>Complimentary On Orders Above ₹4,999</p>
               </div>
             </div>
 

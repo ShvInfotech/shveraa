@@ -77,7 +77,7 @@ const ROUTE_SEO = {
   },
   '/shipping': {
     title: 'Pan-India Insured Shipping & Cancellation Policy | Shveraa Jewels',
-    desc: '100% insured air express shipping via BlueDart & Delhivery. Free delivery on orders over ₹999 with 12-hour penalty-free cancellation.',
+    desc: '100% insured air express shipping via BlueDart & Delhivery. Free delivery on orders over ₹4,999 with 12-hour penalty-free cancellation.',
   },
   '/shipping-cancellation': {
     title: 'Shipping & Order Cancellation Policy | Shveraa Jewels',

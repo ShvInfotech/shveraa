@@ -37,7 +37,7 @@ const ShippingCancellation = () => {
               <Truck size={20} strokeWidth={1.6} />
             </div>
             <h3>Free Insured Shipping</h3>
-            <p>Enjoy complimentary insured doorstep delivery across India on every order above ₹999.</p>
+            <p>Enjoy complimentary insured doorstep delivery across India on every order above ₹4,999.</p>
           </div>
 
           <div className="shv-process-step-card">
@@ -94,10 +94,10 @@ const ShippingCancellation = () => {
             <div className="shv-criteria-split">
               <div className="shv-criteria-box positive">
                 <h4>
-                  <CheckCircle2 size={16} color="#10B981" /> Complimentary Shipping (Orders &ge; ₹999)
+                  <CheckCircle2 size={16} color="#10B981" /> Complimentary Shipping (Orders &ge; ₹4,999)
                 </h4>
                 <ul>
-                  <li>Zero shipping fees for all prepaid orders above ₹4999.</li>
+                  <li>Zero shipping fees for all prepaid orders above ₹4,999.</li>
                   <li>Fully insured air transit with signature requirement at doorstep.</li>
                   <li>Applicable across 19,000+ Indian postal pincodes.</li>
                 </ul>
@@ -105,12 +105,12 @@ const ShippingCancellation = () => {
 
               <div className="shv-criteria-box">
                 <h4>
-                  <Box size={16} color="#A07E52" /> Orders Below ₹999 &amp; COD Handling
+                  <Box size={16} color="#A07E52" /> Orders Below ₹4,999 &amp; COD Handling
                 </h4>
                 <ul>
-                  <li>Orders below ₹999 incur a nominal flat shipping fee of <strong>₹79</strong>.</li>
+                  <li>Orders below ₹4,999 incur a nominal flat shipping fee of <strong>₹79</strong>.</li>
                   <li>Cash on Delivery (COD) is available on orders up to <strong>₹5,000</strong> with a standard OTP verification.</li>
-                  <li>A modest COD convenience charge of <strong>₹49</strong> is applied to cover courier cash-handling protocols.</li>
+                  <li>A modest COD convenience charge of <strong>₹149</strong> is applied to cover courier cash-handling protocols.</li>
                 </ul>
               </div>
             </div>

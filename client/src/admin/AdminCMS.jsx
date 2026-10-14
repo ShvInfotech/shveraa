@@ -670,9 +670,9 @@ const AdminCMS = ({ onRefresh, settings: currentSettings }) => {
               <label>Free Insured Shipping Threshold (₹)</label>
               <input
                 type="number"
-                value={settings.freeShippingMin || 999}
+                value={settings.freeShippingMin || 4999}
                 onChange={(e) => setLocalSettings({ ...settings, freeShippingMin: Number(e.target.value) })}
-                placeholder="999"
+                placeholder="4999"
               />
               <span className="shv-field-helper">Orders equal to or above this value get complimentary shipping.</span>
             </div>

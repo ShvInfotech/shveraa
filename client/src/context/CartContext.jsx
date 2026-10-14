@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useMemo } from 'react';
 import {
   apiGetCart,
   apiAddToCart,
@@ -14,7 +14,7 @@ import { trackPixelEvent } from '../utils/metaPixel';
 
 const CartContext = createContext();
 
-export const FREE_SHIPPING_THRESHOLD = 999;
+export const FREE_SHIPPING_THRESHOLD = 4999;
 
 // Cart data is always read from the authenticated user's database cart.
 const getToken = () => {
@@ -414,7 +414,11 @@ export const CartProvider = ({ children }) => {
     const trimmed = (code || '').trim().toUpperCase();
     if (!trimmed) { setCouponError('Please enter a coupon code'); return false; }
     try {
-      const response = await apiVerifyCoupon({ code: trimmed });
+      const response = await apiVerifyCoupon({
+        code: trimmed,
+        cartTotal: cartSubtotal,
+        items: cart,
+      });
       const coupon = response?.coupon;
       if (!coupon) throw new Error('Invalid coupon');
       setAppliedCoupon({
@@ -442,15 +446,24 @@ export const CartProvider = ({ children }) => {
   const cartCount = cart.reduce((sum, i) => sum + i.quantity, 0);
   const cartItemCount = cart.length;
 
-  const discountAmount = Math.round(appliedCoupon?.discountAmount || 0);
+  const discountAmount = useMemo(() => {
+    if (!appliedCoupon) return 0;
+    if (appliedCoupon.discountType === 'percentage') {
+      let disc = Math.round((cartSubtotal * Number(appliedCoupon.discountValue)) / 100);
+      if (appliedCoupon.maxDiscount > 0 && disc > appliedCoupon.maxDiscount) {
+        disc = appliedCoupon.maxDiscount;
+      }
+      return Math.min(disc, cartSubtotal);
+    }
+    return Math.min(Number(appliedCoupon.discountAmount || appliedCoupon.discountValue || 0), cartSubtotal);
+  }, [appliedCoupon, cartSubtotal]);
 
   const freeShippingReached = cartSubtotal >= FREE_SHIPPING_THRESHOLD;
   const freeShippingProgress = Math.min(100, Math.round((cartSubtotal / FREE_SHIPPING_THRESHOLD) * 100));
   const amountNeededForFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - cartSubtotal);
-  // const shippingCost = cartCount === 0 || freeShippingReached ? 0 : 99;
   const [shippingCost, setShippingCost] = useState(0);
-  const cleanShippingCost = Math.round(Number(shippingCost) || 0);
-  const cartTotal = Math.max(0, Math.round(cartSubtotal - discountAmount + cleanShippingCost));
+  const effectiveShippingCost = freeShippingReached || cartCount === 0 ? 0 : Math.round(Number(shippingCost) || 0);
+  const cartTotal = Math.max(0, Math.round(cartSubtotal - discountAmount + effectiveShippingCost));
 
   return (
     <CartContext.Provider
@@ -465,7 +478,7 @@ export const CartProvider = ({ children }) => {
         cartSubtotal,
         cartTotal,
         discountAmount,
-        shippingCost,
+        shippingCost: effectiveShippingCost,
         setShippingCost,
         appliedCoupon,
         couponError,

@@ -193,9 +193,9 @@ export const getProductVariants = (product) => {
 
 // Initial default CMS settings
 const INITIAL_SETTINGS = {
-  announcementText: 'Code SHVERAA20 for 20% off your debut atelier piece • Complimentary Insured Air Express > ₹999',
+  announcementText: 'Code SHVERAA20 for 20% off your debut atelier piece • Complimentary Insured Air Express > ₹4,999',
   announcements: [
-    '✦ Complimentary Insured Express Shipping on Orders Over ₹999',
+    '✦ Complimentary Insured Express Shipping on Orders Over ₹4,999',
     '✦ 20% Off Your First Silver Order • Use Code: SHVERAA20',
     '✦ Certified Pure 925 Sterling Silver • Anti-Tarnish Lifetime Warranty',
   ],
@@ -206,7 +206,7 @@ const INITIAL_SETTINGS = {
   conciergeEmail: 'shvera925@gmail.com',
   atelierAddress: 'A/9, Maruti Nandan Society, Opp. Prime Arcade, Anand Mahal Road, Surat',
   currency: '₹',
-  freeShippingMin: 999,
+  freeShippingMin: 4999,
   shippingStandardFee: 100,
   codEnabled: true,
   heroBanner: {

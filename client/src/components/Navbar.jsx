@@ -19,7 +19,7 @@ import { useAuth } from '../context/AuthContext';
 import { useDynamicStore } from '../services/storeService';
 
 const DEFAULT_ANNOUNCEMENTS = [
-  '✦ Complimentary Insured Express Shipping on Orders Over ₹999',
+  '✦ Complimentary Insured Express Shipping on Orders Over ₹4,999',
   '✦ 20% Off Your First Silver Order • Use Code: SHVERAA20',
   '✦ Certified Pure 925 Sterling Silver • Anti-Tarnish Lifetime Warranty',
 ];

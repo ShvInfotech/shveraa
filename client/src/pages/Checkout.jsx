@@ -183,6 +183,12 @@ const Checkout = () => {
   const [isCheckingShipping, setIsCheckingShipping] = useState(false);
 
   useEffect(() => {
+    if (cartSubtotal >= 4999) {
+      setShippingRates({ prepaid: 0, cod: 0, prepaidError: '', codError: '' });
+      setShippingCost(0);
+      return;
+    }
+
     if (!cart.length || !/^\d{6}$/.test(pincode)) {
       setShippingRates({ prepaid: null, cod: null, prepaidError: '', codError: '' });
       setShippingCost(0);
@@ -247,11 +253,15 @@ const Checkout = () => {
 
   // Keep shippingCost in sync whenever paymentMethod changes without extra API calls
   useEffect(() => {
+    if (cartSubtotal >= 4999) {
+      setShippingCost(0);
+      return;
+    }
     const activeCost = paymentMethod === 'cod' ? shippingRates.cod : shippingRates.prepaid;
     if (activeCost !== null && activeCost !== undefined) {
       setShippingCost(activeCost);
     }
-  }, [paymentMethod, shippingRates, setShippingCost]);
+  }, [paymentMethod, shippingRates, setShippingCost, cartSubtotal]);
 
   const renderShippingBadge = (type) => {
     if (!pincode || !/^\d{6}$/.test(pincode)) {

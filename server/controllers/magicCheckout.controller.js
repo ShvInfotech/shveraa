@@ -60,6 +60,35 @@ export const GetMagicShippingInfo = async (req, res, next) => {
       ];
     }
 
+    // Determine order amount for Free Shipping Threshold (₹4,999 = 499,900 paise)
+    let orderAmountPaise = 0;
+    if (rawData.line_items_total && Number(rawData.line_items_total) > 0) {
+      orderAmountPaise = Number(rawData.line_items_total);
+    } else if (Array.isArray(rawData.line_items) && rawData.line_items.length > 0) {
+      orderAmountPaise = rawData.line_items.reduce((sum, item) => {
+        const itemPrice = Number(item.offer_price || item.price || 0);
+        const qty = Number(item.quantity || 1);
+        return sum + itemPrice * qty;
+      }, 0);
+    } else if (rawData.order_total && Number(rawData.order_total) > 0) {
+      orderAmountPaise = Number(rawData.order_total);
+    } else if (rawData.amount && Number(rawData.amount) > 0) {
+      orderAmountPaise = Number(rawData.amount);
+    }
+
+    if (orderAmountPaise === 0 && rawData.order_id) {
+      try {
+        const rzpOrder = await razorpay.orders.fetch(rawData.order_id);
+        if (rzpOrder) {
+          orderAmountPaise = Number(rzpOrder.line_items_total || rzpOrder.amount || 0);
+        }
+      } catch (_) {}
+    }
+
+    // Free delivery on orders >= ₹4,999 (499,900 paise). Below ₹4,999: ₹79 (7,900 paise)
+    const isFreeDelivery = orderAmountPaise >= 4999 * 100;
+    const shippingFeePaise = isFreeDelivery ? 0 : 7900;
+
     const responseAddresses = [];
 
     for (const addr of addresses) {
@@ -90,9 +119,11 @@ export const GetMagicShippingInfo = async (req, res, next) => {
           {
             id: "delhivery_express",
             name: "Insured Express Delivery",
-            description: "Safe & insured delivery via Delhivery Air Express (2-4 Days)",
+            description: isFreeDelivery
+              ? "Safe & insured delivery via Delhivery Air Express (FREE on orders ₹4,999+)"
+              : "Safe & insured delivery via Delhivery Air Express (2-4 Days)",
             serviceable: isServiceable,
-            shipping_fee: 0, // Free insured shipping for Shveraa luxury silver
+            shipping_fee: shippingFeePaise,
             cod: isCodAvailable,
             cod_fee: 0, // Free COD
           },
@@ -198,20 +229,79 @@ export const ApplyMagicPromotion = async (req, res, next) => {
       });
     }
 
-    // Value in paise for fixed_amount, or percentage value
-    const isPercentage = coupon.discountType === "percentage";
-    const promoValue = isPercentage
-      ? Number(coupon.discountValue)
-      : Math.round(Number(coupon.discountValue) * 100);
+    // 1. Calculate subtotal in paise from Magic Checkout request or order
+    let subtotalPaise = 0;
+    if (rawData.line_items_total && Number(rawData.line_items_total) > 0) {
+      subtotalPaise = Number(rawData.line_items_total);
+    } else if (Array.isArray(rawData.line_items) && rawData.line_items.length > 0) {
+      subtotalPaise = rawData.line_items.reduce((sum, item) => {
+        const itemPrice = Number(item.offer_price || item.price || 0);
+        const qty = Number(item.quantity || 1);
+        return sum + itemPrice * qty;
+      }, 0);
+    } else if (rawData.order_total && Number(rawData.order_total) > 0) {
+      subtotalPaise = Number(rawData.order_total);
+    } else if (rawData.amount && Number(rawData.amount) > 0) {
+      subtotalPaise = Number(rawData.amount);
+    }
+
+    if (subtotalPaise === 0 && rawData.order_id) {
+      try {
+        const rzpOrder = await razorpay.orders.fetch(rawData.order_id);
+        if (rzpOrder) {
+          subtotalPaise = Number(rzpOrder.line_items_total || rzpOrder.amount || 0);
+        }
+      } catch (err) {
+        console.warn("[Magic Checkout] Could not fetch order for promotion calculation:", err?.message);
+      }
+    }
+
+    // Check minimum order amount requirement
+    if (coupon.minOrderAmount > 0 && subtotalPaise > 0 && (subtotalPaise / 100) < coupon.minOrderAmount) {
+      return res.status(200).json({
+        failure_code: "MIN_ORDER_AMOUNT_NOT_MET",
+        failure_reason: `Minimum order amount of ₹${coupon.minOrderAmount} required for coupon '${code}'`,
+      });
+    }
+
+    // 2. Calculate discount in paise
+    // Razorpay treats promotion value as amount in paise (fixed_amount).
+    let discountPaise = 0;
+    if (coupon.discountType === "percentage") {
+      discountPaise = Math.round((subtotalPaise * Number(coupon.discountValue)) / 100);
+      if (coupon.maxDiscount > 0 && discountPaise > Math.round(Number(coupon.maxDiscount) * 100)) {
+        discountPaise = Math.round(Number(coupon.maxDiscount) * 100);
+      }
+    } else {
+      const flatDiscountPaise = Math.round(Number(coupon.discountValue) * 100);
+      discountPaise = subtotalPaise > 0 ? Math.min(flatDiscountPaise, subtotalPaise) : flatDiscountPaise;
+    }
+
+    if (rawData.order_id) {
+      try {
+        await razorpay.orders.edit(rawData.order_id, {
+          notes: {
+            coupon_id: String(coupon._id),
+            coupon_code: String(coupon.code),
+            discount_amount: String(Math.round(discountPaise / 100)),
+          },
+        });
+      } catch (editErr) {
+        console.warn("[Magic Checkout] Could not update order notes with coupon:", editErr?.message);
+      }
+    }
 
     return res.status(200).json({
       promotion: {
         reference_id: String(coupon._id),
         type: "coupon",
         code: coupon.code,
-        value: promoValue,
-        value_type: isPercentage ? "percentage" : "fixed_amount",
-        description: `${coupon.code} applied successfully!`,
+        value: discountPaise,
+        value_type: "fixed_amount",
+        description:
+          coupon.discountType === "percentage"
+            ? `${coupon.discountValue}% OFF applied!`
+            : `₹${coupon.discountValue} OFF applied!`,
       },
     });
   } catch (error) {
@@ -318,7 +408,7 @@ export const CreateMagicOrder = async (req, res, next) => {
       0
     );
 
-    const cleanShippingCost = Math.round(Number(shippingCost) || 0);
+    const cleanShippingCost = calculatedPrice >= 4999 ? 0 : Math.round(Number(shippingCost) || 0);
     const totalAmount = Math.max(0, Math.round(calculatedPrice + cleanShippingCost - discountAmount));
     const totalAmountPaise = Math.max(100, Math.round(totalAmount * 100));
 
@@ -525,7 +615,7 @@ export const VerifyMagicOrder = async (req, res, next) => {
       }
     }
 
-    const cleanShippingCost = Math.round(Number(shippingCost) || 0);
+    const cleanShippingCost = itemsPrice >= 4999 ? 0 : Math.round(Number(shippingCost) || 0);
     const totalAmount = Math.max(0, Math.round(itemsPrice - discount + cleanShippingCost));
     const orderNumber = generateOrderNumber();
 

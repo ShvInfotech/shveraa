@@ -368,7 +368,7 @@ const Wishlist = () => {
             <Truck size={20} className="shv-w-trust-icon" />
             <div>
               <strong>Complimentary Insured Air Shipping</strong>
-              <span>Doorstep delivery across India over ₹999</span>
+              <span>Doorstep delivery across India over ₹4,999</span>
             </div>
           </div>
           <div className="shv-w-trust-col">

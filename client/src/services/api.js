@@ -655,10 +655,10 @@ export const apiAdminDeleteProduct = async (id) => {
 /* ==========================================================================
    COUPON APIs
    ========================================================================== */
-export const apiVerifyCoupon = async ({ code }) => {
+export const apiVerifyCoupon = async ({ code, cartTotal, items }) => {
   const res = await apiFetch('/api/v1/user/coupons/verify', {
     method: 'POST',
-    body: JSON.stringify({ code }),
+    body: JSON.stringify({ code, cartTotal, items }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.message || 'Invalid coupon');

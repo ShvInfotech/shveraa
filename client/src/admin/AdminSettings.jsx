@@ -14,7 +14,7 @@ const AdminSettings = () => {
     email: 'admin@shveraa.luxury',
     whatsapp: '+91 99980 46559',
     currency: '₹ (INR)',
-    freeShippingMin: '999',
+    freeShippingMin: '4999',
     returnWindowDays: '30',
     hallmarkCertified: true,
     antiTarnishGuarantee: true,

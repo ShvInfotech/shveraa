@@ -52,8 +52,6 @@ const Cart = () => {
     }
   };
 
-console.log(shippingCost)
-
 
 
  

@@ -5,7 +5,7 @@ import { CustomeError } from '../../../middleware/globelError.js';
 
 export const VerifyCoupon = async (req, res, next) => {
   try {
-    const { code } = req.body || {};
+    const { code, cartTotal, items } = req.body || {};
 
     if (!code) {
       return next(CustomeError(422, 'Coupon code is required'));
@@ -46,10 +46,26 @@ export const VerifyCoupon = async (req, res, next) => {
       }
     }
 
-    // Calculate the amount from the user's database cart, never from a value
-    // supplied by the browser.
-    const cartItems = await CartModel.find({ userId: req.user._id }).select('price quantity');
-    const total = cartItems.reduce((sum, item) => sum + (Number(item.price) * Number(item.quantity)), 0);
+    // Calculate cart total: Check DB cart for logged-in user, fallback to guest cart total/items
+    let total = 0;
+    if (req.user?._id) {
+      const cartItems = await CartModel.find({ userId: req.user._id }).select('price quantity');
+      if (cartItems && cartItems.length > 0) {
+        total = cartItems.reduce((sum, item) => sum + (Number(item.price) * Number(item.quantity)), 0);
+      }
+    }
+
+    if (total <= 0) {
+      if (cartTotal !== undefined && Number(cartTotal) > 0) {
+        total = Number(cartTotal);
+      } else if (Array.isArray(items) && items.length > 0) {
+        total = items.reduce(
+          (sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 1)),
+          0
+        );
+      }
+    }
+
     if (total <= 0) {
       return next(CustomeError(400, 'Your cart is empty'));
     }

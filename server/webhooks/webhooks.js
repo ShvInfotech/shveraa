@@ -101,9 +101,9 @@ export const DelhiveryScanWebhook = async (req, res, next) => {
             await orderModel.findOneAndUpdate({ waybill: Shipment.AWB }, { $set: { status: "pending" } }, { returnDocument: 'after' });
         }
 
-        if (Shipment.Status.StatusType == "UD" && Shipment.Status.Status == "Not Picked") {
-            await orderModel.findOneAndUpdate({ waybill: Shipment.AWB }, { $set: { status: "pending" } }, { returnDocument: 'after' });
-        }
+        // if (Shipment.Status.StatusType == "UD" && Shipment.Status.Status == "Not Picked") {
+        //     await orderModel.findOneAndUpdate({ waybill: Shipment.AWB }, { $set: { status: "pending" } }, { returnDocument: 'after' });
+        // }
 
         if (Shipment.Status.StatusType == "UD" && Shipment.Status.Status == "In Transit") {
             await orderModel.findOneAndUpdate({ waybill: Shipment.AWB }, { $set: { status: "processing" } }, { returnDocument: 'after' });

@@ -12,6 +12,9 @@ import { sendNotification } from "../helper/helper.js";
 import { generateJwtToken } from "../middleware/jwtToken.js";
 import { SendWhatsAppMessage } from "../services/Whatsapp.js";
 
+// In-memory cache for recent Magic Checkout orders to resolve subtotals and promotions instantly
+const magicOrderCache = new Map();
+
 const generateOrderNumber = () =>
   "SHV_" + Math.floor(100000 + Math.random() * 900000) + Date.now().toString().slice(-6);
 
@@ -234,8 +237,21 @@ export const GetMagicPromotions = async (req, res, next) => {
  */
 export const ApplyMagicPromotion = async (req, res, next) => {
   try {
-    const rawData = req.method === "POST" ? req.body : req.query;
-    const code = String(rawData.code || "").trim().toUpperCase();
+    const rawData = {
+      ...(req.query || {}),
+      ...(req.body || {}),
+    };
+
+    const rawCode =
+      rawData.code ||
+      rawData.coupon_code ||
+      rawData.coupon ||
+      rawData.promotion?.code ||
+      rawData.promotions?.[0]?.code ||
+      req.body?.code ||
+      req.query?.code ||
+      "";
+    const code = String(rawCode || "").trim().toUpperCase();
 
     if (!code) {
       return res.status(200).json({
@@ -267,7 +283,12 @@ export const ApplyMagicPromotion = async (req, res, next) => {
       });
     }
 
-    let lineItems = rawData.line_items;
+    let lineItems =
+      rawData.line_items ||
+      rawData.order?.line_items ||
+      rawData.cart?.line_items ||
+      rawData.cart?.items ||
+      rawData.items;
     if (typeof lineItems === "string") {
       try {
         lineItems = JSON.parse(lineItems);
@@ -276,31 +297,190 @@ export const ApplyMagicPromotion = async (req, res, next) => {
       }
     }
 
+    // Extract order_id safely
+    const rawOrderId =
+      rawData.order_id ||
+      rawData.orderId ||
+      rawData.razorpay_order_id ||
+      rawData.razorpayOrderId ||
+      rawData.order?.id ||
+      rawData.order?.order_id ||
+      rawData.order?.razorpay_order_id ||
+      rawData.cart?.order_id ||
+      rawData.cart?.id ||
+      rawData.data?.order_id ||
+      rawData.data?.razorpay_order_id ||
+      req.body?.order_id ||
+      req.body?.orderId ||
+      req.body?.razorpay_order_id ||
+      req.query?.order_id ||
+      req.query?.orderId ||
+      req.query?.razorpay_order_id ||
+      req.headers?.["x-razorpay-order-id"] ||
+      req.headers?.["razorpay-order-id"] ||
+      req.headers?.["razorpay_order_id"];
+
+    let orderId =
+      typeof rawOrderId === "string" &&
+      rawOrderId.trim() !== "" &&
+      rawOrderId !== "undefined" &&
+      rawOrderId !== "null" &&
+      rawOrderId.trim().startsWith("order_")
+        ? rawOrderId.trim()
+        : "";
+
+    if (!orderId) {
+      const searchForOrderId = (obj) => {
+        if (!obj || typeof obj !== "object") return "";
+        for (const val of Object.values(obj)) {
+          if (typeof val === "string" && val.startsWith("order_")) return val;
+          if (typeof val === "object") {
+            const nested = searchForOrderId(val);
+            if (nested) return nested;
+          }
+        }
+        return "";
+      };
+      orderId = searchForOrderId(req.body) || searchForOrderId(req.query);
+    }
+
     // 1. Calculate subtotal in paise from Magic Checkout request or order
     let subtotalPaise = 0;
     if (rawData.line_items_total && Number(rawData.line_items_total) > 0) {
       subtotalPaise = Number(rawData.line_items_total);
+    } else if (rawData.order?.line_items_total && Number(rawData.order.line_items_total) > 0) {
+      subtotalPaise = Number(rawData.order.line_items_total);
     } else if (Array.isArray(lineItems) && lineItems.length > 0) {
       subtotalPaise = lineItems.reduce((sum, item) => {
-        const itemPrice = Number(item.offer_price || item.price || 0);
-        const qty = Number(item.quantity || 1);
+        const itemPrice = Number(item.offer_price || item.price || item.unit_price || item.amount || 0);
+        const qty = Number(item.quantity || item.qty || 1);
         return sum + itemPrice * qty;
       }, 0);
     } else if (rawData.order_total && Number(rawData.order_total) > 0) {
       subtotalPaise = Number(rawData.order_total);
     } else if (rawData.amount && Number(rawData.amount) > 0) {
       subtotalPaise = Number(rawData.amount);
+    } else if (rawData.order?.amount && Number(rawData.order.amount) > 0) {
+      subtotalPaise = Number(rawData.order.amount);
+    } else if (rawData.cart?.total && Number(rawData.cart.total) > 0) {
+      subtotalPaise = Number(rawData.cart.total);
+    } else if (rawData.cart?.amount && Number(rawData.cart.amount) > 0) {
+      subtotalPaise = Number(rawData.cart.amount);
     }
 
-    const orderId = rawData.order_id || rawData.orderId || req.body?.order_id || req.query?.order_id;
+    // Check in-memory cache if orderId is found
     if (subtotalPaise === 0 && orderId) {
+      const cached = magicOrderCache.get(orderId);
+      if (cached && cached.subtotalPaise > 0) {
+        subtotalPaise = cached.subtotalPaise;
+      }
+    }
+
+    // Fetch from Razorpay API if orderId is known
+    if (subtotalPaise === 0 && orderId && orderId.startsWith("order_")) {
       try {
         const rzpOrder = await razorpay.orders.fetch(orderId);
         if (rzpOrder) {
-          subtotalPaise = Number(rzpOrder.notes?.subtotal_paise || rzpOrder.line_items_total || rzpOrder.amount || 0);
+          subtotalPaise = Number(
+            rzpOrder.notes?.subtotal_paise ||
+            rzpOrder.line_items_total ||
+            rzpOrder.amount ||
+            0
+          );
+          magicOrderCache.set(orderId, {
+            orderId,
+            subtotalPaise,
+            createdAt: Date.now(),
+          });
         }
       } catch (err) {
-        console.warn("[Magic Checkout] Could not fetch order for promotion calculation:", err?.message);
+        const errMsg =
+          err?.error?.description ||
+          err?.message ||
+          (typeof err === "object" ? JSON.stringify(err) : String(err));
+        console.warn(`[Magic Checkout] Could not fetch order ${orderId} for promotion calculation:`, errMsg);
+      }
+    }
+
+    // Fallback A: Check latest active order in magicOrderCache (within 30 mins)
+    if (subtotalPaise === 0) {
+      const THIRTY_MINS = 30 * 60 * 1000;
+      const now = Date.now();
+      let latestCached = null;
+      for (const entry of magicOrderCache.values()) {
+        if (entry && entry.subtotalPaise > 0 && (now - (entry.createdAt || 0)) < THIRTY_MINS) {
+          if (!latestCached || entry.createdAt > latestCached.createdAt) {
+            latestCached = entry;
+          }
+        }
+      }
+      if (latestCached) {
+        subtotalPaise = latestCached.subtotalPaise;
+        if (!orderId && latestCached.orderId) {
+          orderId = latestCached.orderId;
+        }
+      }
+    }
+
+    // Fallback B: Query recent orders directly from Razorpay API (within 30 mins)
+    if (subtotalPaise === 0) {
+      try {
+        const recentOrders = await razorpay.orders.all({ count: 5 });
+        if (recentOrders?.items?.length > 0) {
+          const nowSec = Math.floor(Date.now() / 1000);
+          for (const item of recentOrders.items) {
+            const ageSec = nowSec - (item.created_at || 0);
+            if (ageSec < 1800) {
+              const itemSubtotal = Number(
+                item.notes?.subtotal_paise ||
+                item.line_items_total ||
+                item.amount ||
+                0
+              );
+              if (itemSubtotal > 0) {
+                subtotalPaise = itemSubtotal;
+                if (!orderId && item.id) {
+                  orderId = item.id;
+                }
+                break;
+              }
+            }
+          }
+        }
+      } catch (rzpErr) {
+        console.warn("[Magic Checkout] Could not fetch recent orders from Razorpay:", rzpErr?.error?.description || rzpErr?.message);
+      }
+    }
+
+    // Fallback C: Check user's active cart in MongoDB
+    if (subtotalPaise === 0) {
+      const contact = rawData.contact || rawData.phone || rawData.user?.phone;
+      const email = rawData.email || rawData.user?.email;
+      if (contact || email) {
+        try {
+          const userQuery = [];
+          if (contact) userQuery.push({ phone: String(contact).replace(/\D/g, "").slice(-10) });
+          if (email) userQuery.push({ email: String(email).trim().toLowerCase() });
+          const user = await userModel.findOne({ $or: userQuery });
+          if (user) {
+            const userCart = await cartModel.find({ userId: user._id }).populate("productId");
+            if (userCart && userCart.length > 0) {
+              const cartTotal = userCart.reduce((sum, item) => {
+                const prod = item.productId;
+                if (!prod) return sum;
+                const matchVariant = prod.variants?.find(
+                  (v) => v._id?.toString() === item.variantId?.toString()
+                );
+                const sizeObj = matchVariant?.sizes?.find((s) => s.size === item.size);
+                const price = sizeObj?.price || prod.salePrice || prod.originalPrice || 0;
+                return sum + price * (item.quantity || 1);
+              }, 0);
+              if (cartTotal > 0) {
+                subtotalPaise = Math.round(cartTotal * 100);
+              }
+            }
+          }
+        } catch (_) {}
       }
     }
 
@@ -313,10 +493,15 @@ export const ApplyMagicPromotion = async (req, res, next) => {
     }
 
     // 2. Calculate discount in paise
-    // Razorpay treats promotion value as amount in paise (fixed_amount).
     let discountPaise = 0;
-    if (coupon.discountType === "percentage") {
-      discountPaise = Math.round((subtotalPaise * Number(coupon.discountValue)) / 100);
+    const isPercentage = coupon.discountType === "percentage";
+
+    if (isPercentage) {
+      const effectiveSubtotalPaise = subtotalPaise > 0
+        ? subtotalPaise
+        : (coupon.minOrderAmount > 0 ? coupon.minOrderAmount * 100 : 249900);
+
+      discountPaise = Math.round((effectiveSubtotalPaise * Number(coupon.discountValue)) / 100);
       if (coupon.maxDiscount > 0 && discountPaise > Math.round(Number(coupon.maxDiscount) * 100)) {
         discountPaise = Math.round(Number(coupon.maxDiscount) * 100);
       }
@@ -325,7 +510,7 @@ export const ApplyMagicPromotion = async (req, res, next) => {
       discountPaise = subtotalPaise > 0 ? Math.min(flatDiscountPaise, subtotalPaise) : flatDiscountPaise;
     }
 
-    if (orderId) {
+    if (orderId && orderId.startsWith("order_") && discountPaise > 0) {
       try {
         await razorpay.orders.edit(orderId, {
           notes: {
@@ -338,12 +523,12 @@ export const ApplyMagicPromotion = async (req, res, next) => {
     }
 
     const summaryText =
-      coupon.discountType === "percentage"
+      isPercentage
         ? `${coupon.discountValue}% OFF`
         : `₹${coupon.discountValue} OFF`;
 
     const descriptionText =
-      coupon.discountType === "percentage"
+      isPercentage
         ? `Get ${coupon.discountValue}% off${coupon.maxDiscount ? ` upto ₹${coupon.maxDiscount}` : ""}`
         : `Flat ₹${coupon.discountValue} off on your fine jewellery order`;
 
@@ -363,6 +548,8 @@ export const ApplyMagicPromotion = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
+      discount_amount: discountPaise,
+      coupon_code: coupon.code,
       promotion: promotionObj,
       promotions: [promotionObj],
     });
@@ -506,6 +693,25 @@ export const CreateMagicOrder = async (req, res, next) => {
           `Payment gateway error: ${rzpErr.error?.description || rzpErr.message || "Failed to create Razorpay order."}`
         )
       );
+    }
+
+    if (order && order.id) {
+      magicOrderCache.set(order.id, {
+        orderId: order.id,
+        subtotalPaise: lineItemsTotalPaise,
+        calculatedPrice: calculatedPrice,
+        line_items: line_items,
+        notes: options.notes,
+        createdAt: Date.now(),
+      });
+      // Clean up cache entries older than 2 hours
+      const TWO_HOURS = 2 * 60 * 60 * 1000;
+      const now = Date.now();
+      for (const [k, v] of magicOrderCache.entries()) {
+        if (now - (v.createdAt || 0) > TWO_HOURS) {
+          magicOrderCache.delete(k);
+        }
+      }
     }
 
     return res.status(200).json({

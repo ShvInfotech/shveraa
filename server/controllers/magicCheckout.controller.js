@@ -824,6 +824,19 @@ export const VerifyMagicOrder = async (req, res, next) => {
         "New Order Placed (Magic Checkout)",
         `Order ${orderNumber} (${paymentMethod.toUpperCase()}) has been placed by ${customerUser?.name || customerName}.`
       );
+
+      const number = orderAddress.phone || req.user.phone
+    const template_code = "shveraa_order_confirmation_template"
+    const variables = {
+      customer_name: addressDoc?.fullName || customerUser?.name || customerName,
+      order_number: newOrder.orderNumber,
+      product_name:products.map(product => product.name).join(", "),
+      total_amount: newOrder.totalAmount,
+      payment_method: isCodOrder ? "COD" : "Prepaid",
+      order_date: new Date(newOrder.createdAt).toLocaleDateString("en-GB"),
+      tracking_link: `https://www.delhivery.com/track-v2/package/${waybill}`
+    }
+    SendWhatsAppMessage(number, template_code,variables)
     } catch (notifyErr) {
       console.warn("Notification error:", notifyErr.message);
     }

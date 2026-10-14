@@ -28,6 +28,7 @@ const Cart = () => {
     discountAmount,
     shippingCost,
     setShippingCost,
+    isShippingLoading,
     appliedCoupon,
     couponError,
     applyCoupon,
@@ -186,7 +187,15 @@ const Cart = () => {
                   )}
                   <div className="cart-summary-row">
                     <span>Insured Express Shipping</span>
-                    <span>{shippingCost === 0 ? 'FREE' : `₹${Math.round(shippingCost).toLocaleString('en-IN')}`}</span>
+                    <span>
+                      {freeShippingReached
+                        ? 'FREE'
+                        : isShippingLoading && !shippingCost
+                        ? 'Calculating...'
+                        : shippingCost > 0
+                        ? `₹${Math.round(shippingCost).toLocaleString('en-IN')}`
+                        : 'FREE'}
+                    </span>
                   </div>
                   <div className="cart-summary-row cart-total-row">
                     <span>Estimated Total</span>

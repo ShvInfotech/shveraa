@@ -108,7 +108,7 @@ const ShippingCancellation = () => {
                   <Box size={16} color="#A07E52" /> Orders Below ₹4,999 &amp; COD Handling
                 </h4>
                 <ul>
-                  <li>Orders below ₹4,999 incur a nominal flat shipping fee of <strong>₹79</strong>.</li>
+                  <li>Orders below ₹4,999 incur standard shipping calculated directly from our live logistics partner API based on destination and package weight.</li>
                   <li>Cash on Delivery (COD) is available on orders up to <strong>₹5,000</strong> with a standard OTP verification.</li>
                   <li>A modest COD convenience charge of <strong>₹149</strong> is applied to cover courier cash-handling protocols.</li>
                 </ul>

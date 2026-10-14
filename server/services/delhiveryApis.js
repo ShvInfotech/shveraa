@@ -52,17 +52,31 @@ export const CheckShippingChargesService = async (delhiveryData) => {
       pt: String(delhiveryData.pt),
       cod: Number(delhiveryData.cod),
     });
-    const baseUrl = getDelhiveryURL();
+    let baseUrl = getDelhiveryURL();
 
     const url = `${baseUrl}api/kinko/v1/invoice/charges/.json?${params.toString()}`;
     const token = process.env.DELHIVERY_AUTH_TOKEN;
-    const response = await fetch(url, {
+    let response = await fetch(url, {
       method: "GET",
       headers: {
         Accept: "application/json",
         Authorization: `Token ${token}`,
       },
     });
+
+    if (response.status === 401 && !process.env.DELHIVERY_URL && !process.env.DELHIVERY_ENV) {
+      const altUrl = baseUrl.includes("track.delhivery.com")
+        ? "https://staging-express.delhivery.com/"
+        : "https://track.delhivery.com/";
+      console.warn(`[Delhivery] CheckShippingCharges 401 with primary URL. Retrying with fallback: ${altUrl}`);
+      response = await fetch(`${altUrl}api/kinko/v1/invoice/charges/.json?${params.toString()}`, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Token ${token}`,
+        },
+      });
+    }
 
     const data = await response.json();
     return data;

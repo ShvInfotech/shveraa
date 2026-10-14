@@ -9,6 +9,8 @@ import {
   apiGetWishlist,
   apiToggleWishlist,
   fetchProducts,
+  apiCheckShippingDetails,
+  apiGetUserAddresses,
 } from '../services/api';
 import { trackPixelEvent } from '../utils/metaPixel';
 
@@ -461,7 +463,56 @@ export const CartProvider = ({ children }) => {
   const freeShippingReached = cartSubtotal >= FREE_SHIPPING_THRESHOLD;
   const freeShippingProgress = Math.min(100, Math.round((cartSubtotal / FREE_SHIPPING_THRESHOLD) * 100));
   const amountNeededForFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - cartSubtotal);
+
   const [shippingCost, setShippingCost] = useState(0);
+  const [isShippingLoading, setIsShippingLoading] = useState(false);
+
+  // Auto-fetch live shipping cost from Delhivery API whenever cart items change
+  useEffect(() => {
+    if (freeShippingReached || cart.length === 0) {
+      setShippingCost(0);
+      return;
+    }
+
+    let isMounted = true;
+    setIsShippingLoading(true);
+
+    const validCartIds = cart
+      .map((item) => item._id || item.id)
+      .filter((id) => id && /^[0-9a-fA-F]{24}$/.test(String(id)));
+
+    const fetchLiveShipping = async () => {
+      let pin = '395010';
+      try {
+        const token = localStorage.getItem('shveraa_user_token');
+        if (token) {
+          const addrRes = await apiGetUserAddresses().catch(() => null);
+          const def = addrRes?.addresses?.find((a) => a.isDefault) || addrRes?.addresses?.[0];
+          if (def?.pincode && /^\d{6}$/.test(def.pincode)) {
+            pin = def.pincode;
+          }
+        }
+      } catch (_) {}
+
+      try {
+        const data = await apiCheckShippingDetails(validCartIds, pin, 'Pre-paid', 0, cart);
+        if (isMounted && data?.shippingCharges !== undefined) {
+          setShippingCost(Math.round(Number(data.shippingCharges) || 0));
+        }
+      } catch (err) {
+        console.warn('[CartContext] Could not fetch live shipping charge from API:', err?.message);
+      } finally {
+        if (isMounted) setIsShippingLoading(false);
+      }
+    };
+
+    fetchLiveShipping();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [cart, freeShippingReached]);
+
   const effectiveShippingCost = freeShippingReached || cartCount === 0 ? 0 : Math.round(Number(shippingCost) || 0);
   const cartTotal = Math.max(0, Math.round(cartSubtotal - discountAmount + effectiveShippingCost));
 
@@ -480,6 +531,7 @@ export const CartProvider = ({ children }) => {
         discountAmount,
         shippingCost: effectiveShippingCost,
         setShippingCost,
+        isShippingLoading,
         appliedCoupon,
         couponError,
         applyCoupon,

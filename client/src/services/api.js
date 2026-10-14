@@ -907,10 +907,10 @@ export const apiAdminDeleteShopBanner = async (bannerId) => {
   return data;
 };
 
-export const apiCheckShippingDetails = async (cartIds, pincode, payment_method = 'Pre-paid', codAmount = 0) => {
+export const apiCheckShippingDetails = async (cartIds, pincode, payment_method = 'Pre-paid', codAmount = 0, items = []) => {
   const res = await apiFetch('/api/v1/user/delhivery/check-shipping-charges', {
     method: 'POST',
-    body: JSON.stringify({ cartIds, pincode, payment_method, codAmount }),
+    body: JSON.stringify({ cartIds, pincode, payment_method, codAmount, items }),
   });
   const data = await res.json();
   if (!res.ok || data.success === false) {

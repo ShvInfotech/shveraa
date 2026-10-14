@@ -39,6 +39,7 @@ const CartDrawer = () => {
     discountAmount,
     shippingCost,
     setShippingCost,
+    isShippingLoading,
     appliedCoupon,
     couponError,
     applyCoupon,
@@ -73,23 +74,24 @@ const CartDrawer = () => {
       setShippingCost(0);
       return;
     }
-    if (!cart.length || !/^\d{6}$/.test(pincode)) return;
+    if (!cart.length) return;
 
-    const validCartIds = cart
-      .map((item) => item._id || item.id)
-      .filter((id) => id && /^[0-9a-fA-F]{24}$/.test(String(id)));
-    if (!validCartIds.length) return;
+    if (pincode && /^\d{6}$/.test(pincode)) {
+      const validCartIds = cart
+        .map((item) => item._id || item.id)
+        .filter((id) => id && /^[0-9a-fA-F]{24}$/.test(String(id)));
 
-    apiCheckShippingDetails(validCartIds, pincode)
-      .then((data) => {
-        if (data?.shippingCharges !== undefined) {
-          setShippingCost(Number(data.shippingCharges) || 0);
-        }
-      })
-      .catch((error) => {
-        console.warn('Error checking checkout shipping charges:', error);
-      });
-  }, [cart, pincode, freeShippingReached]);
+      apiCheckShippingDetails(validCartIds, pincode, 'Pre-paid', 0, cart)
+        .then((data) => {
+          if (data?.shippingCharges !== undefined) {
+            setShippingCost(Math.round(Number(data.shippingCharges) || 0));
+          }
+        })
+        .catch((error) => {
+          console.warn('Error checking drawer shipping charges:', error);
+        });
+    }
+  }, [cart, pincode, freeShippingReached, setShippingCost]);
 
   const handleApplyCoupon = (e) => {
     e.preventDefault();
@@ -336,7 +338,15 @@ const CartDrawer = () => {
               )}
               <div className="cart-summary-row">
                 <span>Insured Shipping</span>
-                <span>{shippingCost === 0 ? 'FREE' : `₹${Math.round(shippingCost).toLocaleString('en-IN')}`}</span>
+                <span>
+                  {freeShippingReached
+                    ? 'FREE'
+                    : isShippingLoading && !shippingCost
+                    ? 'Calculating...'
+                    : shippingCost > 0
+                    ? `₹${Math.round(shippingCost).toLocaleString('en-IN')}`
+                    : 'FREE'}
+                </span>
               </div>
               <div className="cart-summary-row cart-total-row">
                 <span>Total</span>

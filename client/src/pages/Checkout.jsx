@@ -189,14 +189,16 @@ const Checkout = () => {
       return;
     }
 
-    if (!cart.length || !/^\d{6}$/.test(pincode)) {
-      setShippingRates({ prepaid: null, cod: null, prepaidError: '', codError: '' });
+    if (!cart.length) {
+      setShippingRates({ prepaid: 0, cod: 0, prepaidError: '', codError: '' });
       setShippingCost(0);
       return;
     }
 
-    const cartIds = cart.map((item) => item._id).filter(Boolean);
-    if (!cartIds.length) return;
+    const validPincode = /^\d{6}$/.test(pincode) ? pincode : '395010';
+    const validCartIds = cart
+      .map((item) => item._id || item.id)
+      .filter((id) => id && /^[0-9a-fA-F]{24}$/.test(String(id)));
 
     const requestId = ++shippingRequestId.current;
     setIsCheckingShipping(true);
@@ -204,8 +206,8 @@ const Checkout = () => {
     const payableCodAmount = Math.max(0, cartSubtotal - discountAmount);
 
     Promise.allSettled([
-      apiCheckShippingDetails(cartIds, pincode, 'Pre-paid', 0),
-      apiCheckShippingDetails(cartIds, pincode, 'COD', payableCodAmount),
+      apiCheckShippingDetails(validCartIds, validPincode, 'Pre-paid', 0, cart),
+      apiCheckShippingDetails(validCartIds, validPincode, 'COD', payableCodAmount, cart),
     ])
       .then(([prepaidRes, codRes]) => {
         if (requestId !== shippingRequestId.current) return;

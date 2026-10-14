@@ -1,7 +1,8 @@
-import { CustomeError } from "../../../middleware/globelError.js"
-import { CheckShippingChargesService, PincodeServiceability } from "../../../services/delhiveryApis.js"
-import CartModel from "../../../models/cart.model.js"
-import productModel from "../../../models/product.model.js"
+import mongoose from "mongoose";
+import { CustomeError } from "../../../middleware/globelError.js";
+import { CheckShippingChargesService, PincodeServiceability } from "../../../services/delhiveryApis.js";
+import CartModel from "../../../models/cart.model.js";
+import productModel from "../../../models/product.model.js";
 
 export const Pincodedetails = async (req, res, next) => {
     try {
@@ -49,41 +50,73 @@ export const Pincodedetails = async (req, res, next) => {
 
 export const CheckShippingCharges = async (req, res, next) => {
     try {
+        const { cartIds, items: rawItems, pincode, payment_method, codAmount } = req.body || {};
 
+        let cartItems = [];
+        if (Array.isArray(cartIds) && cartIds.length > 0) {
+            const validIds = cartIds.filter((id) => mongoose.isValidObjectId(id));
+            if (validIds.length > 0) {
+                cartItems = await CartModel.find({ _id: { $in: validIds } });
+            }
+        }
 
-        const { cartIds, pincode,payment_method,codAmount } = req.body
-        const cartItems = await CartModel.find({ _id: { $in: cartIds } });
-        const productIDs = cartItems.map((item) => item.productId);
+        if (!cartItems.length && Array.isArray(rawItems) && rawItems.length > 0) {
+            cartItems = rawItems.map((item) => {
+                const pid = typeof item.productId === "object" && item.productId?._id
+                    ? item.productId._id
+                    : (item.productId || item.id || item._id || "");
+                return {
+                    productId: String(pid),
+                    quantity: Number(item.quantity) || 1,
+                };
+            });
+        }
+
+        if (!cartItems.length && req.user?._id) {
+            cartItems = await CartModel.find({ userId: req.user._id });
+        }
+
+        const productIDs = cartItems
+            .map((item) => item.productId)
+            .filter((id) => mongoose.isValidObjectId(id));
         const products = await productModel.find({ _id: { $in: productIDs } });
 
         let totalWeightkg = 0;
         for (const item of cartItems) {
             const product = products.find((p) => p._id.toString() === item.productId);
-            if (product) {
-                totalWeightkg += (product.packing.weight || 0) * item.quantity;
+            if (product && product.packing?.weight) {
+                totalWeightkg += Number(product.packing.weight) * item.quantity;
+            } else {
+                totalWeightkg += 0.1 * item.quantity;
             }
         }
 
-        const totalWeightgrams = totalWeightkg * 1000; 
-
+        const totalWeightgrams = Math.max(100, Math.round(totalWeightkg * 1000));
+        const destPincode = (pincode && /^\d{6}$/.test(String(pincode).trim())) ? String(pincode).trim() : "395010";
 
         const delhiveryData = {
             md: "E",
             ss: "Delivered",
-            d_pin: pincode,
-            o_pin: "395005",
-            cgm: totalWeightgrams || 100,
-            pt: payment_method || "Pre-paid" ,
-            cod: codAmount || 0 
-        }
-        const data = await CheckShippingChargesService(delhiveryData)
-         if(!data || !Array.isArray(data) || data.length === 0 ) {
-            return next(CustomeError(404, "Shipping charges not available for the given pincode and weight"))
+            d_pin: destPincode,
+            o_pin: process.env.SELLER_PIN || "395005",
+            cgm: totalWeightgrams,
+            pt: payment_method || "Pre-paid",
+            cod: Number(codAmount) || 0,
+        };
+
+        const data = await CheckShippingChargesService(delhiveryData);
+        if (!data || !Array.isArray(data) || data.length === 0) {
+            return next(CustomeError(404, "Shipping charges not available for the given pincode and weight"));
         }
 
         const charges = Math.round(Number(data[0].total_amount) || 0);
-        return res.status(200).json({ success: true, message: "Shipping charges fetched successfully", shippingCharges: charges });
+        return res.status(200).json({
+            success: true,
+            message: "Shipping charges fetched successfully from Delhivery API",
+            shippingCharges: charges,
+            details: data[0],
+        });
     } catch (error) {
-        return next(error)
+        return next(error);
     }
-}
+};

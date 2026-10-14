@@ -7,7 +7,7 @@ import addressModel from "../models/address.model.js";
 import OrderModel from "../models/order.model.js";
 import userModel from "../models/user.model.js";
 import { razorpay, razorpaySignature, getRazorpayKeyId } from "../config/razorpay.config.js";
-import { PincodeServiceability, CreateShippingOrderService } from "../services/delhiveryApis.js";
+import { PincodeServiceability, CreateShippingOrderService, CheckShippingChargesService } from "../services/delhiveryApis.js";
 import { sendNotification } from "../helper/helper.js";
 import { generateJwtToken } from "../middleware/jwtToken.js";
 
@@ -60,12 +60,22 @@ export const GetMagicShippingInfo = async (req, res, next) => {
       ];
     }
 
+    // Parse line_items if passed as string
+    let lineItems = rawData.line_items;
+    if (typeof lineItems === "string") {
+      try {
+        lineItems = JSON.parse(lineItems);
+      } catch (_) {
+        lineItems = [];
+      }
+    }
+
     // Determine order amount for Free Shipping Threshold (₹4,999 = 499,900 paise)
     let orderAmountPaise = 0;
     if (rawData.line_items_total && Number(rawData.line_items_total) > 0) {
       orderAmountPaise = Number(rawData.line_items_total);
-    } else if (Array.isArray(rawData.line_items) && rawData.line_items.length > 0) {
-      orderAmountPaise = rawData.line_items.reduce((sum, item) => {
+    } else if (Array.isArray(lineItems) && lineItems.length > 0) {
+      orderAmountPaise = lineItems.reduce((sum, item) => {
         const itemPrice = Number(item.offer_price || item.price || 0);
         const qty = Number(item.quantity || 1);
         return sum + itemPrice * qty;
@@ -76,23 +86,29 @@ export const GetMagicShippingInfo = async (req, res, next) => {
       orderAmountPaise = Number(rawData.amount);
     }
 
-    if (orderAmountPaise === 0 && rawData.order_id) {
+    const orderId = rawData.order_id || rawData.orderId || req.body?.order_id || req.query?.order_id;
+    if (orderAmountPaise === 0 && orderId) {
       try {
-        const rzpOrder = await razorpay.orders.fetch(rawData.order_id);
+        const rzpOrder = await razorpay.orders.fetch(orderId);
         if (rzpOrder) {
-          orderAmountPaise = Number(rzpOrder.line_items_total || rzpOrder.amount || 0);
+          orderAmountPaise = Number(rzpOrder.notes?.subtotal_paise || rzpOrder.line_items_total || rzpOrder.amount || 0);
         }
       } catch (_) {}
     }
 
-    // Free delivery on orders >= ₹4,999 (499,900 paise). Below ₹4,999: ₹79 (7,900 paise)
+    // Free delivery on orders >= ₹4,999 (499,900 paise)
     const isFreeDelivery = orderAmountPaise >= 4999 * 100;
-    const shippingFeePaise = isFreeDelivery ? 0 : 7900;
+
+    let totalWeightGrams = 100;
+    if (Array.isArray(lineItems) && lineItems.length > 0) {
+      const totalQty = lineItems.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
+      totalWeightGrams = Math.max(100, totalQty * 100);
+    }
 
     const responseAddresses = [];
 
     for (const addr of addresses) {
-      const pin = String(addr.zipcode || "").trim();
+      const pin = String(addr.pin_code || addr.pincode || addr.postal_code || addr.zipcode || addr.zip || "").trim();
       let isCodAvailable = true;
       let isServiceable = true;
 
@@ -107,6 +123,27 @@ export const GetMagicShippingInfo = async (req, res, next) => {
           }
         } catch (pinErr) {
           console.warn("[Magic Checkout] Pincode check warning:", pinErr.message);
+        }
+      }
+
+      let shippingFeePaise = 0;
+      if (!isFreeDelivery) {
+        try {
+          const destPin = /^\d{6}$/.test(pin) ? pin : "395010";
+          const shippingData = await CheckShippingChargesService({
+            md: "E",
+            ss: "Delivered",
+            d_pin: destPin,
+            o_pin: process.env.SELLER_PIN || "395005",
+            cgm: totalWeightGrams,
+            pt: "Pre-paid",
+            cod: 0,
+          });
+          if (Array.isArray(shippingData) && shippingData.length > 0 && shippingData[0].total_amount !== undefined) {
+            shippingFeePaise = Math.round(Number(shippingData[0].total_amount) * 100);
+          }
+        } catch (chargeErr) {
+          console.warn("[Magic Checkout] Delhivery shipping charge error:", chargeErr.message);
         }
       }
 
@@ -229,12 +266,21 @@ export const ApplyMagicPromotion = async (req, res, next) => {
       });
     }
 
+    let lineItems = rawData.line_items;
+    if (typeof lineItems === "string") {
+      try {
+        lineItems = JSON.parse(lineItems);
+      } catch (_) {
+        lineItems = [];
+      }
+    }
+
     // 1. Calculate subtotal in paise from Magic Checkout request or order
     let subtotalPaise = 0;
     if (rawData.line_items_total && Number(rawData.line_items_total) > 0) {
       subtotalPaise = Number(rawData.line_items_total);
-    } else if (Array.isArray(rawData.line_items) && rawData.line_items.length > 0) {
-      subtotalPaise = rawData.line_items.reduce((sum, item) => {
+    } else if (Array.isArray(lineItems) && lineItems.length > 0) {
+      subtotalPaise = lineItems.reduce((sum, item) => {
         const itemPrice = Number(item.offer_price || item.price || 0);
         const qty = Number(item.quantity || 1);
         return sum + itemPrice * qty;
@@ -245,11 +291,12 @@ export const ApplyMagicPromotion = async (req, res, next) => {
       subtotalPaise = Number(rawData.amount);
     }
 
-    if (subtotalPaise === 0 && rawData.order_id) {
+    const orderId = rawData.order_id || rawData.orderId || req.body?.order_id || req.query?.order_id;
+    if (subtotalPaise === 0 && orderId) {
       try {
-        const rzpOrder = await razorpay.orders.fetch(rawData.order_id);
+        const rzpOrder = await razorpay.orders.fetch(orderId);
         if (rzpOrder) {
-          subtotalPaise = Number(rzpOrder.line_items_total || rzpOrder.amount || 0);
+          subtotalPaise = Number(rzpOrder.notes?.subtotal_paise || rzpOrder.line_items_total || rzpOrder.amount || 0);
         }
       } catch (err) {
         console.warn("[Magic Checkout] Could not fetch order for promotion calculation:", err?.message);
@@ -277,32 +324,46 @@ export const ApplyMagicPromotion = async (req, res, next) => {
       discountPaise = subtotalPaise > 0 ? Math.min(flatDiscountPaise, subtotalPaise) : flatDiscountPaise;
     }
 
-    if (rawData.order_id) {
+    if (orderId) {
       try {
-        await razorpay.orders.edit(rawData.order_id, {
+        await razorpay.orders.edit(orderId, {
           notes: {
             coupon_id: String(coupon._id),
             coupon_code: String(coupon.code),
             discount_amount: String(Math.round(discountPaise / 100)),
           },
         });
-      } catch (editErr) {
-        console.warn("[Magic Checkout] Could not update order notes with coupon:", editErr?.message);
-      }
+      } catch (_) {}
     }
 
-    return res.status(200).json({
-      promotion: {
-        reference_id: String(coupon._id),
-        type: "coupon",
-        code: coupon.code,
+    const summaryText =
+      coupon.discountType === "percentage"
+        ? `${coupon.discountValue}% OFF`
+        : `₹${coupon.discountValue} OFF`;
+
+    const descriptionText =
+      coupon.discountType === "percentage"
+        ? `Get ${coupon.discountValue}% off${coupon.maxDiscount ? ` upto ₹${coupon.maxDiscount}` : ""}`
+        : `Flat ₹${coupon.discountValue} off on your fine jewellery order`;
+
+    const promotionObj = {
+      reference_id: String(coupon._id),
+      type: "offer",
+      code: coupon.code,
+      summary: summaryText,
+      description: descriptionText,
+      value: discountPaise,
+      value_type: "fixed_amount",
+      discount: {
         value: discountPaise,
         value_type: "fixed_amount",
-        description:
-          coupon.discountType === "percentage"
-            ? `${coupon.discountValue}% OFF applied!`
-            : `₹${coupon.discountValue} OFF applied!`,
       },
+    };
+
+    return res.status(200).json({
+      success: true,
+      promotion: promotionObj,
+      promotions: [promotionObj],
     });
   } catch (error) {
     console.error("[Magic Checkout] Apply Promotion Error:", error);
@@ -389,8 +450,14 @@ export const CreateMagicOrder = async (req, res, next) => {
     }
 
     let discountAmount = 0;
-    if (effectiveCouponId && mongoose.isValidObjectId(effectiveCouponId)) {
-      const coupon = await couponModel.findById(effectiveCouponId);
+    let coupon = null;
+    if (effectiveCouponId) {
+      if (mongoose.isValidObjectId(effectiveCouponId)) {
+        coupon = await couponModel.findById(effectiveCouponId);
+      }
+      if (!coupon) {
+        coupon = await couponModel.findOne({ code: String(effectiveCouponId).trim().toUpperCase(), isActive: true });
+      }
       if (coupon) {
         if (coupon.discountType === "percentage") {
           discountAmount = Math.round((calculatedPrice * coupon.discountValue) / 100);
@@ -420,8 +487,10 @@ export const CreateMagicOrder = async (req, res, next) => {
       line_items: line_items,
       notes: {
         cart_ids: Array.isArray(cartIds) ? cartIds.join(",") : "",
-        coupon_id: effectiveCouponId || "",
+        coupon_id: coupon?._id ? String(coupon._id) : (effectiveCouponId || ""),
+        coupon_code: coupon?.code || "",
         discount_amount: String(discountAmount),
+        subtotal_paise: String(lineItemsTotalPaise),
       },
     };
 
@@ -594,24 +663,31 @@ export const VerifyMagicOrder = async (req, res, next) => {
       }
     }
 
-    if (effectiveCouponId && mongoose.isValidObjectId(effectiveCouponId)) {
-      const coupon = await couponModel.findById(effectiveCouponId);
-      if (coupon) {
-        if (coupon.discountType === "percentage") {
-          discount = Math.round((itemsPrice * coupon.discountValue) / 100);
-          if (coupon.maxDiscount > 0 && discount > coupon.maxDiscount) {
-            discount = coupon.maxDiscount;
-          }
-        } else {
-          discount = Math.min(coupon.discountValue, itemsPrice);
-        }
+    let couponDoc = null;
+    if (effectiveCouponId) {
+      if (mongoose.isValidObjectId(effectiveCouponId)) {
+        couponDoc = await couponModel.findById(effectiveCouponId);
+      }
+      if (!couponDoc) {
+        couponDoc = await couponModel.findOne({ code: String(effectiveCouponId).trim().toUpperCase() });
+      }
+    }
 
-        if (customerUser?._id) {
-          await couponModel.findByIdAndUpdate(effectiveCouponId, {
-            $inc: { usedCount: 1 },
-            $addToSet: { usedBy: customerUser._id },
-          });
+    if (couponDoc) {
+      if (couponDoc.discountType === "percentage") {
+        discount = Math.round((itemsPrice * couponDoc.discountValue) / 100);
+        if (couponDoc.maxDiscount > 0 && discount > couponDoc.maxDiscount) {
+          discount = couponDoc.maxDiscount;
         }
+      } else {
+        discount = Math.min(couponDoc.discountValue, itemsPrice);
+      }
+
+      if (customerUser?._id) {
+        await couponModel.findByIdAndUpdate(couponDoc._id, {
+          $inc: { usedCount: 1 },
+          $addToSet: { usedBy: customerUser._id },
+        });
       }
     }
 

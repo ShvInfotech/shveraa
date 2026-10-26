@@ -8,8 +8,6 @@ import {
   Star,
   ArrowRight,
   Award,
-  CheckCircle2,
-  Heart,
 } from 'lucide-react';
 import HeroSection from '../components/HeroSection';
 import CategoryCard from '../components/CategoryCard';
@@ -17,7 +15,6 @@ import ProductCard from '../components/ProductCard';
 import Newsletter from '../components/Newsletter';
 import Loader from '../components/Loader';
 import PromoPopup from '../components/PromoPopup';
-import TieredOfferSection from '../components/TieredOfferSection';
 import ShopByCollection from '../components/ShopByCollection';
 import { fetchProducts, getImageUrl } from '../services/api';
 import { useDynamicStore } from '../services/storeService';
@@ -94,44 +91,6 @@ const BrandTickerRibbon = () => (
   </div>
 );
 
-const UGC_POSTS = [
-  {
-    id: 1,
-    image: '/muse-rings.jpg',
-    tag: '@ananya.atelier',
-    location: 'Paris • St-Germain',
-    piece: 'Lumina Stacking Bands & Dune Cuff',
-    likes: '2.4k',
-    link: '/shop?category=rings',
-  },
-  {
-    id: 2,
-    image: '/muse-necklace.jpg',
-    tag: '@radhika.desai',
-    location: 'Surat • Summer Light',
-    piece: 'Liquid Silver Herringbone & Medallion',
-    likes: '3.1k',
-    link: '/shop?category=necklaces',
-  },
-  {
-    id: 3,
-    image: '/muse-earrings.jpg',
-    tag: '@priya.muses',
-    location: 'Mumbai • Marine Drive',
-    piece: 'Aria Teardrop Hollow Silver Hoops',
-    likes: '1.9k',
-    link: '/shop?category=earrings',
-  },
-  {
-    id: 4,
-    image: '/muse-bracelet.jpg',
-    tag: '@meera.v',
-    location: 'Bengaluru • Minimal Days',
-    piece: 'Mirage Tennis Silver Bracelet & Cuff',
-    likes: '2.7k',
-    link: '/shop?category=bracelets',
-  },
-];
 
 const REVIEWS = [
   {
@@ -183,6 +142,44 @@ const Home = () => {
     settings?.heroBanner?.image || '/hero-ring-banner.jpg'
   );
 
+
+
+  const loadInstagramFeed = () => {
+    useEffect(() => {
+      const script = document.createElement("script");
+      script.src = "https://widget.tagembed.com/embed.min.js";
+      script.async = true;
+      document.body.appendChild(script);
+
+      return () => script.remove();
+    }, []);
+
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          width: "100%",
+        }}
+      >
+        <div
+          className="tagembed-widget"
+          style={{
+            width: "100%",
+            minHeight: "400px",
+            overflow: "auto",
+          }}
+          data-widget-id="338286"
+          data-website="1"
+        />
+      </div>
+    );
+  };
+
+
+
+
+
   // Dynamic API call hook for Hero Section background image
   useEffect(() => {
     const fetchHeroBannerImage = async () => {
@@ -225,6 +222,9 @@ const Home = () => {
 
     loadHomeData();
   }, [reloadTrigger]);
+
+
+
 
   // Top 8 trending products (bestsellers, featured, or trending badge)
   const trendingProducts = bestsellers.filter(
@@ -508,33 +508,12 @@ const Home = () => {
             </a>
           </div>
 
-          {/* Editorial Lookbook Grid */}
-          <div className="shv-lookbook-grid">
-            {UGC_POSTS.map((post) => (
-              <div key={post.id} className="shv-lookbook-card">
-                <div className="shv-lookbook-img-box">
-                  <img src={post.image} alt={post.piece} loading="lazy" />
-                  <div className="shv-lookbook-card-overlay">
-                    <div className="shv-lookbook-top-bar">
-                      <span className="shv-lookbook-tag">{post.tag}</span>
-                      <span className="shv-lookbook-likes">
-                        <Heart size={12} fill="#E11D48" color="#E11D48" /> {post.likes}
-                      </span>
-                    </div>
 
-                    <div className="shv-lookbook-bottom-bar">
-                      <span className="shv-lookbook-location">{post.location}</span>
-                      <h4 className="shv-lookbook-piece">{post.piece}</h4>
-                      <Link to={post.link} className="shv-lookbook-shop-link">
-                        <span>Shop Silhouette</span>
-                        <ArrowRight size={12} />
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+
+
+
+          {loadInstagramFeed()}
+
         </div>
       </section>
 

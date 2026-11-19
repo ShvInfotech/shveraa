@@ -10,11 +10,12 @@ import {
   CheckCircle,
   Phone,
   Mail,
-  MapPin,
   Package,
   Receipt,
   User,
-  IndianRupee,
+  Percent,
+  DollarSign,
+  ShieldCheck,
 } from 'lucide-react';
 import {
   apiAdminGetAllBills,
@@ -22,6 +23,10 @@ import {
   apiAdminDownloadBillPdf,
   apiAdminDeleteBill,
 } from '../services/api';
+
+const OFFICIAL_PHONE = '+91 99980 46559';
+const OFFICIAL_EMAIL = 'shvera925@gmail.com';
+const OFFICIAL_HALLMARK = 'HM/C-7190422317';
 
 const AdminGenerateBill = () => {
   const [bills, setBills] = useState([]);
@@ -38,10 +43,11 @@ const AdminGenerateBill = () => {
     customerEmail: '',
     customerPhone: '',
     customerAddress: '',
-    productName: '',
-    price: '',
-    discount: '',
+    items: [{ productName: '', price: '', quantity: 1 }],
+    discountType: 'percentage', // 'percentage' | 'fixed'
+    discountValue: '',
     shippingCharge: '',
+    hallmarkNumber: OFFICIAL_HALLMARK,
     notes: '',
   };
   const [formData, setFormData] = useState(initialForm);
@@ -68,7 +74,7 @@ const AdminGenerateBill = () => {
     fetchBills();
   }, []);
 
-  // Filter bills in-memory as well for responsive UI
+  // Filter bills in-memory
   const filteredBills = useMemo(() => {
     if (!searchQuery.trim()) return bills;
     const q = searchQuery.toLowerCase().trim();
@@ -78,17 +84,62 @@ const AdminGenerateBill = () => {
         (b.customerName && b.customerName.toLowerCase().includes(q)) ||
         (b.customerPhone && b.customerPhone.toLowerCase().includes(q)) ||
         (b.customerEmail && b.customerEmail.toLowerCase().includes(q)) ||
-        (b.productName && b.productName.toLowerCase().includes(q))
+        (b.productName && b.productName.toLowerCase().includes(q)) ||
+        (b.items && b.items.some((it) => it.productName && it.productName.toLowerCase().includes(q)))
     );
   }, [bills, searchQuery]);
 
-  // Real-time calculation for modal preview
-  const calculatedTotal = useMemo(() => {
-    const priceNum = Number(formData.price) || 0;
-    const discountNum = Number(formData.discount) || 0;
-    const shippingNum = Number(formData.shippingCharge) || 0;
-    return Math.max(0, priceNum - discountNum + shippingNum);
-  }, [formData.price, formData.discount, formData.shippingCharge]);
+  // Multiple items handlers
+  const handleAddItem = () => {
+    setFormData((prev) => ({
+      ...prev,
+      items: [...prev.items, { productName: '', price: '', quantity: 1 }],
+    }));
+  };
+
+  const handleRemoveItem = (index) => {
+    if (formData.items.length <= 1) return;
+    setFormData((prev) => ({
+      ...prev,
+      items: prev.items.filter((_, idx) => idx !== index),
+    }));
+  };
+
+  const handleItemChange = (index, field, value) => {
+    setFormData((prev) => {
+      const updated = [...prev.items];
+      updated[index] = { ...updated[index], [field]: value };
+      return { ...prev, items: updated };
+    });
+  };
+
+  // Real-time calculations for subtotal, discount, shipping, grand total
+  const calculationSummary = useMemo(() => {
+    const subtotal = formData.items.reduce((sum, item) => {
+      const p = Math.max(0, Number(item.price) || 0);
+      const q = Math.max(1, Number(item.quantity) || 1);
+      return sum + p * q;
+    }, 0);
+
+    const dVal = Math.max(0, Number(formData.discountValue) || 0);
+    let discountAmount = 0;
+    if (formData.discountType === 'percentage') {
+      discountAmount = Math.round(((subtotal * dVal) / 100) * 100) / 100;
+    } else {
+      discountAmount = dVal;
+    }
+    discountAmount = Math.min(subtotal, Math.max(0, discountAmount));
+
+    const shipping = Math.max(0, Number(formData.shippingCharge) || 0);
+    const grandTotal = Math.max(0, Math.round((subtotal - discountAmount + shipping) * 100) / 100);
+
+    return {
+      subtotal,
+      discountAmount,
+      shipping,
+      grandTotal,
+    };
+  }, [formData.items, formData.discountType, formData.discountValue, formData.shippingCharge]);
 
   // Handle Create Bill Submission
   const handleSubmit = async (e) => {
@@ -103,15 +154,21 @@ const AdminGenerateBill = () => {
       return;
     }
     if (!formData.customerAddress.trim()) {
-      showToast('Please enter customer address', 'error');
+      showToast('Please enter customer delivery address', 'error');
       return;
     }
-    if (!formData.productName.trim()) {
-      showToast('Please enter product name', 'error');
-      return;
-    }
-    if (!formData.price || Number(formData.price) < 0) {
-      showToast('Please enter a valid price', 'error');
+
+    // Validate items
+    const validItems = formData.items
+      .map((it) => ({
+        productName: it.productName.trim(),
+        price: Math.max(0, Number(it.price) || 0),
+        quantity: Math.max(1, Number(it.quantity) || 1),
+      }))
+      .filter((it) => it.productName && it.price >= 0);
+
+    if (validItems.length === 0) {
+      showToast('Please enter at least one product with name and price', 'error');
       return;
     }
 
@@ -122,10 +179,11 @@ const AdminGenerateBill = () => {
         customerEmail: formData.customerEmail.trim(),
         customerPhone: formData.customerPhone.trim(),
         customerAddress: formData.customerAddress.trim(),
-        productName: formData.productName.trim(),
-        price: Number(formData.price),
-        discount: formData.discount ? Number(formData.discount) : 0,
-        shippingCharge: formData.shippingCharge ? Number(formData.shippingCharge) : 0,
+        items: validItems,
+        discountType: formData.discountType,
+        discountValue: Number(formData.discountValue) || 0,
+        shippingCharge: Number(formData.shippingCharge) || 0,
+        hallmarkNumber: formData.hallmarkNumber.trim() || OFFICIAL_HALLMARK,
         notes: formData.notes ? formData.notes.trim() : '',
       };
 
@@ -136,7 +194,7 @@ const AdminGenerateBill = () => {
       setBills((prev) => [newBill, ...prev]);
       setShowModal(false);
       setFormData(initialForm);
-      showToast(`Bill #${newBill.invoiceNumber} generated successfully! Downloading PDF...`);
+      showToast(`Bill #${newBill.invoiceNumber} generated! Downloading PDF...`);
 
       // Automatically download PDF right away
       try {
@@ -218,7 +276,7 @@ const AdminGenerateBill = () => {
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: '1rem',
-          marginBottom: '1.5rem',
+          marginBottom: '1rem',
         }}
       >
         <div>
@@ -235,7 +293,7 @@ const AdminGenerateBill = () => {
               margin: '4px 0 0 0',
             }}
           >
-            Create customer invoices with live tax calculation, MongoDB records, and instant PDF downloads.
+            Create customer invoices with multi-product line items, percentage/fixed discounts, and instant PDF downloads.
           </p>
         </div>
 
@@ -274,6 +332,36 @@ const AdminGenerateBill = () => {
             <span>Add Bill</span>
           </button>
         </div>
+      </div>
+
+      {/* Official Credentials Banner */}
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          alignItems: 'center',
+          backgroundColor: '#fbfaf8',
+          border: '1px solid #efe8dd',
+          borderRadius: '8px',
+          padding: '0.65rem 1rem',
+          marginBottom: '1.25rem',
+          fontSize: '0.82rem',
+          color: '#555',
+        }}
+      >
+        <span style={{ fontWeight: 600, color: '#A07E52', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <ShieldCheck size={14} /> Official Invoice Credentials:
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <Phone size={12} style={{ color: '#A07E52' }} /> <strong>Phone:</strong> {OFFICIAL_PHONE}
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <Mail size={12} style={{ color: '#A07E52' }} /> <strong>Email:</strong> {OFFICIAL_EMAIL}
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <FileText size={12} style={{ color: '#A07E52' }} /> <strong>Hallmark UID:</strong> {OFFICIAL_HALLMARK}
+        </span>
       </div>
 
       {/* Filter / Search Bar */}
@@ -353,11 +441,11 @@ const AdminGenerateBill = () => {
                 <th>Date</th>
                 <th>Customer</th>
                 <th>Contact</th>
-                <th>Product Details</th>
-                <th>Price</th>
+                <th>Products / Items</th>
+                <th>Subtotal</th>
                 <th>Discount</th>
                 <th>Shipping</th>
-                <th>Total</th>
+                <th>Grand Total</th>
                 <th style={{ textAlign: 'center' }}>Actions</th>
               </tr>
             </thead>
@@ -405,207 +493,233 @@ const AdminGenerateBill = () => {
                   </td>
                 </tr>
               ) : (
-                filteredBills.map((b) => (
-                  <tr key={b._id}>
-                    {/* Invoice Number */}
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <FileText size={15} style={{ color: '#A07E52' }} />
-                        <span
-                          style={{
-                            fontFamily: 'monospace',
-                            fontWeight: 700,
-                            fontSize: '0.92rem',
-                            letterSpacing: '0.03em',
-                            color: 'var(--admin-text-dark, #111827)',
-                          }}
-                        >
-                          {b.invoiceNumber}
-                        </span>
-                      </div>
-                    </td>
+                filteredBills.map((b) => {
+                  const billItems = b.items && b.items.length > 0 ? b.items : [];
+                  const subtotalAmount = b.subtotal !== undefined ? b.subtotal : b.price;
 
-                    {/* Date */}
-                    <td>
-                      <span style={{ fontSize: '0.84rem', color: 'var(--admin-text-muted, #6b7280)' }}>
-                        {new Date(b.createdAt).toLocaleDateString('en-IN', {
-                          day: '2-digit',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
-                      </span>
-                    </td>
+                  return (
+                    <tr key={b._id}>
+                      {/* Invoice Number */}
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <FileText size={15} style={{ color: '#A07E52' }} />
+                          <span
+                            style={{
+                              fontFamily: 'monospace',
+                              fontWeight: 700,
+                              fontSize: '0.92rem',
+                              letterSpacing: '0.03em',
+                              color: 'var(--admin-text-dark, #111827)',
+                            }}
+                          >
+                            {b.invoiceNumber}
+                          </span>
+                        </div>
+                      </td>
 
-                    {/* Customer */}
-                    <td>
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ fontWeight: 600, color: 'var(--admin-text-dark, #111827)' }}>
-                          {b.customerName}
+                      {/* Date */}
+                      <td>
+                        <span style={{ fontSize: '0.84rem', color: 'var(--admin-text-muted, #6b7280)' }}>
+                          {new Date(b.createdAt).toLocaleDateString('en-IN', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
                         </span>
-                        <span
-                          style={{
-                            fontSize: '0.78rem',
-                            color: 'var(--admin-text-muted, #6b7280)',
-                            maxWidth: '180px',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                          }}
-                          title={b.customerAddress}
-                        >
-                          {b.customerAddress}
-                        </span>
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Contact (Phone / Email) */}
-                    <td>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                        <span style={{ fontSize: '0.84rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <Phone size={12} style={{ color: '#9ca3af' }} />
-                          {b.customerPhone}
-                        </span>
-                        {b.customerEmail && (
+                      {/* Customer */}
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span style={{ fontWeight: 600, color: 'var(--admin-text-dark, #111827)' }}>
+                            {b.customerName}
+                          </span>
                           <span
                             style={{
                               fontSize: '0.78rem',
                               color: 'var(--admin-text-muted, #6b7280)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px',
+                              maxWidth: '180px',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
                             }}
+                            title={b.customerAddress}
                           >
-                            <Mail size={12} style={{ color: '#9ca3af' }} />
-                            {b.customerEmail}
+                            {b.customerAddress}
                           </span>
-                        )}
-                      </div>
-                    </td>
+                        </div>
+                      </td>
 
-                    {/* Product Name */}
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <Package size={14} style={{ color: '#A07E52' }} />
+                      {/* Contact */}
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <span style={{ fontSize: '0.84rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Phone size={12} style={{ color: '#9ca3af' }} />
+                            {b.customerPhone}
+                          </span>
+                          {b.customerEmail && (
+                            <span
+                              style={{
+                                fontSize: '0.78rem',
+                                color: 'var(--admin-text-muted, #6b7280)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                              }}
+                            >
+                              <Mail size={12} style={{ color: '#9ca3af' }} />
+                              {b.customerEmail}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Products / Items */}
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                          {billItems.length > 0 ? (
+                            billItems.slice(0, 2).map((it, idx) => (
+                              <div
+                                key={idx}
+                                style={{
+                                  fontSize: '0.82rem',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  color: '#374151',
+                                }}
+                              >
+                                <Package size={11} style={{ color: '#A07E52' }} />
+                                <span style={{ fontWeight: 500 }}>{it.productName}</span>
+                                <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                                  (x{it.quantity || 1})
+                                </span>
+                              </div>
+                            ))
+                          ) : (
+                            <div style={{ fontSize: '0.84rem', fontWeight: 500 }}>
+                              <Package size={12} style={{ color: '#A07E52', display: 'inline', marginRight: '4px' }} />
+                              {b.productName}
+                            </div>
+                          )}
+                          {billItems.length > 2 && (
+                            <span style={{ fontSize: '0.75rem', color: '#A07E52', fontWeight: 600 }}>
+                              +{billItems.length - 2} more item(s)
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Subtotal */}
+                      <td>
+                        <span style={{ fontWeight: 600, fontSize: '0.88rem' }}>
+                          ₹{Number(subtotalAmount || 0).toLocaleString('en-IN')}
+                        </span>
+                      </td>
+
+                      {/* Discount */}
+                      <td>
                         <span
                           style={{
-                            fontWeight: 500,
-                            fontSize: '0.88rem',
-                            maxWidth: '200px',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
+                            fontSize: '0.84rem',
+                            color: b.discount > 0 ? '#dc2626' : 'var(--admin-text-muted, #9ca3af)',
                           }}
-                          title={b.productName}
                         >
-                          {b.productName}
+                          {b.discount > 0
+                            ? `-₹${Number(b.discount).toLocaleString('en-IN')}${b.discountType === 'percentage' && b.discountValue ? ` (${b.discountValue}%)` : ''
+                            }`
+                            : '₹0'}
                         </span>
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Price */}
-                    <td>
-                      <span style={{ fontWeight: 600 }}>₹{Number(b.price || 0).toLocaleString('en-IN')}</span>
-                    </td>
-
-                    {/* Discount */}
-                    <td>
-                      <span
-                        style={{
-                          fontSize: '0.84rem',
-                          color: b.discount > 0 ? '#dc2626' : 'var(--admin-text-muted, #9ca3af)',
-                        }}
-                      >
-                        {b.discount > 0 ? `-₹${Number(b.discount).toLocaleString('en-IN')}` : '₹0'}
-                      </span>
-                    </td>
-
-                    {/* Shipping Charge */}
-                    <td>
-                      <span
-                        style={{
-                          fontSize: '0.84rem',
-                          color: b.shippingCharge > 0 ? 'var(--admin-text-dark, #374151)' : '#10b981',
-                        }}
-                      >
-                        {b.shippingCharge > 0
-                          ? `+₹${Number(b.shippingCharge).toLocaleString('en-IN')}`
-                          : 'FREE'}
-                      </span>
-                    </td>
-
-                    {/* Total Amount */}
-                    <td>
-                      <span
-                        style={{
-                          fontWeight: 700,
-                          fontSize: '0.96rem',
-                          color: 'var(--admin-green, #059669)',
-                        }}
-                      >
-                        ₹{Number(b.totalAmount || 0).toLocaleString('en-IN')}
-                      </span>
-                    </td>
-
-                    {/* Actions */}
-                    <td>
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.5rem',
-                        }}
-                      >
-                        {/* Download PDF Button */}
-                        <button
-                          type="button"
-                          onClick={() => handleDownloadPdf(b)}
-                          disabled={downloadingId === b._id}
-                          className="shv-btn-secondary"
-                          title="Download Invoice PDF"
+                      {/* Shipping */}
+                      <td>
+                        <span
                           style={{
-                            padding: '0.35rem 0.65rem',
-                            fontSize: '0.82rem',
-                            display: 'inline-flex',
+                            fontSize: '0.84rem',
+                            color: b.shippingCharge > 0 ? 'var(--admin-text-dark, #374151)' : '#10b981',
+                          }}
+                        >
+                          {b.shippingCharge > 0
+                            ? `+₹${Number(b.shippingCharge).toLocaleString('en-IN')}`
+                            : 'FREE'}
+                        </span>
+                      </td>
+
+                      {/* Grand Total */}
+                      <td>
+                        <span
+                          style={{
+                            fontWeight: 700,
+                            fontSize: '0.96rem',
+                            color: 'var(--admin-green, #059669)',
+                          }}
+                        >
+                          ₹{Number(b.totalAmount || 0).toLocaleString('en-IN')}
+                        </span>
+                      </td>
+
+                      {/* Actions */}
+                      <td>
+                        <div
+                          style={{
+                            display: 'flex',
                             alignItems: 'center',
-                            gap: '0.35rem',
-                            borderColor: 'rgba(160, 126, 82, 0.4)',
-                            color: '#A07E52',
+                            justifyContent: 'center',
+                            gap: '0.5rem',
                           }}
                         >
-                          {downloadingId === b._id ? (
-                            <RefreshCw size={13} className="shv-spin" />
-                          ) : (
-                            <Download size={13} />
-                          )}
-                          <span>Download</span>
-                        </button>
+                          {/* Download PDF Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadPdf(b)}
+                            disabled={downloadingId === b._id}
+                            className="shv-btn-secondary"
+                            title="Download Invoice PDF"
+                            style={{
+                              padding: '0.35rem 0.65rem',
+                              fontSize: '0.82rem',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                              borderColor: 'rgba(160, 126, 82, 0.4)',
+                              color: '#A07E52',
+                            }}
+                          >
+                            {downloadingId === b._id ? (
+                              <RefreshCw size={13} className="shv-spin" />
+                            ) : (
+                              <Download size={13} />
+                            )}
+                            <span>Download</span>
+                          </button>
 
-                        {/* Delete Button */}
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(b)}
-                          className="shv-table-filter-btn"
-                          title="Delete Bill Record"
-                          style={{
-                            padding: '0.35rem 0.55rem',
-                            color: 'var(--admin-red, #ef4444)',
-                            borderColor: 'rgba(239, 68, 68, 0.2)',
-                          }}
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                          {/* Delete Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(b)}
+                            className="shv-table-filter-btn"
+                            title="Delete Bill Record"
+                            style={{
+                              padding: '0.35rem 0.55rem',
+                              color: 'var(--admin-red, #ef4444)',
+                              borderColor: 'rgba(239, 68, 68, 0.2)',
+                            }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* CREATE BILL MODAL */}
+      {/* CREATE BILL MODAL (MULTIPLE PRODUCTS & PERCENTAGE/FIXED DISCOUNT) */}
       {showModal && (
         <div
           className="shv-modal-overlay"
@@ -613,7 +727,7 @@ const AdminGenerateBill = () => {
           style={{
             position: 'fixed',
             inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            backgroundColor: 'rgba(0, 0, 0, 0.55)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -627,11 +741,11 @@ const AdminGenerateBill = () => {
             style={{
               backgroundColor: '#fff',
               borderRadius: '12px',
-              maxWidth: '680px',
+              maxWidth: '750px',
               width: '100%',
-              maxHeight: '90vh',
+              maxHeight: '92vh',
               overflowY: 'auto',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
             }}
           >
             {/* Modal Header */}
@@ -641,13 +755,13 @@ const AdminGenerateBill = () => {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '1.25rem 1.5rem',
+                padding: '1.15rem 1.5rem',
                 borderBottom: '1px solid #f3f4f6',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Receipt size={20} style={{ color: '#A07E52' }} />
-                <h3 className="shv-modal-title" style={{ margin: 0, fontSize: '1.18rem', fontWeight: 700 }}>
+                <h3 className="shv-modal-title" style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>
                   Generate New Customer Bill
                 </h3>
               </div>
@@ -673,7 +787,7 @@ const AdminGenerateBill = () => {
               <div style={{ marginBottom: '1.25rem' }}>
                 <h4
                   style={{
-                    fontSize: '0.88rem',
+                    fontSize: '0.86rem',
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em',
                     color: '#A07E52',
@@ -750,11 +864,168 @@ const AdminGenerateBill = () => {
                 </div>
               </div>
 
-              {/* Section 2: Product & Pricing Details */}
-              <div style={{ marginBottom: '1.25rem', paddingTop: '0.75rem', borderTop: '1px dashed #e5e7eb' }}>
+              {/* Section 2: Multiple Products Items */}
+              <div style={{ marginBottom: '1.25rem', paddingTop: '0.85rem', borderTop: '1px dashed #e5e7eb' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '0.75rem',
+                  }}
+                >
+                  <h4
+                    style={{
+                      fontSize: '0.86rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      color: '#A07E52',
+                      fontWeight: 700,
+                      margin: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                    }}
+                  >
+                    <Package size={14} /> Product Items ({formData.items.length})
+                  </h4>
+
+                  <button
+                    type="button"
+                    onClick={handleAddItem}
+                    className="shv-btn-secondary"
+                    style={{
+                      padding: '0.35rem 0.75rem',
+                      fontSize: '0.82rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.3rem',
+                      borderColor: '#A07E52',
+                      color: '#A07E52',
+                      fontWeight: 600,
+                    }}
+                  >
+                    <Plus size={14} /> Add Another Product
+                  </button>
+                </div>
+
+                {/* Items List */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {formData.items.map((item, idx) => {
+                    const itemTotal =
+                      Math.max(0, Number(item.price) || 0) * Math.max(1, Number(item.quantity) || 1);
+
+                    return (
+                      <div
+                        key={idx}
+                        style={{
+                          backgroundColor: '#fbfbfb',
+                          border: '1px solid #e9e9e9',
+                          borderRadius: '8px',
+                          padding: '0.75rem 1rem',
+                          display: 'grid',
+                          gridTemplateColumns: 'minmax(200px, 2fr) minmax(100px, 1fr) minmax(80px, 0.7fr) minmax(90px, 1fr) auto',
+                          gap: '0.75rem',
+                          alignItems: 'center',
+                        }}
+                      >
+                        {/* Product Name */}
+                        <div>
+                          <label style={{ fontSize: '0.76rem', color: '#6b7280', fontWeight: 600 }}>
+                            Product Name #{idx + 1} <span style={{ color: '#ef4444' }}>*</span>
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. 925 Royal Silver Ring"
+                            value={item.productName}
+                            onChange={(e) => handleItemChange(idx, 'productName', e.target.value)}
+                            className="shv-form-input"
+                            style={{ height: '36px', fontSize: '0.85rem' }}
+                          />
+                        </div>
+
+                        {/* Unit Price */}
+                        <div>
+                          <label style={{ fontSize: '0.76rem', color: '#6b7280', fontWeight: 600 }}>
+                            Price (₹) <span style={{ color: '#ef4444' }}>*</span>
+                          </label>
+                          <input
+                            type="number"
+                            required
+                            min="0"
+                            step="any"
+                            placeholder="e.g. 2999"
+                            value={item.price}
+                            onChange={(e) => handleItemChange(idx, 'price', e.target.value)}
+                            className="shv-form-input"
+                            style={{ height: '36px', fontSize: '0.85rem' }}
+                          />
+                        </div>
+
+                        {/* Quantity */}
+                        <div>
+                          <label style={{ fontSize: '0.76rem', color: '#6b7280', fontWeight: 600 }}>
+                            Qty
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={item.quantity}
+                            onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
+                            className="shv-form-input"
+                            style={{ height: '36px', fontSize: '0.85rem' }}
+                          />
+                        </div>
+
+                        {/* Line Total */}
+                        <div>
+                          <label style={{ fontSize: '0.76rem', color: '#6b7280', fontWeight: 600 }}>
+                            Total
+                          </label>
+                          <div
+                            style={{
+                              height: '36px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              fontWeight: 700,
+                              color: '#111827',
+                              fontSize: '0.88rem',
+                            }}
+                          >
+                            ₹{itemTotal.toLocaleString('en-IN')}
+                          </div>
+                        </div>
+
+                        {/* Remove Button */}
+                        <div style={{ paddingTop: '16px' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveItem(idx)}
+                            disabled={formData.items.length <= 1}
+                            className="shv-table-filter-btn"
+                            title="Remove Product"
+                            style={{
+                              padding: '0.35rem 0.5rem',
+                              color: formData.items.length <= 1 ? '#d1d5db' : '#ef4444',
+                              borderColor: formData.items.length <= 1 ? '#f3f4f6' : 'rgba(239, 68, 68, 0.2)',
+                              cursor: formData.items.length <= 1 ? 'not-allowed' : 'pointer',
+                            }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Section 3: Discounts, Shipping & Hallmark */}
+              <div style={{ marginBottom: '1.25rem', paddingTop: '0.85rem', borderTop: '1px dashed #e5e7eb' }}>
                 <h4
                   style={{
-                    fontSize: '0.88rem',
+                    fontSize: '0.86rem',
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em',
                     color: '#A07E52',
@@ -765,78 +1036,67 @@ const AdminGenerateBill = () => {
                     gap: '0.4rem',
                   }}
                 >
-                  <Package size={14} /> Product &amp; Billing Calculation
+                  <Percent size={14} /> Discounts &amp; Charges
                 </h4>
 
-                {/* Product Name */}
-                <div className="shv-form-group">
-                  <label className="shv-form-label" style={{ fontWeight: 600, fontSize: '0.84rem' }}>
-                    Product Name <span style={{ color: '#ef4444' }}>*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. 925 Sterling Silver Royal Solitaire Ring"
-                    value={formData.productName}
-                    onChange={(e) => setFormData({ ...formData, productName: e.target.value })}
-                    className="shv-form-input"
-                  />
-                </div>
-
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(3, 1fr)',
-                    gap: '0.75rem',
-                    marginTop: '0.75rem',
-                  }}
-                >
-                  {/* Price */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', gap: '1rem', alignItems: 'flex-start' }}>
+                  {/* Discount Type & Value */}
                   <div className="shv-form-group">
                     <label className="shv-form-label" style={{ fontWeight: 600, fontSize: '0.84rem' }}>
-                      Price (₹) <span style={{ color: '#ef4444' }}>*</span>
+                      Discount Type &amp; Value <span style={{ color: '#9ca3af', fontWeight: 400 }}>(Optional)</span>
                     </label>
-                    <input
-                      type="number"
-                      required
-                      min="0"
-                      step="any"
-                      placeholder="e.g. 2999"
-                      value={formData.price}
-                      onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                      className="shv-form-input"
-                    />
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <select
+                        value={formData.discountType}
+                        onChange={(e) => setFormData({ ...formData, discountType: e.target.value })}
+                        className="shv-form-select"
+                        style={{ height: '38px', minWidth: '130px', fontSize: '0.84rem' }}
+                      >
+                        <option value="percentage">% Percentage</option>
+                        <option value="fixed">₹ Fixed Amount</option>
+                      </select>
+
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        placeholder={formData.discountType === 'percentage' ? 'e.g. 10 (%)' : 'e.g. 500 (₹)'}
+                        value={formData.discountValue}
+                        onChange={(e) => setFormData({ ...formData, discountValue: e.target.value })}
+                        className="shv-form-input"
+                        style={{ height: '38px', fontSize: '0.85rem' }}
+                      />
+                    </div>
                   </div>
 
-                  {/* Discount (Optional) */}
+                  {/* Shipping Charge */}
                   <div className="shv-form-group">
                     <label className="shv-form-label" style={{ fontWeight: 600, fontSize: '0.84rem' }}>
-                      Discount (₹) <span style={{ color: '#9ca3af', fontWeight: 400 }}>(Optional)</span>
+                      Shipping Charge (₹) <span style={{ color: '#9ca3af', fontWeight: 400 }}>(Optional)</span>
                     </label>
                     <input
                       type="number"
                       min="0"
                       step="any"
-                      placeholder="0"
-                      value={formData.discount}
-                      onChange={(e) => setFormData({ ...formData, discount: e.target.value })}
-                      className="shv-form-input"
-                    />
-                  </div>
-
-                  {/* Shipping Charge (Optional) */}
-                  <div className="shv-form-group">
-                    <label className="shv-form-label" style={{ fontWeight: 600, fontSize: '0.84rem' }}>
-                      Shipping (₹) <span style={{ color: '#9ca3af', fontWeight: 400 }}>(Optional)</span>
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="any"
-                      placeholder="0"
+                      placeholder="0 for FREE"
                       value={formData.shippingCharge}
                       onChange={(e) => setFormData({ ...formData, shippingCharge: e.target.value })}
                       className="shv-form-input"
+                      style={{ height: '38px', fontSize: '0.85rem' }}
+                    />
+                  </div>
+
+                  {/* Hallmark Number */}
+                  <div className="shv-form-group">
+                    <label className="shv-form-label" style={{ fontWeight: 600, fontSize: '0.84rem' }}>
+                      BIS Hallmark UID
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.hallmarkNumber}
+                      onChange={(e) => setFormData({ ...formData, hallmarkNumber: e.target.value })}
+                      className="shv-form-input"
+                      style={{ height: '38px', fontSize: '0.85rem', fontFamily: 'monospace' }}
                     />
                   </div>
                 </div>
@@ -852,6 +1112,7 @@ const AdminGenerateBill = () => {
                   marginBottom: '1.25rem',
                 }}
               >
+                {/* Subtotal */}
                 <div
                   style={{
                     display: 'flex',
@@ -861,10 +1122,14 @@ const AdminGenerateBill = () => {
                     marginBottom: '4px',
                   }}
                 >
-                  <span>Base Price:</span>
-                  <span>₹{Number(formData.price || 0).toLocaleString('en-IN')}</span>
+                  <span>Subtotal ({formData.items.length} items):</span>
+                  <span style={{ fontWeight: 600, color: '#111827' }}>
+                    ₹{calculationSummary.subtotal.toLocaleString('en-IN')}
+                  </span>
                 </div>
-                {Number(formData.discount || 0) > 0 && (
+
+                {/* Discount */}
+                {calculationSummary.discountAmount > 0 && (
                   <div
                     style={{
                       display: 'flex',
@@ -874,24 +1139,36 @@ const AdminGenerateBill = () => {
                       marginBottom: '4px',
                     }}
                   >
-                    <span>Discount:</span>
-                    <span>-₹{Number(formData.discount).toLocaleString('en-IN')}</span>
+                    <span>
+                      Discount{' '}
+                      {formData.discountType === 'percentage' && formData.discountValue
+                        ? `(${formData.discountValue}% off)`
+                        : '(Flat off)'}
+                      :
+                    </span>
+                    <span>-₹{calculationSummary.discountAmount.toLocaleString('en-IN')}</span>
                   </div>
                 )}
-                {Number(formData.shippingCharge || 0) > 0 && (
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      fontSize: '0.85rem',
-                      color: '#374151',
-                      marginBottom: '4px',
-                    }}
-                  >
-                    <span>Shipping Charge:</span>
-                    <span>+₹{Number(formData.shippingCharge).toLocaleString('en-IN')}</span>
-                  </div>
-                )}
+
+                {/* Shipping */}
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontSize: '0.85rem',
+                    color: '#374151',
+                    marginBottom: '4px',
+                  }}
+                >
+                  <span>Shipping Charge:</span>
+                  <span style={{ color: calculationSummary.shipping > 0 ? '#374151' : '#10b981', fontWeight: 600 }}>
+                    {calculationSummary.shipping > 0
+                      ? `+₹${calculationSummary.shipping.toLocaleString('en-IN')}`
+                      : 'FREE'}
+                  </span>
+                </div>
+
+                {/* Grand Total */}
                 <div
                   style={{
                     display: 'flex',
@@ -902,9 +1179,14 @@ const AdminGenerateBill = () => {
                     marginTop: '6px',
                   }}
                 >
-                  <strong style={{ fontSize: '0.95rem', color: '#111827' }}>Grand Total Amount:</strong>
+                  <div>
+                    <strong style={{ fontSize: '0.95rem', color: '#111827' }}>Grand Total Amount:</strong>
+                    <div style={{ fontSize: '0.74rem', color: '#6b7280' }}>
+                      Includes 100% 925 Hallmark Silver Assurance
+                    </div>
+                  </div>
                   <strong style={{ fontSize: '1.25rem', color: '#059669' }}>
-                    ₹{calculatedTotal.toLocaleString('en-IN')}
+                    ₹{calculationSummary.grandTotal.toLocaleString('en-IN')}
                   </strong>
                 </div>
               </div>

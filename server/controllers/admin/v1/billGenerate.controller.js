@@ -36,6 +36,8 @@ const wrapText = (text, maxChars = 40) => {
 
 /**
  * Generate PDF buffer using pdf-lib
+ * Supports multiple products, percentage/fixed discount,
+ * custom phone (+91 99980 46559), email (shvera925@gmail.com), and hallmark number (123456789123456789)
  */
 export const buildBillPdfBuffer = async (bill) => {
   const { PDFDocument, rgb, StandardFonts } = await import("pdf-lib");
@@ -55,18 +57,22 @@ export const buildBillPdfBuffer = async (bill) => {
   const colorTableHeadBg = rgb(0.95, 0.95, 0.96);
   const colorWhite = rgb(1, 1, 1);
 
+  const officialPhone = "+91 99980 46559";
+  const officialEmail = "shvera925@gmail.com";
+  const hallmarkNo = bill.hallmarkNumber || "123456789123456789";
+
   // 1. TOP HEADER BANNER
   page.drawRectangle({
     x: 0,
-    y: 730,
+    y: 725,
     width: 595.28,
-    height: 112,
+    height: 117,
     color: colorDark,
   });
 
   page.drawRectangle({
     x: 0,
-    y: 726,
+    y: 721,
     width: 595.28,
     height: 4,
     color: colorGold,
@@ -75,7 +81,7 @@ export const buildBillPdfBuffer = async (bill) => {
   // Brand Name
   page.drawText("SHVERAA JEWELLERY", {
     x: 40,
-    y: 790,
+    y: 795,
     size: 22,
     font: fontBold,
     color: colorLightGold,
@@ -83,24 +89,32 @@ export const buildBillPdfBuffer = async (bill) => {
 
   page.drawText("ATELIER & FINE 925 STERLING SILVER", {
     x: 40,
-    y: 772,
+    y: 778,
     size: 9,
     font: fontRegular,
     color: rgb(0.8, 0.8, 0.82),
   });
 
-  page.drawText("Website: www.shveraa.com  |  support@shveraa.luxury", {
+  page.drawText(`Phone: ${officialPhone}  |  Email: ${officialEmail}`, {
     x: 40,
-    y: 752,
+    y: 758,
     size: 8,
     font: fontRegular,
-    color: rgb(0.65, 0.65, 0.68),
+    color: rgb(0.75, 0.75, 0.78),
+  });
+
+  page.drawText(`Website: www.shveraa.com  |  BIS Hallmark UID: ${hallmarkNo}`, {
+    x: 40,
+    y: 742,
+    size: 8,
+    font: fontBold,
+    color: colorLightGold,
   });
 
   // Right Header Text (Tax Invoice)
   page.drawText("TAX INVOICE", {
     x: 390,
-    y: 792,
+    y: 795,
     size: 16,
     font: fontBold,
     color: colorWhite,
@@ -108,7 +122,7 @@ export const buildBillPdfBuffer = async (bill) => {
 
   page.drawText("RETAIL BILL OF SALE", {
     x: 390,
-    y: 775,
+    y: 778,
     size: 9,
     font: fontBold,
     color: colorLightGold,
@@ -116,81 +130,80 @@ export const buildBillPdfBuffer = async (bill) => {
 
   page.drawText("ORIGINAL COPY FOR RECIPIENT", {
     x: 390,
-    y: 755,
+    y: 758,
     size: 8,
     font: fontRegular,
     color: rgb(0.75, 0.75, 0.78),
   });
 
   // 2. METADATA & CUSTOMER SECTION
-  // Left Column: Customer details
   const leftColX = 40;
-  let cursorY = 695;
+  let cursorY = 690;
 
   page.drawText("BILLED TO (CUSTOMER DETAILS)", {
     x: leftColX,
     y: cursorY,
-    size: 10,
+    size: 9.5,
     font: fontBold,
     color: colorGold,
   });
 
-  cursorY -= 18;
+  cursorY -= 17;
   page.drawText(sanitizeForPdf(bill.customerName) || "Valued Customer", {
     x: leftColX,
     y: cursorY,
-    size: 12,
+    size: 11,
     font: fontBold,
     color: colorTextDark,
   });
 
-  cursorY -= 15;
+  cursorY -= 14;
   page.drawText(`Phone: ${sanitizeForPdf(bill.customerPhone)}`, {
     x: leftColX,
     y: cursorY,
-    size: 9,
+    size: 8.5,
     font: fontRegular,
     color: colorTextDark,
   });
 
   if (bill.customerEmail) {
-    cursorY -= 14;
+    cursorY -= 13;
     page.drawText(`Email: ${sanitizeForPdf(bill.customerEmail)}`, {
       x: leftColX,
       y: cursorY,
-      size: 9,
+      size: 8.5,
       font: fontRegular,
       color: colorTextDark,
     });
   }
 
   // Address (multiline)
-  cursorY -= 14;
+  cursorY -= 13;
   page.drawText("Address:", {
     x: leftColX,
     y: cursorY,
-    size: 9,
+    size: 8.5,
     font: fontBold,
     color: colorTextDark,
   });
 
   const addressLines = wrapText(sanitizeForPdf(bill.customerAddress), 38);
   for (const line of addressLines.slice(0, 3)) {
-    cursorY -= 12;
+    cursorY -= 11;
     page.drawText(line, {
       x: leftColX,
       y: cursorY,
-      size: 8.5,
+      size: 8,
       font: fontRegular,
       color: colorTextMuted,
     });
   }
 
   // Right Column: Invoice Details Box
-  const rightBoxX = 350;
-  const rightBoxY = 600;
-  const rightBoxW = 205;
-  const rightBoxH = 105;
+  const rightBoxX = 345;
+  const rightBoxY = 590;
+  const rightBoxW = 210;
+  const rightBoxH = 110;
 
   page.drawRectangle({
     x: rightBoxX,
@@ -204,23 +217,23 @@ export const buildBillPdfBuffer = async (bill) => {
 
   page.drawText("INVOICE SUMMARY", {
     x: rightBoxX + 12,
-    y: rightBoxY + rightBoxH - 18,
-    size: 10,
+    y: rightBoxY + rightBoxH - 17,
+    size: 9.5,
     font: fontBold,
     color: colorGold,
   });
 
   page.drawText("Invoice Number:", {
     x: rightBoxX + 12,
-    y: rightBoxY + rightBoxH - 36,
-    size: 8.5,
+    y: rightBoxY + rightBoxH - 33,
+    size: 8,
     font: fontRegular,
     color: colorTextMuted,
   });
   page.drawText(sanitizeForPdf(bill.invoiceNumber), {
-    x: rightBoxX + 90,
-    y: rightBoxY + rightBoxH - 36,
-    size: 9,
+    x: rightBoxX + 85,
+    y: rightBoxY + rightBoxH - 33,
+    size: 8.5,
     font: fontBold,
     color: colorTextDark,
   });
@@ -233,54 +246,81 @@ export const buildBillPdfBuffer = async (bill) => {
 
   page.drawText("Date:", {
     x: rightBoxX + 12,
-    y: rightBoxY + rightBoxH - 52,
-    size: 8.5,
+    y: rightBoxY + rightBoxH - 49,
+    size: 8,
     font: fontRegular,
     color: colorTextMuted,
   });
   page.drawText(billDate, {
-    x: rightBoxX + 90,
-    y: rightBoxY + rightBoxH - 52,
-    size: 8.5,
+    x: rightBoxX + 85,
+    y: rightBoxY + rightBoxH - 49,
+    size: 8,
     font: fontRegular,
     color: colorTextDark,
   });
 
+  page.drawText("Hallmark UID:", {
+    x: rightBoxX + 12,
+    y: rightBoxY + rightBoxH - 65,
+    size: 8,
+    font: fontRegular,
+    color: colorTextMuted,
+  });
+  page.drawText(sanitizeForPdf(hallmarkNo), {
+    x: rightBoxX + 85,
+    y: rightBoxY + rightBoxH - 65,
+    size: 8,
+    font: fontBold,
+    color: colorGold,
+  });
+
   page.drawText("Payment:", {
     x: rightBoxX + 12,
-    y: rightBoxY + rightBoxH - 68,
-    size: 8.5,
+    y: rightBoxY + rightBoxH - 81,
+    size: 8,
     font: fontRegular,
     color: colorTextMuted,
   });
   page.drawText("PREPAID / SETTLED", {
-    x: rightBoxX + 90,
-    y: rightBoxY + rightBoxH - 68,
-    size: 8.5,
+    x: rightBoxX + 85,
+    y: rightBoxY + rightBoxH - 81,
+    size: 8,
     font: fontBold,
     color: rgb(0.15, 0.6, 0.3),
   });
 
   page.drawText("Status:", {
     x: rightBoxX + 12,
-    y: rightBoxY + rightBoxH - 84,
-    size: 8.5,
+    y: rightBoxY + rightBoxH - 97,
+    size: 8,
     font: fontRegular,
     color: colorTextMuted,
   });
   page.drawText("CONFIRMED", {
-    x: rightBoxX + 90,
-    y: rightBoxY + rightBoxH - 84,
-    size: 8.5,
+    x: rightBoxX + 85,
+    y: rightBoxY + rightBoxH - 97,
+    size: 8,
     font: fontBold,
     color: colorTextDark,
   });
 
-  // 3. PRODUCT ITEMS TABLE
-  const tableTopY = 560;
+  // 3. PRODUCT ITEMS TABLE (MULTIPLE PRODUCTS)
+  const itemsList =
+    bill.items && bill.items.length > 0
+      ? bill.items
+      : [
+          {
+            productName: bill.productName,
+            price: bill.price,
+            quantity: 1,
+            total: bill.price,
+          },
+        ];
+
+  const tableTopY = 555;
   const tableX = 40;
   const tableWidth = 515.28;
-  const tableHeaderHeight = 24;
+  const tableHeaderHeight = 22;
 
   // Table header background
   page.drawRectangle({
@@ -295,150 +335,173 @@ export const buildBillPdfBuffer = async (bill) => {
 
   // Column Headers
   page.drawText("#", {
-    x: tableX + 10,
-    y: tableTopY - 16,
-    size: 9,
+    x: tableX + 8,
+    y: tableTopY - 15,
+    size: 8.5,
     font: fontBold,
     color: colorDark,
   });
   page.drawText("ITEM DESCRIPTION", {
-    x: tableX + 40,
-    y: tableTopY - 16,
-    size: 9,
+    x: tableX + 35,
+    y: tableTopY - 15,
+    size: 8.5,
     font: fontBold,
     color: colorDark,
   });
   page.drawText("UNIT PRICE", {
-    x: tableX + 320,
-    y: tableTopY - 16,
-    size: 9,
+    x: tableX + 315,
+    y: tableTopY - 15,
+    size: 8.5,
     font: fontBold,
     color: colorDark,
   });
   page.drawText("QTY", {
     x: tableX + 410,
-    y: tableTopY - 16,
-    size: 9,
+    y: tableTopY - 15,
+    size: 8.5,
     font: fontBold,
     color: colorDark,
   });
   page.drawText("TOTAL", {
     x: tableX + 455,
-    y: tableTopY - 16,
-    size: 9,
+    y: tableTopY - 15,
+    size: 8.5,
     font: fontBold,
     color: colorDark,
   });
 
-  // Table Row 1 (Product)
-  const rowHeight = 36;
-  const rowY = tableTopY - tableHeaderHeight - rowHeight;
+  // Draw Items Rows
+  const rowHeight = 26;
+  let currentRowY = tableTopY - tableHeaderHeight;
 
-  page.drawRectangle({
-    x: tableX,
-    y: rowY,
-    width: tableWidth,
-    height: rowHeight,
-    borderColor: colorBorder,
-    borderWidth: 1,
-    color: colorWhite,
-  });
+  itemsList.forEach((item, index) => {
+    currentRowY -= rowHeight;
 
-  // Row Content
-  page.drawText("1", {
-    x: tableX + 10,
-    y: rowY + 18,
-    size: 9,
-    font: fontRegular,
-    color: colorTextDark,
-  });
+    // Alternating row background
+    if (index % 2 === 1) {
+      page.drawRectangle({
+        x: tableX,
+        y: currentRowY,
+        width: tableWidth,
+        height: rowHeight,
+        color: rgb(0.99, 0.99, 1),
+      });
+    }
 
-  const prodName = sanitizeForPdf(bill.productName) || "Sterling Silver Jewellery";
-  page.drawText(prodName.length > 42 ? prodName.slice(0, 40) + "..." : prodName, {
-    x: tableX + 40,
-    y: rowY + 20,
-    size: 9.5,
-    font: fontBold,
-    color: colorTextDark,
-  });
+    // Row border line
+    page.drawRectangle({
+      x: tableX,
+      y: currentRowY,
+      width: tableWidth,
+      height: rowHeight,
+      borderColor: colorBorder,
+      borderWidth: 0.5,
+    });
 
-  page.drawText("Pure 925 Sterling Silver Atelier Certified", {
-    x: tableX + 40,
-    y: rowY + 8,
-    size: 7.5,
-    font: fontRegular,
-    color: colorTextMuted,
-  });
+    // Col 1: Index
+    page.drawText(String(index + 1), {
+      x: tableX + 10,
+      y: currentRowY + 9,
+      size: 8.5,
+      font: fontRegular,
+      color: colorTextDark,
+    });
 
-  page.drawText(formatInr(bill.price), {
-    x: tableX + 320,
-    y: rowY + 16,
-    size: 9,
-    font: fontRegular,
-    color: colorTextDark,
-  });
+    // Col 2: Product Name
+    const rawProd = sanitizeForPdf(item.productName) || "Sterling Silver Jewellery";
+    const prodDisplay = rawProd.length > 44 ? rawProd.slice(0, 42) + "..." : rawProd;
+    page.drawText(prodDisplay, {
+      x: tableX + 35,
+      y: currentRowY + 9,
+      size: 8.5,
+      font: fontBold,
+      color: colorTextDark,
+    });
 
-  page.drawText("1", {
-    x: tableX + 418,
-    y: rowY + 16,
-    size: 9,
-    font: fontRegular,
-    color: colorTextDark,
-  });
+    // Col 3: Unit Price
+    page.drawText(formatInr(item.price), {
+      x: tableX + 315,
+      y: currentRowY + 9,
+      size: 8.5,
+      font: fontRegular,
+      color: colorTextDark,
+    });
 
-  page.drawText(formatInr(bill.price), {
-    x: tableX + 455,
-    y: rowY + 16,
-    size: 9.5,
-    font: fontBold,
-    color: colorTextDark,
+    // Col 4: Quantity
+    page.drawText(String(item.quantity || 1), {
+      x: tableX + 415,
+      y: currentRowY + 9,
+      size: 8.5,
+      font: fontRegular,
+      color: colorTextDark,
+    });
+
+    // Col 5: Total
+    const lineTotal = item.total !== undefined ? item.total : (Number(item.price) || 0) * (Number(item.quantity) || 1);
+    page.drawText(formatInr(lineTotal), {
+      x: tableX + 455,
+      y: currentRowY + 9,
+      size: 8.5,
+      font: fontBold,
+      color: colorTextDark,
+    });
   });
 
   // 4. BREAKDOWN & TOTALS (Right side)
-  let calcY = rowY - 25;
-  const calcLabelX = 330;
+  let calcY = currentRowY - 22;
+  const calcLabelX = 320;
   const calcValX = 455;
+
+  const subtotalVal = bill.subtotal !== undefined && bill.subtotal !== null
+    ? Number(bill.subtotal)
+    : itemsList.reduce((acc, it) => acc + (it.total || (Number(it.price) * (Number(it.quantity) || 1))), 0);
 
   // Subtotal
   page.drawText("Subtotal:", {
     x: calcLabelX,
     y: calcY,
-    size: 9,
+    size: 8.5,
     font: fontRegular,
     color: colorTextMuted,
   });
-  page.drawText(formatInr(bill.price), {
+  page.drawText(formatInr(subtotalVal), {
     x: calcValX,
     y: calcY,
-    size: 9,
+    size: 8.5,
     font: fontRegular,
     color: colorTextDark,
   });
 
   // Discount (if any)
-  calcY -= 18;
-  page.drawText("Discount:", {
+  calcY -= 16;
+  const discountVal = Number(bill.discount) || 0;
+  const discountLabel =
+    bill.discountType === "percentage" && bill.discountValue
+      ? `Discount (${bill.discountValue}%):`
+      : "Discount:";
+
+  page.drawText(discountLabel, {
     x: calcLabelX,
     y: calcY,
-    size: 9,
+    size: 8.5,
     font: fontRegular,
     color: colorTextMuted,
   });
-  const discountVal = Number(bill.discount) || 0;
+
   page.drawText(discountVal > 0 ? `- ${formatInr(discountVal)}` : "Rs. 0.00", {
     x: calcValX,
     y: calcY,
-    size: 9,
+    size: 8.5,
     font: fontRegular,
     color: discountVal > 0 ? rgb(0.8, 0.2, 0.2) : colorTextMuted,
   });
 
   // Shipping Charge (if any)
-  calcY -= 18;
+  calcY -= 16;
   page.drawText("Shipping Charge:", {
     x: calcLabelX,
     y: calcY,
-    size: 9,
+    size: 8.5,
     font: fontRegular,
     color: colorTextMuted,
   });
@@ -446,13 +509,13 @@ export const buildBillPdfBuffer = async (bill) => {
   page.drawText(shippingVal > 0 ? `+ ${formatInr(shippingVal)}` : "FREE (Rs. 0.00)", {
     x: calcValX,
     y: calcY,
-    size: 9,
+    size: 8.5,
     font: fontRegular,
     color: shippingVal > 0 ? colorTextDark : rgb(0.15, 0.6, 0.3),
   });
 
   // Divider Line
-  calcY -= 12;
+  calcY -= 10;
   page.drawLine({
     start: { x: calcLabelX - 10, y: calcY },
     end: { x: tableX + tableWidth, y: calcY },
@@ -461,12 +524,12 @@ export const buildBillPdfBuffer = async (bill) => {
   });
 
   // Total Amount Box
-  calcY -= 32;
+  calcY -= 30;
   page.drawRectangle({
     x: calcLabelX - 10,
     y: calcY,
     width: tableWidth - (calcLabelX - 10 - tableX),
-    height: 30,
+    height: 28,
     color: colorDark,
     borderColor: colorGold,
     borderWidth: 1.5,
@@ -474,25 +537,25 @@ export const buildBillPdfBuffer = async (bill) => {
 
   page.drawText("GRAND TOTAL:", {
     x: calcLabelX,
-    y: calcY + 9,
-    size: 10,
+    y: calcY + 8,
+    size: 9.5,
     font: fontBold,
     color: colorLightGold,
   });
 
   page.drawText(formatInr(bill.totalAmount), {
     x: calcValX - 5,
-    y: calcY + 9,
-    size: 12,
+    y: calcY + 8,
+    size: 11,
     font: fontBold,
     color: colorWhite,
   });
 
   // 5. LEFT SIDE NOTES & AUTHENTICITY BADGE
   const noteBoxX = 40;
-  const noteBoxY = calcY - 10;
+  const noteBoxY = Math.max(90, calcY - 10);
   const noteBoxW = 260;
-  const noteBoxH = 110;
+  const noteBoxH = 100;
 
   page.drawRectangle({
     x: noteBoxX,
@@ -506,50 +569,51 @@ export const buildBillPdfBuffer = async (bill) => {
 
   page.drawText("AUTHENTICITY & ASSURANCE", {
     x: noteBoxX + 12,
-    y: noteBoxY + noteBoxH - 18,
-    size: 9,
+    y: noteBoxY + noteBoxH - 16,
+    size: 8.5,
     font: fontBold,
     color: colorGold,
   });
 
   const notesList = [
+    `* BIS Hallmark License / UID: ${hallmarkNo}`,
     "* Guaranteed 100% 925 Sterling Silver hallmark purity.",
-    "* Handcrafted luxury finish with premium rhodium polish.",
-    "* Includes comprehensive complimentary atelier warranty.",
-    "* Store jewellery in airtight pouches; protect from moisture.",
+    `* Official Support: ${officialPhone} | ${officialEmail}`,
+    "* Includes complimentary atelier warranty against manufacturing defect.",
+    "* Store jewellery in airtight pouches; keep away from water/perfumes.",
   ];
 
-  let noteY = noteBoxY + noteBoxH - 34;
+  let noteY = noteBoxY + noteBoxH - 30;
   for (const n of notesList) {
     page.drawText(n, {
       x: noteBoxX + 12,
       y: noteY,
-      size: 7.5,
+      size: 7,
       font: fontRegular,
       color: colorTextMuted,
     });
-    noteY -= 15;
+    noteY -= 13;
   }
 
   // 6. FOOTER
-  const footerY = 50;
+  const footerY = 40;
   page.drawLine({
-    start: { x: 40, y: footerY + 25 },
-    end: { x: 555.28, y: footerY + 25 },
+    start: { x: 40, y: footerY + 22 },
+    end: { x: 555.28, y: footerY + 22 },
     thickness: 0.8,
     color: colorBorder,
   });
 
   page.drawText("Thank you for choosing Shveraa Jewellery.", {
     x: 40,
-    y: footerY + 12,
-    size: 9,
+    y: footerY + 10,
+    size: 8.5,
     font: fontBold,
     color: colorDark,
   });
 
   page.drawText(
-    "This is a verified computer-generated sales invoice and requires no physical signature.",
+    `Official Helpline: ${officialPhone} | Email: ${officialEmail} | Hallmark UID: ${hallmarkNo}`,
     {
       x: 40,
       y: footerY,
@@ -562,7 +626,7 @@ export const buildBillPdfBuffer = async (bill) => {
   page.drawText("SHVERAA ATELIER INDIA", {
     x: 420,
     y: footerY + 8,
-    size: 9,
+    size: 8.5,
     font: fontBold,
     color: colorGold,
   });
@@ -579,17 +643,24 @@ export const CreateBill = async (req, res, next) => {
   try {
     const {
       customerName,
-      customerEmail,
+      customerEmail = "",
       customerPhone,
       customerAddress,
+      // Multiple items array
+      items = [],
+      // Fallback single product fields
       productName,
       price,
+      // Discount
+      discountType = "fixed", // "fixed" | "percentage"
+      discountValue = 0,
       discount = 0,
       shippingCharge = 0,
+      hallmarkNumber = "123456789123456789",
       notes = "",
     } = req.body;
 
-    // Validate required fields
+    // Validate customer details
     if (!customerName || !customerName.trim()) {
       return res.status(400).json({ success: false, message: "Customer name is required" });
     }
@@ -599,17 +670,64 @@ export const CreateBill = async (req, res, next) => {
     if (!customerAddress || !customerAddress.trim()) {
       return res.status(400).json({ success: false, message: "Customer address is required" });
     }
-    if (!productName || !productName.trim()) {
-      return res.status(400).json({ success: false, message: "Product name is required" });
-    }
-    if (price === undefined || price === null || isNaN(Number(price)) || Number(price) < 0) {
-      return res.status(400).json({ success: false, message: "Valid price is required" });
+
+    // Parse and validate items (supports multiple products or fallback single)
+    let parsedItems = [];
+    if (Array.isArray(items) && items.length > 0) {
+      parsedItems = items
+        .map((it) => {
+          const itemPrice = Math.max(0, Number(it.price) || 0);
+          const itemQty = Math.max(1, Number(it.quantity) || 1);
+          return {
+            productName: String(it.productName || "").trim(),
+            price: itemPrice,
+            quantity: itemQty,
+            total: Math.round(itemPrice * itemQty * 100) / 100,
+          };
+        })
+        .filter((it) => it.productName.length > 0);
     }
 
-    const numPrice = Number(price);
-    const numDiscount = Math.max(0, Number(discount) || 0);
+    // Fallback if no items array was passed but productName & price were
+    if (parsedItems.length === 0 && productName && productName.trim()) {
+      const singlePrice = Math.max(0, Number(price) || 0);
+      parsedItems.push({
+        productName: productName.trim(),
+        price: singlePrice,
+        quantity: 1,
+        total: singlePrice,
+      });
+    }
+
+    if (parsedItems.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "At least one product with name and price is required",
+      });
+    }
+
+    // Calculate subtotal
+    const subtotal = parsedItems.reduce((sum, item) => sum + item.total, 0);
+
+    // Calculate discount based on fixed or percentage
+    const dVal = Math.max(0, Number(discountValue || discount) || 0);
+    let calculatedDiscount = 0;
+    if (discountType === "percentage") {
+      calculatedDiscount = Math.round(((subtotal * dVal) / 100) * 100) / 100;
+    } else {
+      calculatedDiscount = dVal;
+    }
+    // Cap discount at subtotal
+    calculatedDiscount = Math.min(subtotal, Math.max(0, calculatedDiscount));
+
     const numShipping = Math.max(0, Number(shippingCharge) || 0);
-    const totalAmount = Math.max(0, numPrice - numDiscount + numShipping);
+    const totalAmount = Math.max(0, Math.round((subtotal - calculatedDiscount + numShipping) * 100) / 100);
+
+    // Summary productName and price for table display and backward compatibility
+    const summaryProductName =
+      parsedItems.length === 1
+        ? parsedItems[0].productName
+        : `${parsedItems[0].productName} (+${parsedItems.length - 1} more)`;
 
     // Generate unique invoice number
     const randomSuffix = Math.floor(100000 + Math.random() * 900000);
@@ -621,11 +739,16 @@ export const CreateBill = async (req, res, next) => {
       customerEmail: customerEmail ? customerEmail.trim() : "",
       customerPhone: customerPhone.trim(),
       customerAddress: customerAddress.trim(),
-      productName: productName.trim(),
-      price: numPrice,
-      discount: numDiscount,
+      items: parsedItems,
+      productName: summaryProductName,
+      price: subtotal,
+      subtotal,
+      discountType: discountType === "percentage" ? "percentage" : "fixed",
+      discountValue: dVal,
+      discount: calculatedDiscount,
       shippingCharge: numShipping,
       totalAmount,
+      hallmarkNumber: hallmarkNumber.trim() || "123456789123456789",
       notes: notes ? notes.trim() : "",
     });
 
@@ -659,6 +782,7 @@ export const GetAllBills = async (req, res, next) => {
           { customerPhone: regex },
           { customerEmail: regex },
           { productName: regex },
+          { "items.productName": regex },
         ],
       };
     }
@@ -708,7 +832,6 @@ export const DownloadBillPdf = async (req, res, next) => {
     }
 
     const pdfBuffer = await buildBillPdfBuffer(bill);
-
     const safeFilename = `Invoice-${bill.invoiceNumber}.pdf`;
 
     res.setHeader("Content-Type", "application/pdf");

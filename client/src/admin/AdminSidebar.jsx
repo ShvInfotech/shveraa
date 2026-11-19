@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   LayoutDashboard,
   ShoppingBag,
+  Receipt,
   RotateCcw,
   DollarSign,
   Settings,
@@ -107,6 +108,8 @@ const AdminSidebar = ({
               </button>
             </li>
 
+           
+
             {/* Return Management (Return / RTO) */}
             <li>
               <button
@@ -203,6 +206,20 @@ const AdminSidebar = ({
         <div className="shv-sidebar-section">
           {!isCollapsed && <div className="shv-sidebar-section-title">SETTING</div>}
           <ul className="shv-sidebar-menu">
+             {/* Generate Bill */}
+            <li>
+              <button
+                type="button"
+                onClick={() => handleNav('generate-bill')}
+                className={`shv-sidebar-link ${currentTab === 'generate-bill' ? 'active' : ''}`}
+                title="Generate Bill"
+              >
+                <div className="shv-sidebar-link-left">
+                  <Receipt size={18} />
+                  {!isCollapsed && <span>Generate Bill</span>}
+                </div>
+              </button>
+            </li>
             <li>
               <button
                 type="button"

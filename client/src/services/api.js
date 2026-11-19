@@ -1206,3 +1206,59 @@ export const apiCancelOrder = async (orderId, waybill) => {
   return data;
 };
 
+/* ==========================================================================
+   BILL GENERATION & MANAGEMENT (ADMIN)
+   ========================================================================== */
+
+// Admin: Get all generated bills
+export const apiAdminGetAllBills = async (search = '') => {
+  const query = search ? `?search=${encodeURIComponent(search)}` : '';
+  const res = await apiFetch(`/api/v1/admin/bill-generate${query}`);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to fetch bills');
+  return data;
+};
+
+// Admin: Create new generated bill
+export const apiAdminCreateBill = async (billData) => {
+  const res = await apiFetch('/api/v1/admin/bill-generate', {
+    method: 'POST',
+    body: JSON.stringify(billData),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to generate bill');
+  return data;
+};
+
+// Admin: Download bill PDF
+export const apiAdminDownloadBillPdf = async (billId, invoiceNumber = 'bill') => {
+  const res = await apiFetch(`/api/v1/admin/bill-generate/${billId}/download`);
+  if (!res.ok) {
+    let message = 'Failed to download bill PDF';
+    try {
+      const data = await res.json();
+      message = data.message || message;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(message);
+  }
+  const blob = await res.blob();
+  const disposition = res.headers.get('content-disposition') || '';
+  const fileNameMatch = /filename="?([^";]+)"?/.exec(disposition);
+  const fileName = fileNameMatch ? fileNameMatch[1] : `Invoice-${invoiceNumber}.pdf`;
+  downloadBlobFile(blob, fileName);
+  return { success: true, fileName };
+};
+
+// Admin: Delete a generated bill
+export const apiAdminDeleteBill = async (billId) => {
+  const res = await apiFetch(`/api/v1/admin/bill-generate/${billId}`, {
+    method: 'DELETE',
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to delete bill');
+  return data;
+};
+
+

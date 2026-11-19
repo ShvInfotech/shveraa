@@ -9,6 +9,7 @@ import {
   DollarSign,
   Settings,
   HelpCircle,
+  Receipt,
   Layers,
   Tag,
   Sparkles,
@@ -29,6 +30,7 @@ const TAB_ICONS = {
   cms: <Sparkles size={16} />,
   coupons: <Tag size={16} />,
   payments: <DollarSign size={16} />,
+  'generate-bill': <Receipt size={16} />,
   settings: <Settings size={16} />,
   support: <HelpCircle size={16} />,
 };
@@ -43,6 +45,7 @@ const TAB_NAMES = {
   cms: 'Storefront CMS',
   coupons: 'Coupons',
   payments: 'Payment',
+  'generate-bill': 'Generate Bill',
   settings: 'Settings',
   support: 'Support & Help',
 };

@@ -14,6 +14,7 @@ import AdminCoupons from './AdminCoupons';
 import AdminPayments from './AdminPayments';
 import AdminSettings from './AdminSettings';
 import AdminInquiries from './AdminInquiries';
+import AdminGenerateBill from './AdminGenerateBill';
 import { useDynamicStore, getAdminAuth, logoutAdmin } from '../services/storeService';
 import { apiAdminGetAllOrders } from '../services/api';
 import {
@@ -206,6 +207,10 @@ const AdminLayout = () => {
 
           {currentTab === 'payments' && (
             <AdminPayments orders={orders} />
+          )}
+
+          {currentTab === 'generate-bill' && (
+            <AdminGenerateBill />
           )}
 
           {currentTab === 'settings' && (

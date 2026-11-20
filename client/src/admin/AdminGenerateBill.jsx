@@ -16,10 +16,12 @@ import {
   Percent,
   DollarSign,
   ShieldCheck,
+  Pencil,
 } from 'lucide-react';
 import {
   apiAdminGetAllBills,
   apiAdminCreateBill,
+  apiAdminUpdateBill,
   apiAdminDownloadBillPdf,
   apiAdminDeleteBill,
 } from '../services/api';
@@ -33,6 +35,7 @@ const AdminGenerateBill = () => {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [editingBill, setEditingBill] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [downloadingId, setDownloadingId] = useState(null);
   const [toast, setToast] = useState({ text: '', type: 'info' });
@@ -141,7 +144,50 @@ const AdminGenerateBill = () => {
     };
   }, [formData.items, formData.discountType, formData.discountValue, formData.shippingCharge]);
 
-  // Handle Create Bill Submission
+  // Open modal in create mode
+  const handleOpenCreateModal = () => {
+    setEditingBill(null);
+    setFormData(initialForm);
+    setShowModal(true);
+  };
+
+  // Open modal in edit mode with populated bill data
+  const handleOpenEditModal = (bill) => {
+    setEditingBill(bill);
+    setFormData({
+      customerName: bill.customerName || '',
+      customerEmail: bill.customerEmail || '',
+      customerPhone: bill.customerPhone || '',
+      customerAddress: bill.customerAddress || '',
+      items:
+        bill.items && bill.items.length > 0
+          ? bill.items.map((it) => ({
+              productName: it.productName || '',
+              price: it.price !== undefined ? it.price : '',
+              quantity: it.quantity || 1,
+            }))
+          : [
+              {
+                productName: bill.productName || '',
+                price: bill.price !== undefined ? bill.price : '',
+                quantity: 1,
+              },
+            ],
+      discountType: bill.discountType || 'percentage',
+      discountValue:
+        bill.discountValue !== undefined
+          ? bill.discountValue
+          : bill.discount !== undefined
+          ? bill.discount
+          : '',
+      shippingCharge: bill.shippingCharge !== undefined ? bill.shippingCharge : '',
+      hallmarkNumber: bill.hallmarkNumber || OFFICIAL_HALLMARK,
+      notes: bill.notes || '',
+    });
+    setShowModal(true);
+  };
+
+  // Handle Create or Update Bill Submission
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -187,24 +233,37 @@ const AdminGenerateBill = () => {
         notes: formData.notes ? formData.notes.trim() : '',
       };
 
-      const res = await apiAdminCreateBill(payload);
-      const newBill = res.bill;
+      if (editingBill) {
+        // Update existing bill
+        const res = await apiAdminUpdateBill(editingBill._id, payload);
+        const updatedBill = res.bill;
 
-      // Prepend to current list
-      setBills((prev) => [newBill, ...prev]);
-      setShowModal(false);
-      setFormData(initialForm);
-      showToast(`Bill #${newBill.invoiceNumber} generated! Downloading PDF...`);
+        setBills((prev) => prev.map((b) => (b._id === updatedBill._id ? updatedBill : b)));
+        setShowModal(false);
+        setEditingBill(null);
+        setFormData(initialForm);
+        showToast(`Bill #${updatedBill.invoiceNumber} updated successfully!`);
+      } else {
+        // Create new bill
+        const res = await apiAdminCreateBill(payload);
+        const newBill = res.bill;
 
-      // Automatically download PDF right away
-      try {
-        await apiAdminDownloadBillPdf(newBill._id, newBill.invoiceNumber);
-      } catch (dlErr) {
-        console.error('Auto download error:', dlErr);
-        showToast('Bill created, but PDF download failed. Use download button to retry.', 'error');
+        // Prepend to current list
+        setBills((prev) => [newBill, ...prev]);
+        setShowModal(false);
+        setFormData(initialForm);
+        showToast(`Bill #${newBill.invoiceNumber} generated! Downloading PDF...`);
+
+        // Automatically download PDF right away
+        try {
+          await apiAdminDownloadBillPdf(newBill._id, newBill.invoiceNumber);
+        } catch (dlErr) {
+          console.error('Auto download error:', dlErr);
+          showToast('Bill created, but PDF download failed. Use download button to retry.', 'error');
+        }
       }
     } catch (err) {
-      showToast(err.message || 'Failed to generate bill', 'error');
+      showToast(err.message || 'Failed to save bill', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -317,7 +376,7 @@ const AdminGenerateBill = () => {
 
           <button
             type="button"
-            onClick={() => setShowModal(true)}
+            onClick={handleOpenCreateModal}
             className="shv-btn-primary"
             style={{
               display: 'inline-flex',
@@ -482,7 +541,7 @@ const AdminGenerateBill = () => {
                       {!searchQuery && (
                         <button
                           type="button"
-                          onClick={() => setShowModal(true)}
+                          onClick={handleOpenCreateModal}
                           className="shv-btn-primary"
                           style={{ marginTop: '0.75rem', padding: '0.45rem 1rem', fontSize: '0.86rem' }}
                         >
@@ -669,6 +728,26 @@ const AdminGenerateBill = () => {
                             gap: '0.5rem',
                           }}
                         >
+                          {/* Edit Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditModal(b)}
+                            className="shv-btn-secondary"
+                            title="Edit Bill"
+                            style={{
+                              padding: '0.35rem 0.65rem',
+                              fontSize: '0.82rem',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                              color: '#2563eb',
+                              borderColor: 'rgba(37, 99, 235, 0.35)',
+                            }}
+                          >
+                            <Pencil size={13} />
+                            <span>Edit</span>
+                          </button>
+
                           {/* Download PDF Button */}
                           <button
                             type="button"
@@ -762,7 +841,7 @@ const AdminGenerateBill = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Receipt size={20} style={{ color: '#A07E52' }} />
                 <h3 className="shv-modal-title" style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>
-                  Generate New Customer Bill
+                  {editingBill ? `Edit Bill #${editingBill.invoiceNumber}` : 'Generate New Customer Bill'}
                 </h3>
               </div>
               <button
@@ -1226,12 +1305,12 @@ const AdminGenerateBill = () => {
                   {submitting ? (
                     <>
                       <RefreshCw size={16} className="shv-spin" />
-                      <span>Generating &amp; Saving...</span>
+                      <span>{editingBill ? 'Updating Bill...' : 'Generating & Saving...'}</span>
                     </>
                   ) : (
                     <>
-                      <Download size={16} />
-                      <span>Generate &amp; Download Bill</span>
+                      {editingBill ? <Pencil size={16} /> : <Download size={16} />}
+                      <span>{editingBill ? 'Update Bill' : 'Generate & Download Bill'}</span>
                     </>
                   )}
                 </button>

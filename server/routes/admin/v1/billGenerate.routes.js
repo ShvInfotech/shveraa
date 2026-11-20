@@ -4,6 +4,7 @@ import {
   CreateBill,
   GetAllBills,
   GetBillById,
+  UpdateBill,
   DownloadBillPdf,
   DeleteBill,
 } from "../../../controllers/admin/v1/billGenerate.controller.js";
@@ -18,6 +19,9 @@ router.post("/", verifyjwtAccessToken, checkRole("admin"), CreateBill);
 
 // GET /api/v1/admin/bill-generate/:id - Get bill details
 router.get("/:id", verifyjwtAccessToken, checkRole("admin"), GetBillById);
+
+// PUT /api/v1/admin/bill-generate/:id - Update an existing bill
+router.put("/:id", verifyjwtAccessToken, checkRole("admin"), UpdateBill);
 
 // GET /api/v1/admin/bill-generate/:id/download - Stream/download PDF invoice
 router.get("/:id/download", DownloadBillPdf);

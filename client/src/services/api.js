@@ -1230,6 +1230,17 @@ export const apiAdminCreateBill = async (billData) => {
   return data;
 };
 
+// Admin: Update an existing generated bill
+export const apiAdminUpdateBill = async (billId, billData) => {
+  const res = await apiFetch(`/api/v1/admin/bill-generate/${billId}`, {
+    method: 'PUT',
+    body: JSON.stringify(billData),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to update bill');
+  return data;
+};
+
 // Admin: Download bill PDF
 export const apiAdminDownloadBillPdf = async (billId, invoiceNumber = 'bill') => {
   const res = await apiFetch(`/api/v1/admin/bill-generate/${billId}/download`);
